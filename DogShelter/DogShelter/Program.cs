@@ -13,6 +13,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
+DotNetEnv.Env.TraversePath().Load();
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<DogShelterContext>(options =>
@@ -89,7 +91,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Services
-builder.Services.AddTransient<IKorisnikService, KorisnikService>();
+builder.Services.AddScoped<IKorisnikService, KorisnikService>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 // Authorization policies and resource-based handlers
@@ -132,10 +134,16 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+var allowedOrigins = builder.Configuration["CORS:AllowedOrigins"]
+    ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? [];
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    options.AddPolicy("DogShelterPolicy", policy =>
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod());
 });
 
 var app = builder.Build();
@@ -147,7 +155,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-app.UseCors("AllowAll");
+app.UseCors("DogShelterPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
@@ -164,7 +172,6 @@ using (var scope = app.Services.CreateScope())
 
         await context.Database.MigrateAsync();
 
-        // Ensure roles
         foreach (var roleName in new[] { "Admin", "Volonter", "Korisnik" })
         {
             if (!await context.Ulogas.AnyAsync(r => r.Naziv == roleName))
@@ -174,7 +181,6 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        // Ensure default admin user
         var adminSeed = config.GetSection("AdminSeed");
         var adminUserName = adminSeed["UserName"] ?? "admin";
         var adminEmail = adminSeed["Email"] ?? "admin@dogshelter.ba";
@@ -186,15 +192,14 @@ using (var scope = app.Services.CreateScope())
 
         if (adminUser == null)
         {
-            var salt = KorisnikService.GenerateSalt();
             adminUser = new Korisnik
             {
                 Ime = "System",
                 Prezime = "Administrator",
                 Email = adminEmail,
                 KorisnickoIme = adminUserName,
-                LozinkaSalt = salt,
-                LozinkaHash = KorisnikService.GenerateHash(salt, adminPassword),
+                LozinkaHash = KorisnikService.HashPassword(adminPassword),
+                LozinkaSalt = string.Empty,
                 Aktivan = true
             };
             context.Korisniks.Add(adminUser);

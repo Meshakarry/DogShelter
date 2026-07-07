@@ -5,8 +5,6 @@ using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace DogShelter.Services.Services
 {
@@ -42,10 +40,9 @@ namespace DogShelter.Services.Services
             if (await _context.Korisniks.AnyAsync(k => k.Email == request.Email))
                 throw new BusinessException("Email je već u upotrebi.");
 
-            var salt = GenerateSalt();
             var entity = _mapper.Map<Database.Korisnik>(request);
-            entity.LozinkaSalt = salt;
-            entity.LozinkaHash = GenerateHash(salt, request.Lozinka);
+            entity.LozinkaHash = HashPassword(request.Lozinka);
+            entity.LozinkaSalt = string.Empty;
             entity.Aktivan = true;
 
             _context.Korisniks.Add(entity);
@@ -84,8 +81,9 @@ namespace DogShelter.Services.Services
             if (user == null)
                 return null;
 
-            var hash = GenerateHash(user.LozinkaSalt, request.Lozinka);
-            return hash != user.LozinkaHash ? null : _mapper.Map<Model.Korisnik>(user);
+            return VerifyPassword(request.Lozinka, user.LozinkaHash)
+                ? _mapper.Map<Model.Korisnik>(user)
+                : null;
         }
 
         public async Task<Model.Korisnik> Register(RegisterRequest request)
@@ -95,7 +93,6 @@ namespace DogShelter.Services.Services
             if (await _context.Korisniks.AnyAsync(k => k.Email == request.Email))
                 throw new BusinessException("Email je već u upotrebi.");
 
-            var salt = GenerateSalt();
             var entity = new Database.Korisnik
             {
                 Ime = request.Ime,
@@ -104,8 +101,8 @@ namespace DogShelter.Services.Services
                 Telefon = request.Telefon,
                 KorisnickoIme = request.KorisnickoIme,
                 SlikaPutanja = request.SlikaPutanja,
-                LozinkaSalt = salt,
-                LozinkaHash = GenerateHash(salt, request.Lozinka),
+                LozinkaHash = HashPassword(request.Lozinka),
+                LozinkaSalt = string.Empty,
                 Aktivan = true
             };
 
@@ -148,18 +145,10 @@ namespace DogShelter.Services.Services
             return await GetById(userId);
         }
 
-        public static string GenerateSalt()
-        {
-            var bytes = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(bytes);
-            return Convert.ToBase64String(bytes);
-        }
+        public static string HashPassword(string password)
+            => BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
 
-        public static string GenerateHash(string salt, string password)
-        {
-            var combined = Encoding.UTF8.GetBytes(salt + password);
-            return Convert.ToBase64String(SHA256.HashData(combined));
-        }
+        public static bool VerifyPassword(string password, string hash)
+            => BCrypt.Net.BCrypt.Verify(password, hash);
     }
 }
