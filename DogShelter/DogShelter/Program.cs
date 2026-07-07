@@ -1,9 +1,9 @@
 using DogShelter.Filters;
-using Microsoft.AspNetCore.Mvc;
 using DogShelter.Security;
 using DogShelter.Services.Database;
 using DogShelter.Services.Interfaces;
 using DogShelter.Services.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -90,8 +90,19 @@ builder.Services.AddSwaggerGen(c =>
     c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 });
 
+builder.Services.AddMemoryCache();
+
 // Services
 builder.Services.AddScoped<IKorisnikService, KorisnikService>();
+builder.Services.AddScoped<IGradService, GradService>();
+builder.Services.AddScoped<IRasaService, RasaService>();
+builder.Services.AddScoped<IVelicinaPsaService, VelicinaPsaService>();
+builder.Services.AddScoped<IStatusPsaService, StatusPsaService>();
+builder.Services.AddScoped<IStatusDonacijeService, StatusDonacijeService>();
+builder.Services.AddScoped<IStatusPosjeteService, StatusPosjeteService>();
+builder.Services.AddScoped<IStatusZahtjevaService, StatusZahtjevaService>();
+builder.Services.AddScoped<ITipDonacijeService, TipDonacijeService>();
+builder.Services.AddScoped<ITipAktivnostiService, TipAktivnostiService>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 // Authorization policies and resource-based handlers

@@ -56,5 +56,16 @@ public class MappingProfile : Profile
         CreateMap<Database.VelicinaPsa, Model.VelicinaPsa>();
         CreateMap<Database.Volonter, Model.Volonter>();
         CreateMap<Database.ZahtjevZaUdomljavanje, Model.ZahtjevZaUdomljavanje>();
+
+        // Lookup upsert request → database entity mappings
+        CreateMap<Model.Requests.GradUpsertRequest, Database.Grad>();
+        CreateMap<Model.Requests.RasaUpsertRequest, Database.Rasa>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.VelicinaPsa>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusPsa>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusDonacije>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusPosjete>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusZahtjeva>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.TipDonacije>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.TipAktivnosti>();
     }
 }
