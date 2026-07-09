@@ -1,23 +1,34 @@
-namespace DogShelter.Model;
+using System.ComponentModel.DataAnnotations;
 
-public class Pas
+namespace DogShelter.Model.Requests;
+
+public class PasInsertRequest
 {
-    public int PasId { get; set; }
+    [Required, MaxLength(100)]
     public string Naziv { get; set; } = null!;
+
+    [Required]
     public int RasaId { get; set; }
-    public string? RasaNaziv { get; set; }
+
     public Spol Spol { get; set; }
+
     public DateOnly? DatumRodjenja { get; set; }
+
+    [MaxLength(2000)]
     public string? Opis { get; set; }
+
+    [Required]
     public int StatusPsaId { get; set; }
-    public string? StatusNaziv { get; set; }
+
+    [Required]
     public int VelicinaPsaId { get; set; }
-    public string? VelicinaNaziv { get; set; }
+
+    [Range(0.1, 200)]
     public decimal? Tezina { get; set; }
+
     public DateOnly DatumPrijema { get; set; }
-    public string? SlikaNaslovna { get; set; }
+
     public bool Vakcinisan { get; set; }
+
     public bool Sterilizovan { get; set; }
-    public bool Aktivan { get; set; }
-    public List<SlikaPsa> Slike { get; set; } = [];
 }

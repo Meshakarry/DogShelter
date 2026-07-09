@@ -33,7 +33,23 @@ public class MappingProfile : Profile
             .ForMember(d => d.SlikaPutanja, o => o.Condition((src, _, _, _) => !string.IsNullOrEmpty(src.SlikaPutanja)))
             .ForMember(d => d.LozinkaHash, o => o.Ignore())
             .ForMember(d => d.LozinkaSalt, o => o.Ignore());
-        CreateMap<Database.Pas, Model.Pas>();
+        CreateMap<Database.Pas, Model.Pas>()
+            .ForMember(d => d.RasaNaziv,     o => o.MapFrom(s => s.Rasa != null ? s.Rasa.Naziv : null))
+            .ForMember(d => d.StatusNaziv,   o => o.MapFrom(s => s.StatusPsa != null ? s.StatusPsa.Naziv : null))
+            .ForMember(d => d.VelicinaNaziv, o => o.MapFrom(s => s.VelicinaPsa != null ? s.VelicinaPsa.Naziv : null))
+            .ForMember(d => d.Slike,         o => o.MapFrom(s => s.SlikaPsas));
+
+        CreateMap<Database.Pas, Model.PasListItem>()
+            .ForMember(d => d.RasaNaziv,     o => o.MapFrom(s => s.Rasa != null ? s.Rasa.Naziv : null))
+            .ForMember(d => d.StatusNaziv,   o => o.MapFrom(s => s.StatusPsa != null ? s.StatusPsa.Naziv : null))
+            .ForMember(d => d.VelicinaNaziv, o => o.MapFrom(s => s.VelicinaPsa != null ? s.VelicinaPsa.Naziv : null));
+
+        CreateMap<Model.Requests.PasInsertRequest, Database.Pas>()
+            .ForMember(d => d.SlikaNaslovna, o => o.Ignore())
+            .ForMember(d => d.Aktivan,       o => o.Ignore());
+
+        CreateMap<Model.Requests.PasUpdateRequest, Database.Pas>()
+            .ForMember(d => d.SlikaNaslovna, o => o.Ignore());
         CreateMap<Database.Donacija, Model.Donacija>();
         CreateMap<Database.AktivnostVolontera, Model.AktivnostVolontera>();
         CreateMap<Database.Dogadjaj, Model.Dogadjaj>();

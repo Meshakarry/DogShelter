@@ -1,4 +1,6 @@
-﻿namespace DogShelter.Services.Database;
+﻿using DogShelter.Model;
+
+namespace DogShelter.Services.Database;
 
 public partial class Pas
 {
@@ -8,7 +10,7 @@ public partial class Pas
 
     public int RasaId { get; set; }
 
-    public bool Spol { get; set; }
+    public Spol Spol { get; set; }
 
     public DateOnly? DatumRodjenja { get; set; }
 

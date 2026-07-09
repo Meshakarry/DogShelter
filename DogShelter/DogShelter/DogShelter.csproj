@@ -27,4 +27,10 @@
     <ProjectReference Include="..\DogShelter.Model\DogShelter.Model.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="SeedData\Images\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
