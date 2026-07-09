@@ -25,7 +25,7 @@ namespace DogShelter.Controllers
 
         [HttpPut("{ID:int}")]
         [Authorize(Roles = "Admin")]
-        public async Task<T> Update(int ID, TUpdate request)
+        public virtual async Task<T> Update(int ID, TUpdate request)
         {
             return await _service.Update(ID, request);
         }

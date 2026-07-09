@@ -1,6 +1,6 @@
 namespace DogShelter.Model;
 
-public class Pas
+public class PasListItem
 {
     public int PasId { get; set; }
     public string Naziv { get; set; } = null!;
@@ -8,7 +8,6 @@ public class Pas
     public string? RasaNaziv { get; set; }
     public Spol Spol { get; set; }
     public DateOnly? DatumRodjenja { get; set; }
-    public string? Opis { get; set; }
     public int StatusPsaId { get; set; }
     public string? StatusNaziv { get; set; }
     public int VelicinaPsaId { get; set; }
@@ -19,5 +18,4 @@ public class Pas
     public bool Vakcinisan { get; set; }
     public bool Sterilizovan { get; set; }
     public bool Aktivan { get; set; }
-    public List<SlikaPsa> Slike { get; set; } = [];
 }

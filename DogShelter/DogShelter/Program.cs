@@ -103,6 +103,9 @@ builder.Services.AddScoped<IStatusPosjeteService, StatusPosjeteService>();
 builder.Services.AddScoped<IStatusZahtjevaService, StatusZahtjevaService>();
 builder.Services.AddScoped<ITipDonacijeService, TipDonacijeService>();
 builder.Services.AddScoped<ITipAktivnostiService, TipAktivnostiService>();
+builder.Services.AddScoped<IPasService, PasService>();
+builder.Services.AddScoped<IPregledPsaService, PregledPsaService>();
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 // Authorization policies and resource-based handlers
@@ -166,16 +169,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseStaticFiles();
 app.UseCors("DogShelterPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
 
-// Seed roles and default admin user on first boot
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("StartupSeeding");
     try
     {
         var context = services.GetRequiredService<DogShelterContext>();
@@ -230,10 +234,12 @@ using (var scope = app.Services.CreateScope())
             });
             await context.SaveChangesAsync();
         }
+
+        var env = services.GetRequiredService<IWebHostEnvironment>();
+        await DatabaseSeeder.SeedAllAsync(context, logger, env.WebRootPath);
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("StartupSeeding");
         logger.LogError(ex, "Error during startup seeding");
     }
 }
