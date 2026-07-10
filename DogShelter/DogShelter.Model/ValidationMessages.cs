@@ -15,9 +15,16 @@ namespace DogShelter.Model
         public const string PasswordMinLength = "Lozinka mora imati najmanje 6 znakova";
         public const string PasswordConfirmRequired = "Potvrda lozinke je obavezna";
         public const string PasswordsDoNotMatch = "Lozinke se ne podudaraju";
+        public const string OldPasswordRequired = "Trenutna lozinka je obavezna";
+        public const string OldPasswordIncorrect = "Trenutna lozinka nije ispravna";
         public const string ResetCodeRequired = "Reset kod je obavezan";
         public const string ResetCodeFormat = "Reset kod mora imati točno 6 brojeva";
         public const string NewPasswordRequired = "Nova lozinka je obavezna";
+        // ZahtjevZaUdomljavanje
+        public const string PasIdRequired = "Pas je obavezan.";
+        public const string NapomenaMaxLength = "Napomena može imati najviše 1000 karaktera.";
+        public const string RazlogOdbijanjaRequired = "Razlog odbijanja je obavezan.";
+        public const string RazlogOdbijanjaMaxLength = "Razlog odbijanja može imati najviše 1000 karaktera.";
         // Paginacija
         public const string PageMin = "Stranica mora biti najmanje 1";
         public const string PageSizeRange = "Veličina stranice mora biti između 1 i 100";

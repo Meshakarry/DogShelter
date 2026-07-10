@@ -27,6 +27,8 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<KorisnikUloga> KorisnikUlogas { get; set; }
 
+    public virtual DbSet<LozinkaResetToken> LozinkaResetTokens { get; set; }
+
     public virtual DbSet<Obavijest> Obavijests { get; set; }
 
     public virtual DbSet<Pas> Pas { get; set; }
@@ -186,6 +188,22 @@ public partial class DogShelterContext : DbContext
                 .HasForeignKey(d => d.UlogaId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_KorisnikUloga_Uloga");
+        });
+
+        modelBuilder.Entity<LozinkaResetToken>(entity =>
+        {
+            entity.ToTable("LozinkaResetToken");
+
+            entity.HasIndex(e => e.KorisnikId, "IX_LozinkaResetToken_KorisnikId");
+
+            entity.Property(e => e.KodHash).HasMaxLength(128);
+            entity.Property(e => e.DatumKreiranja).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.Iskoristen).HasDefaultValue(false);
+
+            entity.HasOne(d => d.Korisnik).WithMany(p => p.LozinkaResetTokens)
+                .HasForeignKey(d => d.KorisnikId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LozinkaResetToken_Korisnik");
         });
 
         modelBuilder.Entity<Obavijest>(entity =>
