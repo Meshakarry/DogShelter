@@ -57,7 +57,14 @@ public class MappingProfile : Profile
         CreateMap<Database.Grad, Model.Grad>();
         CreateMap<Database.KorisnikUloga, Model.KorisnikUloga>();
         CreateMap<Database.Obavijest, Model.Obavijest>();
-        CreateMap<Database.Posjeta, Model.Posjeta>();
+        CreateMap<Database.Posjeta, Model.Posjeta>()
+            .ForMember(d => d.KorisnikIme,             o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Ime : null))
+            .ForMember(d => d.KorisnikPrezime,         o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))
+            .ForMember(d => d.PasNaziv,                o => o.MapFrom(s => s.Pas != null ? s.Pas.Naziv : null))
+            .ForMember(d => d.PasSlikaNaslovna,        o => o.MapFrom(s => s.Pas != null ? s.Pas.SlikaNaslovna : null))
+            .ForMember(d => d.StatusPosjeteNaziv,      o => o.MapFrom(s => s.StatusPosjete != null ? s.StatusPosjete.Naziv : null))
+            .ForMember(d => d.ObradioKorisnikIme,      o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Ime : null))
+            .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null));
         CreateMap<Database.PregledPsa, Model.PregledPsa>();
         CreateMap<Database.Rasa, Model.Rasa>();
         CreateMap<Database.SlikaPsa, Model.SlikaPsa>();

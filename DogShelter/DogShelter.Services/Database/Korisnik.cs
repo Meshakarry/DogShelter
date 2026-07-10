@@ -38,7 +38,9 @@ public partial class Korisnik
 
     public virtual ICollection<Obavijest> Obavijests { get; set; } = new List<Obavijest>();
 
-    public virtual ICollection<Posjeta> Posjeta { get; set; } = new List<Posjeta>();
+    public virtual ICollection<Posjeta> PosjetaKorisniks { get; set; } = new List<Posjeta>();
+
+    public virtual ICollection<Posjeta> PosjetaObradioKorisniks { get; set; } = new List<Posjeta>();
 
     public virtual ICollection<PregledPsa> PregledPsas { get; set; } = new List<PregledPsa>();
 
