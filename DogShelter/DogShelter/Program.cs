@@ -117,6 +117,8 @@ builder.Services.AddScoped<ITipDonacijeService, TipDonacijeService>();
 builder.Services.AddScoped<ITipAktivnostiService, TipAktivnostiService>();
 builder.Services.AddScoped<IPasService, PasService>();
 builder.Services.AddScoped<IPregledPsaService, PregledPsaService>();
+builder.Services.AddScoped<IZahtjevZaUdomljavanjeService, ZahtjevZaUdomljavanjeService>();
+builder.Services.AddScoped<IUdomljavanjeService, UdomljavanjeService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
