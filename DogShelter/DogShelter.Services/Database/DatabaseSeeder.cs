@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using DogShelter.Services.Constants;
 using static DogShelter.Model.Spol;
 
 namespace DogShelter.Services.Database;
@@ -10,8 +11,10 @@ public static class DatabaseSeeder
     {
         await EnsureVelicinePsaAsync(context, logger);
         await EnsureStatusPsaAsync(context, logger);
+        await EnsureStatusZahtjevaAsync(context, logger);
         await EnsureRaseAsync(context, logger);
         await EnsurePsiAsync(context, logger, wwwrootPath);
+        await EnsureZahtjeviAsync(context, logger);
     }
 
     /// <summary>
@@ -67,6 +70,18 @@ public static class DatabaseSeeder
         }
         await context.SaveChangesAsync();
         logger.LogInformation("Seeded StatusPsa.");
+    }
+
+    private static async Task EnsureStatusZahtjevaAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { StatusZahtjevaNazivi.NaCekanju, StatusZahtjevaNazivi.Odobren, StatusZahtjevaNazivi.Odbijen };
+        foreach (var naziv in names)
+        {
+            if (!await context.StatusZahtjevas.AnyAsync(s => s.Naziv == naziv))
+                context.StatusZahtjevas.Add(new StatusZahtjeva { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded StatusZahtjeva.");
     }
 
     private static async Task EnsureRaseAsync(DogShelterContext context, ILogger logger)
@@ -186,5 +201,94 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded {Count} pasa i {SlikaCount} slika.", psi.Length, slikePse.Count);
+    }
+
+    /// <summary>
+    /// Seeds a handful of ZahtjevZaUdomljavanje records (pending, rejected, approved) so the
+    /// state machine has data to exercise. Also backfills Udomljavanje for the dogs that
+    /// EnsurePsiAsync already seeded with StatusPsa "Udomljen" (Max, Lola, Nera), so their
+    /// adoption has a proper audit trail instead of a bare status flag.
+    /// No dedicated "Korisnik" test account exists yet, so the shelter admin is used as the
+    /// requester/processor here purely for demo data.
+    /// </summary>
+    private static async Task EnsureZahtjeviAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.ZahtjevZaUdomljavanjes.AnyAsync()) return;
+
+        var trazilac = await context.Korisniks.OrderBy(k => k.KorisnikId).FirstOrDefaultAsync();
+        if (trazilac == null) return;
+
+        var sNaCekanju = await context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.NaCekanju);
+        var sOdobren = await context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Odobren);
+        var sOdbijen = await context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Odbijen);
+
+        var bella = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Bella");
+        var pahulja = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Pahulja");
+        var roki = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Roki");
+        var max = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Max");
+        var lola = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Lola");
+        var nera = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Nera");
+
+        var pending = new[] { bella, pahulja };
+        foreach (var pas in pending)
+        {
+            if (pas == null) continue;
+            context.ZahtjevZaUdomljavanjes.Add(new ZahtjevZaUdomljavanje
+            {
+                KorisnikId = trazilac.KorisnikId,
+                PasId = pas.PasId,
+                StatusZahtjevaId = sNaCekanju.StatusZahtjevaId,
+                DatumPodnosenja = DateTime.UtcNow.AddDays(-2),
+                Napomena = "Zainteresovan/a sam za udomljavanje ovog psa."
+            });
+        }
+
+        if (roki != null)
+        {
+            context.ZahtjevZaUdomljavanjes.Add(new ZahtjevZaUdomljavanje
+            {
+                KorisnikId = trazilac.KorisnikId,
+                PasId = roki.PasId,
+                StatusZahtjevaId = sOdbijen.StatusZahtjevaId,
+                DatumPodnosenja = DateTime.UtcNow.AddDays(-10),
+                DatumObrade = DateTime.UtcNow.AddDays(-9),
+                ObradioKorisnikId = trazilac.KorisnikId,
+                RazlogOdbijanja = "Nema odgovarajući prostor za psa ove veličine."
+            });
+        }
+
+        await context.SaveChangesAsync();
+
+        var udomljeni = new (Database.Pas? Pas, DateOnly Datum)[]
+        {
+            (max, new DateOnly(2024, 11, 20)),
+            (lola, new DateOnly(2024, 9, 2)),
+            (nera, new DateOnly(2024, 5, 10)),
+        };
+
+        var udomljavanja = new List<Udomljavanje>();
+        foreach (var (pas, datum) in udomljeni)
+        {
+            if (pas == null) continue;
+
+            var zahtjev = new ZahtjevZaUdomljavanje
+            {
+                KorisnikId = trazilac.KorisnikId,
+                PasId = pas.PasId,
+                StatusZahtjevaId = sOdobren.StatusZahtjevaId,
+                DatumPodnosenja = datum.ToDateTime(TimeOnly.MinValue).AddDays(-7),
+                DatumObrade = datum.ToDateTime(TimeOnly.MinValue),
+                ObradioKorisnikId = trazilac.KorisnikId
+            };
+            context.ZahtjevZaUdomljavanjes.Add(zahtjev);
+            await context.SaveChangesAsync();
+
+            udomljavanja.Add(new Udomljavanje { ZahtjevZaUdomljavanjeId = zahtjev.ZahtjevZaUdomljavanjeId, DatumUdomljavanja = datum });
+        }
+
+        context.Udomljavanjes.AddRange(udomljavanja);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded zahtjeve za udomljavanje i {Count} udomljavanja.", udomljavanja.Count);
     }
 }

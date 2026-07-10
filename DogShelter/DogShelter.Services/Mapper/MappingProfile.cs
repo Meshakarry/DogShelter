@@ -67,11 +67,24 @@ public class MappingProfile : Profile
         CreateMap<Database.StatusZahtjeva, Model.StatusZahtjeva>();
         CreateMap<Database.TipAktivnosti, Model.TipAktivnosti>();
         CreateMap<Database.TipDonacije, Model.TipDonacije>();
-        CreateMap<Database.Udomljavanje, Model.Udomljavanje>();
+        CreateMap<Database.Udomljavanje, Model.Udomljavanje>()
+            .ForMember(d => d.PasId,           o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.PasId))
+            .ForMember(d => d.PasNaziv,        o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.Pas != null ? s.ZahtjevZaUdomljavanje.Pas.Naziv : null))
+            .ForMember(d => d.PasSlikaNaslovna, o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.Pas != null ? s.ZahtjevZaUdomljavanje.Pas.SlikaNaslovna : null))
+            .ForMember(d => d.KorisnikId,      o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.KorisnikId))
+            .ForMember(d => d.KorisnikIme,     o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.Korisnik != null ? s.ZahtjevZaUdomljavanje.Korisnik.Ime : null))
+            .ForMember(d => d.KorisnikPrezime, o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.Korisnik != null ? s.ZahtjevZaUdomljavanje.Korisnik.Prezime : null));
         CreateMap<Database.Uloga, Model.Uloga>();
         CreateMap<Database.VelicinaPsa, Model.VelicinaPsa>();
         CreateMap<Database.Volonter, Model.Volonter>();
-        CreateMap<Database.ZahtjevZaUdomljavanje, Model.ZahtjevZaUdomljavanje>();
+        CreateMap<Database.ZahtjevZaUdomljavanje, Model.ZahtjevZaUdomljavanje>()
+            .ForMember(d => d.KorisnikIme,             o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Ime : null))
+            .ForMember(d => d.KorisnikPrezime,         o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))
+            .ForMember(d => d.PasNaziv,                o => o.MapFrom(s => s.Pas != null ? s.Pas.Naziv : null))
+            .ForMember(d => d.PasSlikaNaslovna,        o => o.MapFrom(s => s.Pas != null ? s.Pas.SlikaNaslovna : null))
+            .ForMember(d => d.StatusZahtjevaNaziv,     o => o.MapFrom(s => s.StatusZahtjeva != null ? s.StatusZahtjeva.Naziv : null))
+            .ForMember(d => d.ObradioKorisnikIme,      o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Ime : null))
+            .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null));
 
         // Lookup upsert request → database entity mappings
         CreateMap<Model.Requests.GradUpsertRequest, Database.Grad>();
