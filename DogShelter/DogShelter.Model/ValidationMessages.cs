@@ -15,6 +15,8 @@ namespace DogShelter.Model
         public const string PasswordMinLength = "Lozinka mora imati najmanje 6 znakova";
         public const string PasswordConfirmRequired = "Potvrda lozinke je obavezna";
         public const string PasswordsDoNotMatch = "Lozinke se ne podudaraju";
+        public const string OldPasswordRequired = "Trenutna lozinka je obavezna";
+        public const string OldPasswordIncorrect = "Trenutna lozinka nije ispravna";
         public const string ResetCodeRequired = "Reset kod je obavezan";
         public const string ResetCodeFormat = "Reset kod mora imati točno 6 brojeva";
         public const string NewPasswordRequired = "Nova lozinka je obavezna";

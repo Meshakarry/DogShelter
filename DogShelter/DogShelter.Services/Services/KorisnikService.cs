@@ -4,6 +4,7 @@ using DogShelter.Model.Requests;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace DogShelter.Services.Services
@@ -11,7 +12,12 @@ namespace DogShelter.Services.Services
     public class KorisnikService : CRUDService<Model.Korisnik, KorisnikSearchRequest, Database.Korisnik, KorisnikInsertRequest, KorisnikUpdateRequest>,
         IKorisnikService
     {
-        public KorisnikService(DogShelterContext context, IMapper mapper) : base(context, mapper) { }
+        private readonly IFileUploadService _fileUpload;
+
+        public KorisnikService(DogShelterContext context, IMapper mapper, IFileUploadService fileUpload) : base(context, mapper)
+        {
+            _fileUpload = fileUpload;
+        }
 
         public override async Task<PagedResult<Model.Korisnik>> Get(KorisnikSearchRequest search)
         {
@@ -259,6 +265,34 @@ namespace DogShelter.Services.Services
                 entity.SlikaPutanja = request.SlikaPutanja;
 
             await _context.SaveChangesAsync();
+            return await GetById(userId);
+        }
+
+        public async Task ChangeMyPassword(int userId, KorisnikChangePasswordRequest request)
+        {
+            var entity = await _context.Korisniks.FindAsync(userId)
+                ?? throw new NotFoundException("Korisnik nije pronađen.");
+
+            if (!VerifyPassword(request.StaraLozinka, entity.LozinkaHash))
+                throw new ValidationException(ValidationMessages.OldPasswordIncorrect,
+                    nameof(request.StaraLozinka), ValidationMessages.OldPasswordIncorrect);
+
+            entity.LozinkaHash = HashPassword(request.NovaLozinka);
+            entity.LozinkaSalt = string.Empty;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Model.Korisnik> UpdateMyAvatar(int userId, IFormFile file)
+        {
+            var entity = await _context.Korisniks.FindAsync(userId)
+                ?? throw new NotFoundException("Korisnik nije pronađen.");
+
+            var oldPath = entity.SlikaPutanja;
+            entity.SlikaPutanja = await _fileUpload.SaveImageAsync(file, "korisnici");
+            await _context.SaveChangesAsync();
+
+            _fileUpload.DeleteImage(oldPath);
+
             return await GetById(userId);
         }
 

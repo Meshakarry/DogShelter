@@ -56,6 +56,18 @@ builder.Services.AddRateLimiter(options =>
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }
         ));
+
+    options.AddPolicy("PasswordResetPolicy", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(15),
+                PermitLimit = 5,
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }
+        ));
 });
 
 builder.Services.AddAutoMapper(typeof(DogShelter.Services.Mapper.MappingProfile).Assembly);
@@ -106,6 +118,8 @@ builder.Services.AddScoped<ITipAktivnostiService, TipAktivnostiService>();
 builder.Services.AddScoped<IPasService, PasService>();
 builder.Services.AddScoped<IPregledPsaService, PregledPsaService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 // Authorization policies and resource-based handlers
@@ -235,12 +249,49 @@ using (var scope = app.Services.CreateScope())
             await context.SaveChangesAsync();
         }
 
+        await EnsureTestUserAsync(context, "korisnik", "Test", "Korisnik", "korisnik@dogshelter.ba", "Korisnik");
+        await EnsureTestUserAsync(context, "volonter", "Test", "Volonter", "volonter@dogshelter.ba", "Volonter");
+
         var env = services.GetRequiredService<IWebHostEnvironment>();
         await DatabaseSeeder.SeedAllAsync(context, logger, env.WebRootPath);
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "Error during startup seeding");
+    }
+}
+
+static async Task EnsureTestUserAsync(DogShelterContext context, string userName, string ime, string prezime, string email, string roleName)
+{
+    var user = await context.Korisniks.FirstOrDefaultAsync(u => u.KorisnickoIme == userName);
+    if (user == null)
+    {
+        user = new Korisnik
+        {
+            Ime = ime,
+            Prezime = prezime,
+            Email = email,
+            KorisnickoIme = userName,
+            LozinkaHash = KorisnikService.HashPassword("test"),
+            LozinkaSalt = string.Empty,
+            Aktivan = true
+        };
+        context.Korisniks.Add(user);
+        await context.SaveChangesAsync();
+    }
+
+    var role = await context.Ulogas.FirstAsync(r => r.Naziv == roleName);
+    var hasRole = await context.KorisnikUlogas
+        .AnyAsync(ur => ur.KorisnikId == user.KorisnikId && ur.UlogaId == role.UlogaId);
+
+    if (!hasRole)
+    {
+        context.KorisnikUlogas.Add(new KorisnikUloga
+        {
+            KorisnikId = user.KorisnikId,
+            UlogaId = role.UlogaId
+        });
+        await context.SaveChangesAsync();
     }
 }
 

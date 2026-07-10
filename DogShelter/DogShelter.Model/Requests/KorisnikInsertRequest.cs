@@ -21,7 +21,7 @@ namespace DogShelter.Model.Requests
 
         public string Lozinka { get; set; } = null!;
 
-        [Compare("Lozinka", ErrorMessage = "Passwords do not match.")]
+        [Compare("Lozinka", ErrorMessage = ValidationMessages.PasswordsDoNotMatch)]
         public string LozinkaPotvrda { get; set; } = null!;
 
         public List<string> Uloge { get; set; } = new();

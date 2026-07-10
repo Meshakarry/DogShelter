@@ -1,7 +1,6 @@
 using DogShelter.Model;
 using DogShelter.Model.Requests;
 using DogShelter.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DogShelter.Controllers
@@ -11,15 +10,5 @@ namespace DogShelter.Controllers
     public class StatusPsaController : BaseCRUDController<StatusPsa, LookupSearchRequest, LookupUpsertRequest, LookupUpsertRequest>
     {
         public StatusPsaController(IStatusPsaService service) : base(service) { }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public override async Task<PagedResult<StatusPsa>> Get([FromQuery] LookupSearchRequest search)
-            => await base.Get(search);
-
-        [HttpGet("{ID:int}")]
-        [AllowAnonymous]
-        public override async Task<StatusPsa> GetById(int ID)
-            => await base.GetById(ID);
     }
 }

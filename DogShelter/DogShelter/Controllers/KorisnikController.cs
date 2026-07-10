@@ -38,7 +38,7 @@ namespace DogShelter.Controllers
                 var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (!int.TryParse(userIdClaim, out var currentKorisnikId) || currentKorisnikId != ID)
                 {
-                    throw new ForbiddenException("Access denied.");
+                    throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
                 }
             }
 
@@ -79,9 +79,33 @@ namespace DogShelter.Controllers
         {
             var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out var userId))
-                throw new ForbiddenException("Access denied.");
+                throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
 
             return await _service.UpdateMyProfile(userId, request);
+        }
+
+        [HttpPut("password")]
+        [Authorize]
+        public async Task<IActionResult> ChangeMyPassword([FromBody] KorisnikChangePasswordRequest request)
+        {
+            var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out var userId))
+                throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
+
+            await _service.ChangeMyPassword(userId, request);
+            return Ok(new { message = "Lozinka je uspješno promijenjena." });
+        }
+
+        [HttpPost("avatar")]
+        [Authorize]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<Korisnik>> UpdateMyAvatar(IFormFile slika)
+        {
+            var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out var userId))
+                throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
+
+            return await _service.UpdateMyAvatar(userId, slika);
         }
 
         [HttpPost("Token")]
