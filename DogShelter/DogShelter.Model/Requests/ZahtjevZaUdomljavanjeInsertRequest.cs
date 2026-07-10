@@ -4,9 +4,9 @@ namespace DogShelter.Model.Requests;
 
 public class ZahtjevZaUdomljavanjeInsertRequest
 {
-    [Required(ErrorMessage = "Pas je obavezan.")]
+    [Required(ErrorMessage = ValidationMessages.PasIdRequired)]
     public int PasId { get; set; }
 
-    [MaxLength(1000, ErrorMessage = "Napomena može imati najviše 1000 karaktera.")]
+    [MaxLength(1000, ErrorMessage = ValidationMessages.NapomenaMaxLength)]
     public string? Napomena { get; set; }
 }

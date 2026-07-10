@@ -4,7 +4,7 @@ namespace DogShelter.Model.Requests;
 
 public class ZahtjevZaUdomljavanjeOdbijRequest
 {
-    [Required(ErrorMessage = "Razlog odbijanja je obavezan.")]
-    [MaxLength(1000, ErrorMessage = "Razlog odbijanja može imati najviše 1000 karaktera.")]
+    [Required(ErrorMessage = ValidationMessages.RazlogOdbijanjaRequired)]
+    [MaxLength(1000, ErrorMessage = ValidationMessages.RazlogOdbijanjaMaxLength)]
     public string RazlogOdbijanja { get; set; } = null!;
 }
