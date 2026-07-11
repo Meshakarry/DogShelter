@@ -12,9 +12,11 @@ public static class DatabaseSeeder
         await EnsureVelicinePsaAsync(context, logger);
         await EnsureStatusPsaAsync(context, logger);
         await EnsureStatusZahtjevaAsync(context, logger);
+        await EnsureStatusPosjeteAsync(context, logger);
         await EnsureRaseAsync(context, logger);
         await EnsurePsiAsync(context, logger, wwwrootPath);
         await EnsureZahtjeviAsync(context, logger);
+        await EnsurePosjeteAsync(context, logger);
     }
 
     /// <summary>
@@ -82,6 +84,18 @@ public static class DatabaseSeeder
         }
         await context.SaveChangesAsync();
         logger.LogInformation("Seeded StatusZahtjeva.");
+    }
+
+    private static async Task EnsureStatusPosjeteAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { StatusPosjeteNazivi.NaCekanju, StatusPosjeteNazivi.Potvrdjena, StatusPosjeteNazivi.Otkazana, StatusPosjeteNazivi.Zavrsena };
+        foreach (var naziv in names)
+        {
+            if (!await context.StatusPosjetes.AnyAsync(s => s.Naziv == naziv))
+                context.StatusPosjetes.Add(new StatusPosjete { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded StatusPosjete.");
     }
 
     private static async Task EnsureRaseAsync(DogShelterContext context, ILogger logger)
@@ -290,5 +304,93 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded zahtjeve za udomljavanje i {Count} udomljavanja.", udomljavanja.Count);
+    }
+
+    /// <summary>
+    /// Seeds a handful of Posjeta records spanning all four statuses (Na čekanju, Potvrđena,
+    /// Otkazana, Završena) across both the admin and the "korisnik" test account, so the
+    /// confirm/cancel/complete state machine and overlap check have data to exercise.
+    /// </summary>
+    private static async Task EnsurePosjeteAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.Posjeta.AnyAsync()) return;
+
+        var admin = await context.Korisniks.OrderBy(k => k.KorisnikId).FirstOrDefaultAsync();
+        var korisnik = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "korisnik") ?? admin;
+        if (admin == null || korisnik == null) return;
+
+        var sNaCekanju = await context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.NaCekanju);
+        var sPotvrdjena = await context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.Potvrdjena);
+        var sOtkazana = await context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.Otkazana);
+        var sZavrsena = await context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.Zavrsena);
+
+        var luna = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Luna");
+        var rex = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Rex");
+        var zlatko = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Zlatko");
+        var pahulja = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Pahulja");
+
+        var now = DateTime.UtcNow;
+
+        var posjete = new List<Posjeta>
+        {
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                PasId = luna?.PasId,
+                DatumVrijeme = now.AddDays(3).Date.AddHours(10),
+                StatusPosjeteId = sNaCekanju.StatusPosjeteId,
+                DatumKreiranja = now.AddDays(-1),
+                Napomena = "Željeli bismo upoznati Lunu prije donošenja odluke o udomljavanju."
+            },
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                PasId = rex?.PasId,
+                DatumVrijeme = now.AddDays(5).Date.AddHours(14),
+                StatusPosjeteId = sPotvrdjena.StatusPosjeteId,
+                DatumKreiranja = now.AddDays(-3),
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-2),
+                Napomena = "Posjeta radi upoznavanja sa psom Rex."
+            },
+            new()
+            {
+                KorisnikId = admin.KorisnikId,
+                PasId = zlatko?.PasId,
+                DatumVrijeme = now.AddDays(-4).Date.AddHours(11),
+                StatusPosjeteId = sOtkazana.StatusPosjeteId,
+                DatumKreiranja = now.AddDays(-7),
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-6),
+                RazlogOtkazivanja = "Korisnik je otkazao zbog bolesti."
+            },
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                PasId = pahulja?.PasId,
+                DatumVrijeme = now.AddDays(-10).Date.AddHours(9),
+                StatusPosjeteId = sZavrsena.StatusPosjeteId,
+                DatumKreiranja = now.AddDays(-14),
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-10),
+                Napomena = "Posjeta uspješno realizovana."
+            },
+            new()
+            {
+                KorisnikId = admin.KorisnikId,
+                PasId = null,
+                DatumVrijeme = now.AddDays(-1).Date.AddHours(15),
+                StatusPosjeteId = sZavrsena.StatusPosjeteId,
+                DatumKreiranja = now.AddDays(-1).Date.AddHours(15),
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-1).Date.AddHours(15),
+                Napomena = "Walk-in posjeta azilu bez prethodne rezervacije."
+            }
+        };
+
+        context.Posjeta.AddRange(posjete);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} posjeta.", posjete.Count);
     }
 }

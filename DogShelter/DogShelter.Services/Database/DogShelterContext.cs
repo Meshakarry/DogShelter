@@ -251,11 +251,22 @@ public partial class DogShelterContext : DbContext
             entity.HasKey(e => e.PosjetaId);
 
             entity.Property(e => e.Napomena).HasMaxLength(1000);
+            entity.Property(e => e.RazlogOtkazivanja).HasMaxLength(1000);
 
-            entity.HasOne(d => d.Korisnik).WithMany(p => p.Posjeta)
+            entity.HasOne(d => d.Korisnik).WithMany(p => p.PosjetaKorisniks)
                 .HasForeignKey(d => d.KorisnikId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Posjeta_Korisnik");
+
+            entity.HasOne(d => d.ObradioKorisnik).WithMany(p => p.PosjetaObradioKorisniks)
+                .HasForeignKey(d => d.ObradioKorisnikId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Posjeta_ObradioKorisnik");
+
+            entity.HasOne(d => d.Pas).WithMany(p => p.Posjetas)
+                .HasForeignKey(d => d.PasId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Posjeta_Pas");
 
             entity.HasOne(d => d.StatusPosjete).WithMany(p => p.Posjeta)
                 .HasForeignKey(d => d.StatusPosjeteId)

@@ -34,6 +34,8 @@ public partial class Pas
 
     public virtual ICollection<PregledPsa> PregledPsas { get; set; } = new List<PregledPsa>();
 
+    public virtual ICollection<Posjeta> Posjetas { get; set; } = new List<Posjeta>();
+
     public virtual Rasa Rasa { get; set; } = null!;
 
     public virtual ICollection<SlikaPsa> SlikaPsas { get; set; } = new List<SlikaPsa>();

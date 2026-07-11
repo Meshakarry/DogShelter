@@ -25,6 +25,10 @@ namespace DogShelter.Model
         public const string NapomenaMaxLength = "Napomena može imati najviše 1000 karaktera.";
         public const string RazlogOdbijanjaRequired = "Razlog odbijanja je obavezan.";
         public const string RazlogOdbijanjaMaxLength = "Razlog odbijanja može imati najviše 1000 karaktera.";
+        // Posjeta
+        public const string KorisnikIdRequired = "Korisnik je obavezan.";
+        public const string RazlogOtkazivanjaRequired = "Razlog otkazivanja je obavezan.";
+        public const string RazlogOtkazivanjaMaxLength = "Razlog otkazivanja može imati najviše 1000 karaktera.";
         // Paginacija
         public const string PageMin = "Stranica mora biti najmanje 1";
         public const string PageSizeRange = "Veličina stranice mora biti između 1 i 100";
