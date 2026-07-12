@@ -1,0 +1,287 @@
+using AutoMapper;
+using DogShelter.Model;
+using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
+using DogShelter.Services.Database;
+using DogShelter.Services.Exceptions;
+using DogShelter.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
+namespace DogShelter.Services.Services;
+
+public class DonacijaService : IDonacijaService
+{
+    private readonly DogShelterContext _context;
+    private readonly IMapper _mapper;
+    private readonly IStripePaymentService _stripePaymentService;
+
+    public DonacijaService(DogShelterContext context, IMapper mapper, IStripePaymentService stripePaymentService)
+    {
+        _context = context;
+        _mapper = mapper;
+        _stripePaymentService = stripePaymentService;
+    }
+
+    private IQueryable<Database.Donacija> BaseQuery() =>
+        _context.Donacijas
+            .Include(d => d.Korisnik)
+            .Include(d => d.TipDonacije)
+            .Include(d => d.StatusDonacije)
+            .Include(d => d.ObradioKorisnik)
+            .AsNoTracking();
+
+    public async Task<PagedResult<Model.Donacija>> Get(DonacijaSearchRequest search, int currentKorisnikId, bool isAdmin)
+    {
+        var query = BaseQuery();
+
+        var korisnikFilter = isAdmin ? search.KorisnikId : currentKorisnikId;
+        if (korisnikFilter.HasValue)
+            query = query.Where(d => d.KorisnikId == korisnikFilter.Value);
+
+        if (search.TipDonacijeId.HasValue)
+            query = query.Where(d => d.TipDonacijeId == search.TipDonacijeId.Value);
+
+        if (search.StatusDonacijeId.HasValue)
+            query = query.Where(d => d.StatusDonacijeId == search.StatusDonacijeId.Value);
+
+        if (search.DatumOd.HasValue)
+            query = query.Where(d => d.DatumDonacije >= search.DatumOd.Value);
+
+        if (search.DatumDo.HasValue)
+            query = query.Where(d => d.DatumDonacije <= search.DatumDo.Value);
+
+        query = query.OrderByDescending(d => d.DatumDonacije);
+
+        return await PagedQueryHelper.ToPagedResultAsync<Database.Donacija, Model.Donacija>(query, search, _mapper);
+    }
+
+    public async Task<Model.Donacija> GetById(int id)
+    {
+        var entity = await BaseQuery().FirstOrDefaultAsync(d => d.DonacijaId == id)
+            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+
+        return _mapper.Map<Model.Donacija>(entity);
+    }
+
+    public async Task<DonacijaPaymentResponse> Insert(DonacijaInsertRequest request, int korisnikId)
+    {
+        var tip = await _context.TipDonacijes.FirstOrDefaultAsync(t => t.TipDonacijeId == request.TipDonacijeId)
+            ?? throw new ValidationException("Odabrani tip donacije ne postoji.", nameof(request.TipDonacijeId), "Tip donacije ne postoji.");
+
+        var statusNaCekanju = await _context.StatusDonacijes.FirstOrDefaultAsync(s => s.Naziv == StatusDonacijeNazivi.NaCekanju)
+            ?? throw new BusinessException("Status 'Na čekanju' nije podešen u sistemu.");
+
+        var isNovcana = tip.Naziv == TipDonacijeNazivi.Novcana;
+
+        if (isNovcana)
+        {
+            if (!request.Iznos.HasValue || request.Iznos.Value <= 0)
+                throw new ValidationException("Iznos je obavezan za novčanu donaciju.", nameof(request.Iznos), "Unesite iznos veći od 0.");
+        }
+        else
+        {
+            if (request.Iznos.HasValue)
+                throw new ValidationException("Iznos nije dozvoljen za materijalnu donaciju.", nameof(request.Iznos), "Materijalna donacija nema novčani iznos.");
+
+            if (string.IsNullOrWhiteSpace(request.Napomena))
+                throw new ValidationException("Napomena je obavezna za materijalnu donaciju.", nameof(request.Napomena), "Opišite šta donirate.");
+        }
+
+        var entity = new Database.Donacija
+        {
+            KorisnikId = korisnikId,
+            TipDonacijeId = tip.TipDonacijeId,
+            StatusDonacijeId = statusNaCekanju.StatusDonacijeId,
+            Iznos = request.Iznos,
+            DatumDonacije = DateTime.UtcNow,
+            Napomena = request.Napomena
+        };
+
+        _context.Donacijas.Add(entity);
+        await _context.SaveChangesAsync();
+
+        string? clientSecret = null;
+        if (isNovcana)
+        {
+            var (paymentIntentId, secret) = await _stripePaymentService.CreatePaymentIntentAsync(request.Iznos!.Value, entity.DonacijaId, korisnikId);
+            entity.StripePaymentIntentId = paymentIntentId;
+            await _context.SaveChangesAsync();
+            clientSecret = secret;
+        }
+
+        return new DonacijaPaymentResponse
+        {
+            Donacija = await GetById(entity.DonacijaId),
+            ClientSecret = clientSecret
+        };
+    }
+
+    public async Task<DonacijaPaymentResponse> RetryPlacanje(int id, int callerKorisnikId, bool isAdmin)
+    {
+        var entity = await _context.Donacijas
+            .Include(d => d.TipDonacije)
+            .Include(d => d.StatusDonacije)
+            .FirstOrDefaultAsync(d => d.DonacijaId == id)
+            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+
+        if (!isAdmin && entity.KorisnikId != callerKorisnikId)
+            throw new ForbiddenException("Nemate pristup ovoj donaciji.");
+
+        if (entity.TipDonacije.Naziv != TipDonacijeNazivi.Novcana)
+            throw new BusinessException("Ponovno plaćanje je moguće samo za novčane donacije.");
+
+        if (entity.StatusDonacije.Naziv == StatusDonacijeNazivi.Uspjesna)
+            throw new BusinessException("Donacija je već uspješno plaćena.");
+
+        if (entity.StatusDonacije.Naziv == StatusDonacijeNazivi.Vracena)
+            throw new BusinessException("Donacija je vraćena i ne može se ponovo platiti.");
+
+        if (!string.IsNullOrEmpty(entity.StripePaymentIntentId))
+        {
+            var remote = await _stripePaymentService.GetPaymentIntentAsync(entity.StripePaymentIntentId);
+            if (remote.Status == "succeeded")
+            {
+                await HandlePaymentSucceededAsync(entity.StripePaymentIntentId);
+                throw new BusinessException("Donacija je već uspješno plaćena.");
+            }
+
+            await _stripePaymentService.TryCancelPaymentIntentAsync(entity.StripePaymentIntentId);
+        }
+
+        var (paymentIntentId, clientSecret) = await _stripePaymentService.CreatePaymentIntentAsync(entity.Iznos!.Value, entity.DonacijaId, entity.KorisnikId);
+
+        var statusNaCekanju = await _context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.NaCekanju);
+        entity.StripePaymentIntentId = paymentIntentId;
+        entity.StatusDonacijeId = statusNaCekanju.StatusDonacijeId;
+        await _context.SaveChangesAsync();
+
+        return new DonacijaPaymentResponse
+        {
+            Donacija = await GetById(entity.DonacijaId),
+            ClientSecret = clientSecret
+        };
+    }
+
+    public async Task<Model.Donacija> Potvrdi(int id, int adminKorisnikId)
+    {
+        var entity = await _context.Donacijas
+            .Include(d => d.TipDonacije)
+            .Include(d => d.StatusDonacije)
+            .FirstOrDefaultAsync(d => d.DonacijaId == id)
+            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+
+        if (entity.TipDonacije.Naziv != TipDonacijeNazivi.Materijalna)
+            throw new BusinessException("Samo materijalna donacija se potvrđuje ručno.");
+
+        if (entity.StatusDonacije.Naziv != StatusDonacijeNazivi.NaCekanju)
+            throw new BusinessException("Donacija je već obrađena.");
+
+        var statusUspjesna = await _context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Uspjesna);
+
+        entity.StatusDonacijeId = statusUspjesna.StatusDonacijeId;
+        entity.ObradioKorisnikId = adminKorisnikId;
+        entity.DatumObrade = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return await GetById(id);
+    }
+
+    public async Task<Model.Donacija> Odbij(int id, DonacijaOdbijRequest request, int adminKorisnikId)
+    {
+        var entity = await _context.Donacijas
+            .Include(d => d.TipDonacije)
+            .Include(d => d.StatusDonacije)
+            .FirstOrDefaultAsync(d => d.DonacijaId == id)
+            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+
+        if (entity.TipDonacije.Naziv != TipDonacijeNazivi.Materijalna)
+            throw new BusinessException("Samo materijalna donacija se odbija ručno.");
+
+        if (entity.StatusDonacije.Naziv != StatusDonacijeNazivi.NaCekanju)
+            throw new BusinessException("Donacija je već obrađena.");
+
+        var statusNeuspjesna = await _context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Neuspjesna);
+
+        entity.StatusDonacijeId = statusNeuspjesna.StatusDonacijeId;
+        entity.ObradioKorisnikId = adminKorisnikId;
+        entity.DatumObrade = DateTime.UtcNow;
+        entity.RazlogOdbijanja = request.RazlogOdbijanja;
+
+        await _context.SaveChangesAsync();
+        return await GetById(id);
+    }
+
+    public async Task<Model.Donacija> Refund(int id, DonacijaRefundRequest request, int adminKorisnikId)
+    {
+        var entity = await _context.Donacijas
+            .Include(d => d.TipDonacije)
+            .Include(d => d.StatusDonacije)
+            .FirstOrDefaultAsync(d => d.DonacijaId == id)
+            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+
+        if (entity.TipDonacije.Naziv != TipDonacijeNazivi.Novcana)
+            throw new BusinessException("Vraćanje sredstava je moguće samo za novčane donacije.");
+
+        if (entity.StatusDonacije.Naziv != StatusDonacijeNazivi.Uspjesna)
+            throw new BusinessException("Vraćanje sredstava je moguće samo za uspješno plaćene donacije.");
+
+        if (!string.IsNullOrEmpty(entity.StripeRefundId))
+            throw new ConflictException("Donacija je već vraćena.");
+
+        if (string.IsNullOrEmpty(entity.StripePaymentIntentId))
+            throw new BusinessException("Donacija nema povezano Stripe plaćanje.");
+
+        var remotePaymentIntent = await _stripePaymentService.GetPaymentIntentAsync(entity.StripePaymentIntentId);
+        var amountReceived = remotePaymentIntent.AmountReceived;
+        if (amountReceived <= 0)
+            throw new BusinessException("Stripe plaćanje nema naplaćen iznos za vraćanje.");
+
+        var refundId = await _stripePaymentService.RefundAsync(entity.StripePaymentIntentId, amountReceived);
+
+        var statusVracena = await _context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Vracena);
+
+        entity.StripeRefundId = refundId;
+        entity.StatusDonacijeId = statusVracena.StatusDonacijeId;
+        entity.ObradioKorisnikId = adminKorisnikId;
+        entity.DatumObrade = DateTime.UtcNow;
+        entity.RazlogVracanja = request.RazlogVracanja;
+
+        await _context.SaveChangesAsync();
+        return await GetById(id);
+    }
+
+    public async Task HandlePaymentSucceededAsync(string paymentIntentId)
+    {
+        var entity = await _context.Donacijas
+            .Include(d => d.StatusDonacije)
+            .FirstOrDefaultAsync(d => d.StripePaymentIntentId == paymentIntentId);
+
+        if (entity == null || entity.StatusDonacije.Naziv != StatusDonacijeNazivi.NaCekanju)
+            return;
+
+        var statusUspjesna = await _context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Uspjesna);
+
+        entity.StatusDonacijeId = statusUspjesna.StatusDonacijeId;
+        entity.DatumObrade = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task HandlePaymentFailedAsync(string paymentIntentId, string? reason)
+    {
+        var entity = await _context.Donacijas
+            .Include(d => d.StatusDonacije)
+            .FirstOrDefaultAsync(d => d.StripePaymentIntentId == paymentIntentId);
+
+        if (entity == null || entity.StatusDonacije.Naziv != StatusDonacijeNazivi.NaCekanju)
+            return;
+
+        var statusNeuspjesna = await _context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Neuspjesna);
+
+        entity.StatusDonacijeId = statusNeuspjesna.StatusDonacijeId;
+        entity.DatumObrade = DateTime.UtcNow;
+        entity.RazlogOdbijanja = reason;
+
+        await _context.SaveChangesAsync();
+    }
+}

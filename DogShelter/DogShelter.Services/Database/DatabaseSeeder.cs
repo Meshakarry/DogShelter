@@ -17,6 +17,9 @@ public static class DatabaseSeeder
         await EnsurePsiAsync(context, logger, wwwrootPath);
         await EnsureZahtjeviAsync(context, logger);
         await EnsurePosjeteAsync(context, logger);
+        await EnsureStatusDonacijeAsync(context, logger);
+        await EnsureTipDonacijeAsync(context, logger);
+        await EnsureDonacijeAsync(context, logger);
     }
 
     /// <summary>
@@ -392,5 +395,108 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded {Count} posjeta.", posjete.Count);
+    }
+
+    private static async Task EnsureStatusDonacijeAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { StatusDonacijeNazivi.NaCekanju, StatusDonacijeNazivi.Uspjesna, StatusDonacijeNazivi.Neuspjesna, StatusDonacijeNazivi.Vracena };
+        foreach (var naziv in names)
+        {
+            if (!await context.StatusDonacijes.AnyAsync(s => s.Naziv == naziv))
+                context.StatusDonacijes.Add(new StatusDonacije { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded StatusDonacije.");
+    }
+
+    private static async Task EnsureTipDonacijeAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { TipDonacijeNazivi.Novcana, TipDonacijeNazivi.Materijalna };
+        foreach (var naziv in names)
+        {
+            if (!await context.TipDonacijes.AnyAsync(t => t.Naziv == naziv))
+                context.TipDonacijes.Add(new TipDonacije { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded TipDonacije.");
+    }
+
+    /// <summary>
+    /// Seeds Donacija records covering the in-kind (Materijalna) state machine end-to-end
+    /// (Na čekanju/Uspješna/Neuspješna via admin potvrdi/odbij) plus pending monetary (Novčana)
+    /// donations with no StripePaymentIntentId — a real "Uspješna" monetary record can only be
+    /// produced by an actual Stripe test-mode payment, never fabricated in seed data.
+    /// </summary>
+    private static async Task EnsureDonacijeAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.Donacijas.AnyAsync()) return;
+
+        var admin = await context.Korisniks.OrderBy(k => k.KorisnikId).FirstOrDefaultAsync();
+        var korisnik = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "korisnik") ?? admin;
+        var volonter = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "volonter") ?? admin;
+        if (admin == null || korisnik == null || volonter == null) return;
+
+        var tipNovcana = await context.TipDonacijes.FirstAsync(t => t.Naziv == TipDonacijeNazivi.Novcana);
+        var tipMaterijalna = await context.TipDonacijes.FirstAsync(t => t.Naziv == TipDonacijeNazivi.Materijalna);
+
+        var sNaCekanju = await context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.NaCekanju);
+        var sUspjesna = await context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Uspjesna);
+        var sNeuspjesna = await context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Neuspjesna);
+
+        var now = DateTime.UtcNow;
+
+        var donacije = new List<Donacija>
+        {
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                TipDonacijeId = tipMaterijalna.TipDonacijeId,
+                StatusDonacijeId = sNaCekanju.StatusDonacijeId,
+                DatumDonacije = now.AddDays(-1),
+                Napomena = "20kg hrane za pse i dvije deke, dostava dogovorena za vikend."
+            },
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                TipDonacijeId = tipMaterijalna.TipDonacijeId,
+                StatusDonacijeId = sUspjesna.StatusDonacijeId,
+                DatumDonacije = now.AddDays(-10),
+                Napomena = "Deset vreća hrane i ogrlice.",
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-9)
+            },
+            new()
+            {
+                KorisnikId = volonter.KorisnikId,
+                TipDonacijeId = tipMaterijalna.TipDonacijeId,
+                StatusDonacijeId = sNeuspjesna.StatusDonacijeId,
+                DatumDonacije = now.AddDays(-6),
+                Napomena = "Ponuđena stara kavezna oprema.",
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-5),
+                RazlogOdbijanja = "Oprema ne zadovoljava sigurnosne standarde azila."
+            },
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                TipDonacijeId = tipNovcana.TipDonacijeId,
+                StatusDonacijeId = sNaCekanju.StatusDonacijeId,
+                Iznos = 25.00m,
+                DatumDonacije = now.AddHours(-2)
+            },
+            new()
+            {
+                KorisnikId = volonter.KorisnikId,
+                TipDonacijeId = tipNovcana.TipDonacijeId,
+                StatusDonacijeId = sNaCekanju.StatusDonacijeId,
+                Iznos = 50.00m,
+                DatumDonacije = now.AddHours(-1)
+            }
+        };
+
+        context.Donacijas.AddRange(donacije);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} donacije.", donacije.Count);
     }
 }

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Stripe;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -16,6 +17,8 @@ using System.Threading.RateLimiting;
 DotNetEnv.Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
+
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"] ?? string.Empty;
 
 builder.Services.AddDbContext<DogShelterContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DogShelter")));
@@ -120,6 +123,9 @@ builder.Services.AddScoped<IPregledPsaService, PregledPsaService>();
 builder.Services.AddScoped<IZahtjevZaUdomljavanjeService, ZahtjevZaUdomljavanjeService>();
 builder.Services.AddScoped<IUdomljavanjeService, UdomljavanjeService>();
 builder.Services.AddScoped<IPosjetaService, PosjetaService>();
+builder.Services.AddScoped<IDonacijaService, DonacijaService>();
+builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
+builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();

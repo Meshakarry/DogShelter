@@ -28,7 +28,9 @@ public partial class Korisnik
 
     public DateTime DatumRegistracije { get; set; }
 
-    public virtual ICollection<Donacija> Donacijas { get; set; } = new List<Donacija>();
+    public virtual ICollection<Donacija> DonacijaKorisniks { get; set; } = new List<Donacija>();
+
+    public virtual ICollection<Donacija> DonacijaObradioKorisniks { get; set; } = new List<Donacija>();
 
     public virtual Grad? Grad { get; set; }
 
