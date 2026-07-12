@@ -33,5 +33,10 @@ namespace DogShelter.Model
         public const string PageMin = "Stranica mora biti najmanje 1";
         public const string PageSizeRange = "Veličina stranice mora biti između 1 i 100";
         public const string UsernameFilterMaxLength = "Filter korisničkog imena može imati najviše 100 znakova";
+        // Donacija
+        public const string TipDonacijeIdRequired = "Tip donacije je obavezan.";
+        public const string IznosRange = "Iznos donacije mora biti veći od 0.";
+        public const string RazlogVracanjaRequired = "Razlog vraćanja sredstava je obavezan.";
+        public const string RazlogVracanjaMaxLength = "Razlog vraćanja sredstava može imati najviše 1000 karaktera.";
     }
 }

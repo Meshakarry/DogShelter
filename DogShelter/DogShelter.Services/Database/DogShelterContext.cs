@@ -123,11 +123,19 @@ public partial class DogShelterContext : DbContext
             entity.Property(e => e.Iznos).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Napomena).HasMaxLength(1000);
             entity.Property(e => e.StripePaymentIntentId).HasMaxLength(200);
+            entity.Property(e => e.StripeRefundId).HasMaxLength(200);
+            entity.Property(e => e.RazlogOdbijanja).HasMaxLength(1000);
+            entity.Property(e => e.RazlogVracanja).HasMaxLength(1000);
 
-            entity.HasOne(d => d.Korisnik).WithMany(p => p.Donacijas)
+            entity.HasOne(d => d.Korisnik).WithMany(p => p.DonacijaKorisniks)
                 .HasForeignKey(d => d.KorisnikId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Donacija_Korisnik");
+
+            entity.HasOne(d => d.ObradioKorisnik).WithMany(p => p.DonacijaObradioKorisniks)
+                .HasForeignKey(d => d.ObradioKorisnikId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Donacija_ObradioKorisnik");
 
             entity.HasOne(d => d.StatusDonacije).WithMany(p => p.Donacijas)
                 .HasForeignKey(d => d.StatusDonacijeId)

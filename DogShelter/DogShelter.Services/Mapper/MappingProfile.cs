@@ -1,4 +1,5 @@
 using AutoMapper;
+using DogShelter.Services.Constants;
 using Database = DogShelter.Services.Database;
 using Model = DogShelter.Model;
 
@@ -50,7 +51,14 @@ public class MappingProfile : Profile
 
         CreateMap<Model.Requests.PasUpdateRequest, Database.Pas>()
             .ForMember(d => d.SlikaNaslovna, o => o.Ignore());
-        CreateMap<Database.Donacija, Model.Donacija>();
+        CreateMap<Database.Donacija, Model.Donacija>()
+            .ForMember(d => d.KorisnikIme,             o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Ime : null))
+            .ForMember(d => d.KorisnikPrezime,         o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))
+            .ForMember(d => d.TipDonacijeNaziv,        o => o.MapFrom(s => s.TipDonacije != null ? s.TipDonacije.Naziv : null))
+            .ForMember(d => d.StatusDonacijeNaziv,     o => o.MapFrom(s => s.StatusDonacije != null ? s.StatusDonacije.Naziv : null))
+            .ForMember(d => d.ObradioKorisnikIme,      o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Ime : null))
+            .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null))
+            .ForMember(d => d.IsPaid,                  o => o.MapFrom(s => s.StatusDonacije != null && s.StatusDonacije.Naziv == StatusDonacijeNazivi.Uspjesna));
         CreateMap<Database.AktivnostVolontera, Model.AktivnostVolontera>();
         CreateMap<Database.Dogadjaj, Model.Dogadjaj>();
         CreateMap<Database.DogadjajVolonter, Model.DogadjajVolonter>();

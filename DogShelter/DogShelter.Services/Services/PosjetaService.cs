@@ -1,3 +1,12 @@
+using AutoMapper;
+using DogShelter.Model;
+using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
+using DogShelter.Services.Database;
+using DogShelter.Services.Exceptions;
+using DogShelter.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
 namespace DogShelter.Services.Services;
 
 public class PosjetaService : IPosjetaService
