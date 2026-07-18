@@ -73,12 +73,13 @@ public class ObavijestService : IObavijestService
         if (!await _context.Korisniks.AnyAsync(k => k.KorisnikId == autorId))
             throw new ValidationException("Autor ne postoji.", nameof(autorId), "Korisnik ne postoji.");
 
+        if (slika == null)
+            throw new ValidationException("Slika je obavezna.", "slika", "Slika je obavezna za objavu.");
+
         var entity = _mapper.Map<Database.Obavijest>(request);
         entity.AutorId = autorId;
         entity.DatumObjave = DateTime.UtcNow;
-
-        if (slika != null)
-            entity.SlikaPutanja = await _fileUpload.SaveImageAsync(slika, "obavijesti");
+        entity.SlikaPutanja = await _fileUpload.SaveImageAsync(slika, "obavijesti");
 
         _context.Obavijests.Add(entity);
         await _context.SaveChangesAsync();

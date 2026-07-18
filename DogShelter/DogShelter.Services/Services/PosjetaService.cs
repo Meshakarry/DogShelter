@@ -13,11 +13,13 @@ public class PosjetaService : IPosjetaService
 {
     private readonly DogShelterContext _context;
     private readonly IMapper _mapper;
+    private readonly INotifikacijaService _notifikacijaService;
 
-    public PosjetaService(DogShelterContext context, IMapper mapper)
+    public PosjetaService(DogShelterContext context, IMapper mapper, INotifikacijaService notifikacijaService)
     {
         _context = context;
         _mapper = mapper;
+        _notifikacijaService = notifikacijaService;
     }
 
     private IQueryable<Database.Posjeta> BaseQuery() =>
@@ -136,6 +138,13 @@ public class PosjetaService : IPosjetaService
         entity.ObradioKorisnikId = adminKorisnikId;
         entity.DatumObrade = DateTime.UtcNow;
 
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.PosjetaPotvrdjena,
+            "Posjeta potvrđena",
+            $"Vaša posjeta zakazana za {entity.DatumVrijeme:dd.MM.yyyy HH:mm} je potvrđena.",
+            entity.PosjetaId);
+
         await _context.SaveChangesAsync();
 
         return await GetById(id);
@@ -162,6 +171,13 @@ public class PosjetaService : IPosjetaService
         entity.ObradioKorisnikId = callerKorisnikId;
         entity.DatumObrade = DateTime.UtcNow;
 
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.PosjetaOtkazana,
+            "Posjeta otkazana",
+            $"Vaša posjeta zakazana za {entity.DatumVrijeme:dd.MM.yyyy HH:mm} je otkazana. Razlog: {request.RazlogOtkazivanja}",
+            entity.PosjetaId);
+
         await _context.SaveChangesAsync();
 
         return await GetById(id);
@@ -181,6 +197,13 @@ public class PosjetaService : IPosjetaService
         entity.StatusPosjeteId = statusZavrsena.StatusPosjeteId;
         entity.ObradioKorisnikId = adminKorisnikId;
         entity.DatumObrade = DateTime.UtcNow;
+
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.PosjetaZavrsena,
+            "Posjeta završena",
+            $"Vaša posjeta zakazana za {entity.DatumVrijeme:dd.MM.yyyy HH:mm} je označena kao završena.",
+            entity.PosjetaId);
 
         await _context.SaveChangesAsync();
 

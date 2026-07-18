@@ -13,11 +13,13 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
 {
     private readonly DogShelterContext _context;
     private readonly IMapper _mapper;
+    private readonly INotifikacijaService _notifikacijaService;
 
-    public ZahtjevZaUdomljavanjeService(DogShelterContext context, IMapper mapper)
+    public ZahtjevZaUdomljavanjeService(DogShelterContext context, IMapper mapper, INotifikacijaService notifikacijaService)
     {
         _context = context;
         _mapper = mapper;
+        _notifikacijaService = notifikacijaService;
     }
 
     private IQueryable<Database.ZahtjevZaUdomljavanje> BaseQuery() =>
@@ -118,6 +120,13 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
                 DatumUdomljavanja = DateOnly.FromDateTime(DateTime.UtcNow)
             });
 
+            _notifikacijaService.StageCreate(
+                entity.KorisnikId,
+                NotifikacijaTipovi.ZahtjevOdobren,
+                "Zahtjev za udomljavanje odobren",
+                $"Vaš zahtjev za udomljavanje psa \"{pas.Naziv}\" je odobren.",
+                entity.ZahtjevZaUdomljavanjeId);
+
             await _context.SaveChangesAsync();
             await tx.CommitAsync();
         }
@@ -145,6 +154,13 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
         entity.ObradioKorisnikId = adminKorisnikId;
         entity.DatumObrade = DateTime.UtcNow;
         entity.RazlogOdbijanja = request.RazlogOdbijanja;
+
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.ZahtjevOdbijen,
+            "Zahtjev za udomljavanje odbijen",
+            $"Vaš zahtjev za udomljavanje je odbijen. Razlog: {request.RazlogOdbijanja}",
+            entity.ZahtjevZaUdomljavanjeId);
 
         await _context.SaveChangesAsync();
 

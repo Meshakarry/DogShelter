@@ -8,7 +8,7 @@ public partial class Obavijest
 
     public string Sadrzaj { get; set; } = null!;
 
-    public string? SlikaPutanja { get; set; }
+    public string SlikaPutanja { get; set; } = null!;
 
     public DateTime DatumObjave { get; set; }
 
