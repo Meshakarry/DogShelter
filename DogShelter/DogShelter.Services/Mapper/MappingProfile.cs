@@ -64,7 +64,23 @@ public class MappingProfile : Profile
         CreateMap<Database.DogadjajVolonter, Model.DogadjajVolonter>();
         CreateMap<Database.Grad, Model.Grad>();
         CreateMap<Database.KorisnikUloga, Model.KorisnikUloga>();
-        CreateMap<Database.Obavijest, Model.Obavijest>();
+        CreateMap<Database.Obavijest, Model.Obavijest>()
+            .ForMember(d => d.AutorIme,     o => o.MapFrom(s => s.Autor != null ? s.Autor.Ime : null))
+            .ForMember(d => d.AutorPrezime, o => o.MapFrom(s => s.Autor != null ? s.Autor.Prezime : null));
+
+        CreateMap<Database.Obavijest, Model.ObavijestListItem>()
+            .ForMember(d => d.AutorIme,     o => o.MapFrom(s => s.Autor != null ? s.Autor.Ime : null))
+            .ForMember(d => d.AutorPrezime, o => o.MapFrom(s => s.Autor != null ? s.Autor.Prezime : null));
+
+        CreateMap<Model.Requests.ObavijestInsertRequest, Database.Obavijest>()
+            .ForMember(d => d.AutorId,       o => o.Ignore())
+            .ForMember(d => d.DatumObjave,   o => o.Ignore())
+            .ForMember(d => d.SlikaPutanja,  o => o.Ignore());
+
+        CreateMap<Model.Requests.ObavijestUpdateRequest, Database.Obavijest>()
+            .ForMember(d => d.AutorId,       o => o.Ignore())
+            .ForMember(d => d.DatumObjave,   o => o.Ignore())
+            .ForMember(d => d.SlikaPutanja,  o => o.Ignore());
         CreateMap<Database.Posjeta, Model.Posjeta>()
             .ForMember(d => d.KorisnikIme,             o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Ime : null))
             .ForMember(d => d.KorisnikPrezime,         o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))

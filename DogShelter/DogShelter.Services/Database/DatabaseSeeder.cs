@@ -20,6 +20,7 @@ public static class DatabaseSeeder
         await EnsureStatusDonacijeAsync(context, logger);
         await EnsureTipDonacijeAsync(context, logger);
         await EnsureDonacijeAsync(context, logger);
+        await EnsureObavijestiAsync(context, logger);
     }
 
     /// <summary>
@@ -498,5 +499,64 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded {Count} donacije.", donacije.Count);
+    }
+
+    /// <summary>
+    /// Seeds a handful of Obavijest (announcement) records, covering both published
+    /// (Aktivna = true) and draft (Aktivna = false) status, with and without a cover image.
+    /// Reuses already-seeded dog cover photos (copied by EnsurePsiAsync) for topically
+    /// relevant announcements instead of fabricating new image assets.
+    /// </summary>
+    private static async Task EnsureObavijestiAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.Obavijests.AnyAsync()) return;
+
+        var admin = await context.Korisniks.OrderBy(k => k.KorisnikId).FirstOrDefaultAsync();
+        if (admin == null) return;
+
+        var lola = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Lola");
+        var now = DateTime.UtcNow;
+
+        var obavijesti = new List<Obavijest>
+        {
+            new()
+            {
+                AutorId = admin.KorisnikId,
+                Naslov = "Azil dobio novu opremu zahvaljujući donatorima",
+                Sadrzaj = "Ovih sedmica primili smo veliku donaciju hrane, deka i kaveza od naših dragih donatora. Hvala svima koji su prepoznali da se svaka pomoć broji – zahvaljujući vama naši štićenici imaju toplije zime i punije stomake.",
+                DatumObjave = now.AddDays(-14),
+                Aktivna = true
+            },
+            new()
+            {
+                AutorId = admin.KorisnikId,
+                Naslov = "Lola pronašla svoj dom!",
+                Sadrzaj = "Sa velikim zadovoljstvom javljamo da je Lola, naša labradorica koja je čekala godinu dana, konačno udomljena. Nova porodica joj je pripremila prostrano dvorište i toplu dobrodošlicu. Hvala svima koji su navijali za nju!",
+                SlikaPutanja = lola?.SlikaNaslovna,
+                DatumObjave = now.AddDays(-8),
+                Aktivna = true
+            },
+            new()
+            {
+                AutorId = admin.KorisnikId,
+                Naslov = "Otvoren poziv za volontere ovog vikenda",
+                Sadrzaj = "Tražimo volontere za šetnju pasa i pomoć oko čišćenja azila subotom i nedjeljom od 9 do 13 sati. Prijave su moguće putem aplikacije u sekciji Volontiranje. Svaka pomoć je dobrodošla!",
+                DatumObjave = now.AddDays(-3),
+                Aktivna = true
+            },
+            new()
+            {
+                AutorId = admin.KorisnikId,
+                Naslov = "Nacrt: najava zimske akcije prikupljanja donacija",
+                Sadrzaj = "Radna verzija teksta za predstojeću zimsku akciju prikupljanja hrane i deka – još uvijek čeka odobrenje uprave prije objave.",
+                DatumObjave = now,
+                Aktivna = false
+            }
+        };
+
+        context.Obavijests.AddRange(obavijesti);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} obavijesti.", obavijesti.Count);
     }
 }

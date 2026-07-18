@@ -124,6 +124,7 @@ builder.Services.AddScoped<IZahtjevZaUdomljavanjeService, ZahtjevZaUdomljavanjeS
 builder.Services.AddScoped<IUdomljavanjeService, UdomljavanjeService>();
 builder.Services.AddScoped<IPosjetaService, PosjetaService>();
 builder.Services.AddScoped<IDonacijaService, DonacijaService>();
+builder.Services.AddScoped<IObavijestService, ObavijestService>();
 builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
 builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
