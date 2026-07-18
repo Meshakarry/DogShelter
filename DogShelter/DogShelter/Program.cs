@@ -125,6 +125,10 @@ builder.Services.AddScoped<IUdomljavanjeService, UdomljavanjeService>();
 builder.Services.AddScoped<IPosjetaService, PosjetaService>();
 builder.Services.AddScoped<IDonacijaService, DonacijaService>();
 builder.Services.AddScoped<IObavijestService, ObavijestService>();
+builder.Services.AddScoped<IVolonterService, VolonterService>();
+builder.Services.AddScoped<IDogadjajService, DogadjajService>();
+builder.Services.AddScoped<IAktivnostVolonteraService, AktivnostVolonteraService>();
+builder.Services.AddScoped<IDogadjajVolonterService, DogadjajVolonterService>();
 builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
 builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
@@ -141,10 +145,16 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new CanModifyPosjetaRequirement()));
     options.AddPolicy("CanModifyDonacija", policy =>
         policy.Requirements.Add(new CanModifyDonacijaRequirement()));
+    options.AddPolicy("CanModifyVolonter", policy =>
+        policy.Requirements.Add(new CanModifyVolonterRequirement()));
+    options.AddPolicy("CanModifyAktivnostVolontera", policy =>
+        policy.Requirements.Add(new CanModifyAktivnostVolonteraRequirement()));
 });
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyZahtjevHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyPosjetaHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyDonacijaHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, CanModifyVolonterHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, CanModifyAktivnostVolonteraHandler>();
 
 // JWT Authentication
 var jwtKey = builder.Configuration["JWTSettings:Key"] ?? string.Empty;
