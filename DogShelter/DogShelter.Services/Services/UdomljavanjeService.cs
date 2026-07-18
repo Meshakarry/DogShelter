@@ -1,6 +1,8 @@
 using AutoMapper;
 using DogShelter.Model;
+using DogShelter.Model.Reports;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -50,5 +52,57 @@ public class UdomljavanjeService : IUdomljavanjeService
             throw new ForbiddenException("Nemate pristup ovom zapisu.");
 
         return _mapper.Map<Model.Udomljavanje>(entity);
+    }
+
+    public async Task<UdomljavanjeIzvjestaj> GenerirajIzvjestaj(DateTime? datumOd, DateTime? datumDo)
+    {
+        var query = _context.Udomljavanjes
+            .Include(u => u.ZahtjevZaUdomljavanje).ThenInclude(z => z.Pas).ThenInclude(p => p.Rasa)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (datumOd.HasValue)
+        {
+            var od = DateOnly.FromDateTime(datumOd.Value);
+            query = query.Where(u => u.DatumUdomljavanja >= od);
+        }
+
+        if (datumDo.HasValue)
+        {
+            var doDatuma = DateOnly.FromDateTime(datumDo.Value);
+            query = query.Where(u => u.DatumUdomljavanja <= doDatuma);
+        }
+
+        var podaci = await query
+            .Select(u => new { Rasa = u.ZahtjevZaUdomljavanje.Pas.Rasa.Naziv, u.DatumUdomljavanja })
+            .ToListAsync();
+
+        var poRasi = podaci
+            .GroupBy(p => p.Rasa)
+            .Select(g => new RasaBrojStavka { Rasa = g.Key, Broj = g.Count() })
+            .OrderByDescending(x => x.Broj)
+            .ThenBy(x => x.Rasa)
+            .ToList();
+
+        var poMjesecu = podaci
+            .GroupBy(p => new { p.DatumUdomljavanja.Year, p.DatumUdomljavanja.Month })
+            .Select(g => new MjesecBrojStavka
+            {
+                Godina = g.Key.Year,
+                Mjesec = g.Key.Month,
+                MjesecNaziv = MjeseciNazivi.Naziv(g.Key.Month),
+                Broj = g.Count()
+            })
+            .OrderBy(x => x.Godina).ThenBy(x => x.Mjesec)
+            .ToList();
+
+        return new UdomljavanjeIzvjestaj
+        {
+            DatumOd = datumOd,
+            DatumDo = datumDo,
+            NajcescePoRasi = poRasi,
+            PoMjesecima = poMjesecu,
+            Ukupno = podaci.Count
+        };
     }
 }

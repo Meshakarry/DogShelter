@@ -1,5 +1,6 @@
 using AutoMapper;
 using DogShelter.Model;
+using DogShelter.Model.Reports;
 using DogShelter.Model.Requests;
 using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
@@ -320,5 +321,58 @@ public class DonacijaService : IDonacijaService
             entity.DonacijaId);
 
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<DonacijaIzvjestaj> GenerirajIzvjestaj(DateTime? datumOd, DateTime? datumDo)
+    {
+        var query = _context.Donacijas
+            .Include(d => d.TipDonacije)
+            .Include(d => d.StatusDonacije)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (datumOd.HasValue)
+            query = query.Where(d => d.DatumDonacije >= datumOd.Value);
+
+        if (datumDo.HasValue)
+            query = query.Where(d => d.DatumDonacije <= datumDo.Value);
+
+        var podaci = await query
+            .Select(d => new { d.DatumDonacije, d.Iznos, TipNaziv = d.TipDonacije.Naziv, StatusNaziv = d.StatusDonacije.Naziv })
+            .ToListAsync();
+
+        var uspjesneNovcane = podaci
+            .Where(d => d.TipNaziv == TipDonacijeNazivi.Novcana && d.StatusNaziv == StatusDonacijeNazivi.Uspjesna)
+            .ToList();
+
+        var poMjesecu = uspjesneNovcane
+            .GroupBy(d => new { d.DatumDonacije.Year, d.DatumDonacije.Month })
+            .Select(g => new MjesecDonacijaStavka
+            {
+                Godina = g.Key.Year,
+                Mjesec = g.Key.Month,
+                MjesecNaziv = MjeseciNazivi.Naziv(g.Key.Month),
+                Broj = g.Count(),
+                Iznos = g.Sum(x => x.Iznos ?? 0)
+            })
+            .OrderBy(x => x.Godina).ThenBy(x => x.Mjesec)
+            .ToList();
+
+        var poStatusu = podaci
+            .GroupBy(d => d.StatusNaziv)
+            .Select(g => new StatusBrojStavka { Status = g.Key, Broj = g.Count() })
+            .OrderByDescending(x => x.Broj)
+            .ToList();
+
+        return new DonacijaIzvjestaj
+        {
+            DatumOd = datumOd,
+            DatumDo = datumDo,
+            NovcanePoMjesecima = poMjesecu,
+            UkupnoBrojNovcanih = uspjesneNovcane.Count,
+            UkupanIznos = uspjesneNovcane.Sum(d => d.Iznos ?? 0),
+            PoStatusu = poStatusu,
+            UkupnoSvih = podaci.Count
+        };
     }
 }

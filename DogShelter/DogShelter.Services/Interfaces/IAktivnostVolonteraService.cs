@@ -1,4 +1,5 @@
 using DogShelter.Model;
+using DogShelter.Model.Reports;
 using DogShelter.Model.Requests;
 
 namespace DogShelter.Services.Interfaces;
@@ -9,4 +10,5 @@ public interface IAktivnostVolonteraService
     Task<Model.AktivnostVolontera> GetById(int id);
     Task<Model.AktivnostVolontera> Insert(AktivnostVolonteraInsertRequest request, int callerKorisnikId, bool isAdmin);
     Task<bool> Delete(int id);
+    Task<AktivnostVolonteraIzvjestaj> GenerirajIzvjestaj(DateTime? datumOd, DateTime? datumDo);
 }
