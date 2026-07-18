@@ -12,6 +12,8 @@ public partial class Dogadjaj
 
     public string Lokacija { get; set; } = null!;
 
+    public string? SlikaPutanja { get; set; }
+
     public bool Aktivan { get; set; }
 
     public virtual ICollection<DogadjajVolonter> DogadjajVolonters { get; set; } = new List<DogadjajVolonter>();

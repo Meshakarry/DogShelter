@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using DogShelter.Model;
 using DogShelter.Services.Constants;
+using DogShelter.Services.Services;
 using static DogShelter.Model.Spol;
 
 namespace DogShelter.Services.Database;
@@ -21,6 +23,11 @@ public static class DatabaseSeeder
         await EnsureTipDonacijeAsync(context, logger);
         await EnsureDonacijeAsync(context, logger);
         await EnsureObavijestiAsync(context, logger);
+        await EnsureTipAktivnostiAsync(context, logger);
+        await EnsureVolonteriAsync(context, logger);
+        await EnsureDogadjajiAsync(context, logger);
+        await EnsureAktivnostiVolonteraAsync(context, logger);
+        await EnsureDogadjajVolonteriAsync(context, logger);
     }
 
     /// <summary>
@@ -558,5 +565,190 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded {Count} obavijesti.", obavijesti.Count);
+    }
+
+    private static async Task EnsureTipAktivnostiAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { "Šetanje pasa", "Njega i hranjenje pasa", "Čišćenje prostora", "Pomoć na događajima", "Administrativni poslovi" };
+        foreach (var naziv in names)
+        {
+            if (!await context.TipAktivnostis.AnyAsync(t => t.Naziv == naziv))
+                context.TipAktivnostis.Add(new TipAktivnosti { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded TipAktivnosti.");
+    }
+
+    /// <summary>
+    /// Seeds a handful of Volonter records: the already-existing "volonter" test account
+    /// (created in Program.cs, already holding the Volonter role) plus three fake Korisnik
+    /// accounts created purely for volunteer-roster demo data. Each gets the Volonter role
+    /// granted the same way VolonterService.Insert does it, so admin-vs-self authorization
+    /// can be exercised end-to-end. One volunteer is seeded inactive for status-management coverage.
+    /// </summary>
+    private static async Task EnsureVolonteriAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.Volonters.AnyAsync()) return;
+
+        var volonterRole = await context.Ulogas.FirstOrDefaultAsync(r => r.Naziv == RoleNames.Volonter);
+        if (volonterRole == null) return;
+
+        var fakeVolonteri = new[]
+        {
+            new { Ime = "Amina", Prezime = "Hodžić", Email = "amina.hodzic@dogshelter.ba", KorisnickoIme = "amina.hodzic" },
+            new { Ime = "Ahmed", Prezime = "Bešić", Email = "ahmed.besic@dogshelter.ba", KorisnickoIme = "ahmed.besic" },
+            new { Ime = "Lejla", Prezime = "Kovač", Email = "lejla.kovac@dogshelter.ba", KorisnickoIme = "lejla.kovac" },
+        };
+
+        var korisnici = new List<Korisnik>();
+        foreach (var v in fakeVolonteri)
+        {
+            var korisnik = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == v.KorisnickoIme);
+            if (korisnik == null)
+            {
+                korisnik = new Korisnik
+                {
+                    Ime = v.Ime,
+                    Prezime = v.Prezime,
+                    Email = v.Email,
+                    KorisnickoIme = v.KorisnickoIme,
+                    LozinkaHash = KorisnikService.HashPassword("test"),
+                    LozinkaSalt = string.Empty,
+                    Aktivan = true
+                };
+                context.Korisniks.Add(korisnik);
+                await context.SaveChangesAsync();
+            }
+            korisnici.Add(korisnik);
+        }
+
+        foreach (var korisnik in korisnici)
+        {
+            var hasRole = await context.KorisnikUlogas.AnyAsync(ur => ur.KorisnikId == korisnik.KorisnikId && ur.UlogaId == volonterRole.UlogaId);
+            if (!hasRole)
+                context.KorisnikUlogas.Add(new KorisnikUloga { KorisnikId = korisnik.KorisnikId, UlogaId = volonterRole.UlogaId });
+        }
+        await context.SaveChangesAsync();
+
+        var testVolonter = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "volonter");
+
+        var danas = DateOnly.FromDateTime(DateTime.UtcNow);
+        var volonteri = new List<Volonter>();
+
+        if (testVolonter != null)
+            volonteri.Add(new Volonter { KorisnikId = testVolonter.KorisnikId, DatumPridruzivanja = danas.AddMonths(-8), Aktivan = true });
+
+        volonteri.Add(new Volonter { KorisnikId = korisnici[0].KorisnikId, DatumPridruzivanja = danas.AddMonths(-5), Aktivan = true });
+        volonteri.Add(new Volonter { KorisnikId = korisnici[1].KorisnikId, DatumPridruzivanja = danas.AddMonths(-3), Aktivan = true });
+        volonteri.Add(new Volonter { KorisnikId = korisnici[2].KorisnikId, DatumPridruzivanja = danas.AddYears(-1), Aktivan = false });
+
+        context.Volonters.AddRange(volonteri);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} volontera.", volonteri.Count);
+    }
+
+    /// <summary>
+    /// Seeds Dogadjaj records spanning open days, humanitarian actions and adoption
+    /// promotions (per the faculty brief's examples), plus one cancelled (Aktivan = false)
+    /// past event so the non-admin "upcoming only" visibility filter has something to hide.
+    /// </summary>
+    private static async Task EnsureDogadjajiAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.Dogadjajs.AnyAsync()) return;
+
+        var now = DateTime.UtcNow;
+        var dogadjaji = new List<Dogadjaj>
+        {
+            new() { Naziv = "Dan otvorenih vrata", Opis = "Posjetite azil, upoznajte pse i osoblje, i saznajte kako možete pomoći.", Datum = now.AddDays(10).Date.AddHours(10), Lokacija = "Azil za pse Bugojno", Aktivan = true },
+            new() { Naziv = "Humanitarna akcija - Sakupljanje hrane", Opis = "Akcija sakupljanja hrane i opreme za pse u centru grada.", Datum = now.AddDays(20).Date.AddHours(9), Lokacija = "Gradski trg, Bugojno", Aktivan = true },
+            new() { Naziv = "Promotivni dan udomljavanja", Opis = "Dovodimo nekoliko pasa na promociju udomljavanja u park.", Datum = now.AddDays(30).Date.AddHours(11), Lokacija = "Gradski park, Bugojno", Aktivan = true },
+            new() { Naziv = "Volonterski vikend čišćenja", Opis = "Zajedničko čišćenje i uređenje prostora azila.", Datum = now.AddDays(45).Date.AddHours(9), Lokacija = "Azil za pse Bugojno", Aktivan = true },
+            new() { Naziv = "Zimska humanitarna akcija (otkazano)", Opis = "Akcija je otkazana zbog vremenskih uslova.", Datum = now.AddDays(-15).Date.AddHours(10), Lokacija = "Azil za pse Bugojno", Aktivan = false },
+        };
+
+        context.Dogadjajs.AddRange(dogadjaji);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} dogadjaja.", dogadjaji.Count);
+    }
+
+    /// <summary>
+    /// Seeds AktivnostVolontera records across the seeded volunteers so the hours-tracking
+    /// aggregation (Volonter.UkupnoSati) has real data to sum, not just an empty roster.
+    /// </summary>
+    private static async Task EnsureAktivnostiVolonteraAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.AktivnostVolonteras.AnyAsync()) return;
+
+        var volonteri = await context.Volonters.OrderBy(v => v.VolonterId).ToListAsync();
+        if (volonteri.Count == 0) return;
+
+        var tSetanje = await context.TipAktivnostis.FirstOrDefaultAsync(t => t.Naziv == "Šetanje pasa");
+        var tNjega = await context.TipAktivnostis.FirstOrDefaultAsync(t => t.Naziv == "Njega i hranjenje pasa");
+        var tCiscenje = await context.TipAktivnostis.FirstOrDefaultAsync(t => t.Naziv == "Čišćenje prostora");
+        var tDogadjaji = await context.TipAktivnostis.FirstOrDefaultAsync(t => t.Naziv == "Pomoć na događajima");
+        if (tSetanje == null || tNjega == null || tCiscenje == null || tDogadjaji == null) return;
+
+        var danas = DateOnly.FromDateTime(DateTime.UtcNow);
+        var aktivnosti = new List<AktivnostVolontera>();
+
+        var v0 = volonteri[0];
+        aktivnosti.Add(new AktivnostVolontera { VolonterId = v0.VolonterId, TipAktivnostiId = tSetanje.TipAktivnostiId, DatumAktivnosti = danas.AddDays(-14), BrojSati = 2.5m, Opis = "Šetanje pasa u dvorištu azila." });
+        aktivnosti.Add(new AktivnostVolontera { VolonterId = v0.VolonterId, TipAktivnostiId = tNjega.TipAktivnostiId, DatumAktivnosti = danas.AddDays(-7), BrojSati = 3m, Opis = "Hranjenje i njega pasa u jutarnjoj smjeni." });
+
+        if (volonteri.Count > 1)
+        {
+            var v1 = volonteri[1];
+            aktivnosti.Add(new AktivnostVolontera { VolonterId = v1.VolonterId, TipAktivnostiId = tCiscenje.TipAktivnostiId, DatumAktivnosti = danas.AddDays(-10), BrojSati = 4m, Opis = "Čišćenje bokseva i dvorišta." });
+            aktivnosti.Add(new AktivnostVolontera { VolonterId = v1.VolonterId, TipAktivnostiId = tSetanje.TipAktivnostiId, DatumAktivnosti = danas.AddDays(-3), BrojSati = 2m });
+        }
+
+        if (volonteri.Count > 2)
+        {
+            var v2 = volonteri[2];
+            aktivnosti.Add(new AktivnostVolontera { VolonterId = v2.VolonterId, TipAktivnostiId = tDogadjaji.TipAktivnostiId, DatumAktivnosti = danas.AddDays(-20), BrojSati = 5m, Opis = "Pomoć na promotivnom danu udomljavanja." });
+        }
+
+        context.AktivnostVolonteras.AddRange(aktivnosti);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} aktivnosti volontera.", aktivnosti.Count);
+    }
+
+    /// <summary>
+    /// Seeds DogadjajVolonter (zaduženje) rows linking active volunteers to upcoming active
+    /// events, so the admin roster view and the volunteer's "my assignments" view both have
+    /// real data. Written directly via DbContext like every other seeder, so no email is
+    /// sent during seeding (only DogadjajVolonterService.Zaduzi sends one, in normal use).
+    /// </summary>
+    private static async Task EnsureDogadjajVolonteriAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.DogadjajVolonters.AnyAsync()) return;
+
+        var aktivniVolonteri = await context.Volonters.Where(v => v.Aktivan).OrderBy(v => v.VolonterId).ToListAsync();
+        if (aktivniVolonteri.Count == 0) return;
+
+        var dogadjaji = await context.Dogadjajs.Where(d => d.Aktivan).OrderBy(d => d.Datum).ToListAsync();
+        if (dogadjaji.Count == 0) return;
+
+        var zaduzenja = new List<DogadjajVolonter>();
+        var otvorenaVrata = dogadjaji.ElementAtOrDefault(0);
+        var humanitarna = dogadjaji.ElementAtOrDefault(1);
+
+        if (otvorenaVrata != null)
+        {
+            zaduzenja.Add(new DogadjajVolonter { DogadjajId = otvorenaVrata.DogadjajId, VolonterId = aktivniVolonteri[0].VolonterId });
+            if (aktivniVolonteri.Count > 1)
+                zaduzenja.Add(new DogadjajVolonter { DogadjajId = otvorenaVrata.DogadjajId, VolonterId = aktivniVolonteri[1].VolonterId });
+        }
+
+        if (humanitarna != null && aktivniVolonteri.Count > 2)
+            zaduzenja.Add(new DogadjajVolonter { DogadjajId = humanitarna.DogadjajId, VolonterId = aktivniVolonteri[2].VolonterId });
+
+        context.DogadjajVolonters.AddRange(zaduzenja);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} zaduzenja volontera za dogadjaje.", zaduzenja.Count);
     }
 }

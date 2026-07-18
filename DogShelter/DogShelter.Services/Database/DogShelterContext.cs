@@ -96,6 +96,7 @@ public partial class DogShelterContext : DbContext
             entity.Property(e => e.Aktivan).HasDefaultValue(true);
             entity.Property(e => e.Lokacija).HasMaxLength(200);
             entity.Property(e => e.Naziv).HasMaxLength(150);
+            entity.Property(e => e.SlikaPutanja).HasMaxLength(500);
         });
 
         modelBuilder.Entity<DogadjajVolonter>(entity =>

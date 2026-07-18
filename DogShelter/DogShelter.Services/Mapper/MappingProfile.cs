@@ -59,9 +59,31 @@ public class MappingProfile : Profile
             .ForMember(d => d.ObradioKorisnikIme,      o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Ime : null))
             .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null))
             .ForMember(d => d.IsPaid,                  o => o.MapFrom(s => s.StatusDonacije != null && s.StatusDonacije.Naziv == StatusDonacijeNazivi.Uspjesna));
-        CreateMap<Database.AktivnostVolontera, Model.AktivnostVolontera>();
+        CreateMap<Database.AktivnostVolontera, Model.AktivnostVolontera>()
+            .ForMember(d => d.KorisnikId,          o => o.MapFrom(s => s.Volonter != null ? s.Volonter.KorisnikId : 0))
+            .ForMember(d => d.VolonterIme,          o => o.MapFrom(s => s.Volonter != null && s.Volonter.Korisnik != null ? s.Volonter.Korisnik.Ime : null))
+            .ForMember(d => d.VolonterPrezime,      o => o.MapFrom(s => s.Volonter != null && s.Volonter.Korisnik != null ? s.Volonter.Korisnik.Prezime : null))
+            .ForMember(d => d.TipAktivnostiNaziv,   o => o.MapFrom(s => s.TipAktivnosti != null ? s.TipAktivnosti.Naziv : null));
+
+        CreateMap<Model.Requests.AktivnostVolonteraInsertRequest, Database.AktivnostVolontera>()
+            .ForMember(d => d.VolonterId, o => o.Ignore());
+
         CreateMap<Database.Dogadjaj, Model.Dogadjaj>();
-        CreateMap<Database.DogadjajVolonter, Model.DogadjajVolonter>();
+
+        CreateMap<Model.Requests.DogadjajInsertRequest, Database.Dogadjaj>()
+            .ForMember(d => d.SlikaPutanja, o => o.Ignore());
+
+        CreateMap<Model.Requests.DogadjajUpdateRequest, Database.Dogadjaj>()
+            .ForMember(d => d.SlikaPutanja, o => o.Ignore());
+
+        CreateMap<Database.DogadjajVolonter, Model.DogadjajVolonter>()
+            .ForMember(d => d.DogadjajNaziv,    o => o.MapFrom(s => s.Dogadjaj != null ? s.Dogadjaj.Naziv : null))
+            .ForMember(d => d.DogadjajDatum,    o => o.MapFrom(s => s.Dogadjaj != null ? s.Dogadjaj.Datum : (DateTime?)null))
+            .ForMember(d => d.DogadjajLokacija, o => o.MapFrom(s => s.Dogadjaj != null ? s.Dogadjaj.Lokacija : null))
+            .ForMember(d => d.KorisnikId,       o => o.MapFrom(s => s.Volonter != null ? s.Volonter.KorisnikId : 0))
+            .ForMember(d => d.VolonterIme,      o => o.MapFrom(s => s.Volonter != null && s.Volonter.Korisnik != null ? s.Volonter.Korisnik.Ime : null))
+            .ForMember(d => d.VolonterPrezime,  o => o.MapFrom(s => s.Volonter != null && s.Volonter.Korisnik != null ? s.Volonter.Korisnik.Prezime : null));
+
         CreateMap<Database.Grad, Model.Grad>();
         CreateMap<Database.KorisnikUloga, Model.KorisnikUloga>();
         CreateMap<Database.Obavijest, Model.Obavijest>()
@@ -107,7 +129,12 @@ public class MappingProfile : Profile
             .ForMember(d => d.KorisnikPrezime, o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.Korisnik != null ? s.ZahtjevZaUdomljavanje.Korisnik.Prezime : null));
         CreateMap<Database.Uloga, Model.Uloga>();
         CreateMap<Database.VelicinaPsa, Model.VelicinaPsa>();
-        CreateMap<Database.Volonter, Model.Volonter>();
+        CreateMap<Database.Volonter, Model.Volonter>()
+            .ForMember(d => d.KorisnikIme,      o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Ime : null))
+            .ForMember(d => d.KorisnikPrezime,  o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))
+            .ForMember(d => d.KorisnikEmail,    o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Email : null))
+            .ForMember(d => d.KorisnikTelefon,  o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Telefon : null))
+            .ForMember(d => d.UkupnoSati,       o => o.Ignore());
         CreateMap<Database.ZahtjevZaUdomljavanje, Model.ZahtjevZaUdomljavanje>()
             .ForMember(d => d.KorisnikIme,             o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Ime : null))
             .ForMember(d => d.KorisnikPrezime,         o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))

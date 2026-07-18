@@ -38,5 +38,22 @@ namespace DogShelter.Model
         public const string IznosRange = "Iznos donacije mora biti veći od 0.";
         public const string RazlogVracanjaRequired = "Razlog vraćanja sredstava je obavezan.";
         public const string RazlogVracanjaMaxLength = "Razlog vraćanja sredstava može imati najviše 1000 karaktera.";
+        // Volonter
+        public const string DatumPridruzivanjaRequired = "Datum pridruživanja je obavezan.";
+        // Dogadjaj
+        public const string DogadjajNazivRequired = "Naziv događaja je obavezan.";
+        public const string DogadjajNazivMaxLength = "Naziv događaja može imati najviše 150 karaktera.";
+        public const string DogadjajLokacijaRequired = "Lokacija je obavezna.";
+        public const string DogadjajLokacijaMaxLength = "Lokacija može imati najviše 200 karaktera.";
+        public const string DogadjajDatumRequired = "Datum događaja je obavezan.";
+        public const string DogadjajOpisMaxLength = "Opis događaja može imati najviše 2000 karaktera.";
+        // AktivnostVolontera
+        public const string TipAktivnostiIdRequired = "Tip aktivnosti je obavezan.";
+        public const string DatumAktivnostiRequired = "Datum aktivnosti je obavezan.";
+        public const string BrojSatiRange = "Broj sati mora biti veći od 0 i najviše 24.";
+        public const string AktivnostOpisMaxLength = "Opis aktivnosti može imati najviše 1000 karaktera.";
+        // DogadjajVolonter (zaduženje)
+        public const string DogadjajIdRequired = "Događaj je obavezan.";
+        public const string VolonterIdRequired = "Volonter je obavezan.";
     }
 }
