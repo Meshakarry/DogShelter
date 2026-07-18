@@ -86,6 +86,8 @@ public class MappingProfile : Profile
 
         CreateMap<Database.Grad, Model.Grad>();
         CreateMap<Database.KorisnikUloga, Model.KorisnikUloga>();
+        CreateMap<Database.Notifikacija, Model.Notifikacija>();
+
         CreateMap<Database.Obavijest, Model.Obavijest>()
             .ForMember(d => d.AutorIme,     o => o.MapFrom(s => s.Autor != null ? s.Autor.Ime : null))
             .ForMember(d => d.AutorPrezime, o => o.MapFrom(s => s.Autor != null ? s.Autor.Prezime : null));

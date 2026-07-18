@@ -38,6 +38,8 @@ public partial class Korisnik
 
     public virtual ICollection<LozinkaResetToken> LozinkaResetTokens { get; set; } = new List<LozinkaResetToken>();
 
+    public virtual ICollection<Notifikacija> Notifikacijas { get; set; } = new List<Notifikacija>();
+
     public virtual ICollection<Obavijest> Obavijests { get; set; } = new List<Obavijest>();
 
     public virtual ICollection<Posjeta> PosjetaKorisniks { get; set; } = new List<Posjeta>();

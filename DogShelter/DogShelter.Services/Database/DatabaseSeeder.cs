@@ -28,6 +28,7 @@ public static class DatabaseSeeder
         await EnsureDogadjajiAsync(context, logger);
         await EnsureAktivnostiVolonteraAsync(context, logger);
         await EnsureDogadjajVolonteriAsync(context, logger);
+        await EnsureNotifikacijeAsync(context, logger);
     }
 
     /// <summary>
@@ -522,6 +523,9 @@ public static class DatabaseSeeder
         if (admin == null) return;
 
         var lola = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Lola");
+        var max = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Max");
+        var rex = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Rex");
+        var bella = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Bella");
         var now = DateTime.UtcNow;
 
         var obavijesti = new List<Obavijest>
@@ -531,6 +535,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Azil dobio novu opremu zahvaljujući donatorima",
                 Sadrzaj = "Ovih sedmica primili smo veliku donaciju hrane, deka i kaveza od naših dragih donatora. Hvala svima koji su prepoznali da se svaka pomoć broji – zahvaljujući vama naši štićenici imaju toplije zime i punije stomake.",
+                SlikaPutanja = max?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Max' nije pronađen za Obavijest sliku."),
                 DatumObjave = now.AddDays(-14),
                 Aktivna = true
             },
@@ -539,7 +544,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Lola pronašla svoj dom!",
                 Sadrzaj = "Sa velikim zadovoljstvom javljamo da je Lola, naša labradorica koja je čekala godinu dana, konačno udomljena. Nova porodica joj je pripremila prostrano dvorište i toplu dobrodošlicu. Hvala svima koji su navijali za nju!",
-                SlikaPutanja = lola?.SlikaNaslovna,
+                SlikaPutanja = lola?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Lola' nije pronađen za Obavijest sliku."),
                 DatumObjave = now.AddDays(-8),
                 Aktivna = true
             },
@@ -548,6 +553,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Otvoren poziv za volontere ovog vikenda",
                 Sadrzaj = "Tražimo volontere za šetnju pasa i pomoć oko čišćenja azila subotom i nedjeljom od 9 do 13 sati. Prijave su moguće putem aplikacije u sekciji Volontiranje. Svaka pomoć je dobrodošla!",
+                SlikaPutanja = rex?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Rex' nije pronađen za Obavijest sliku."),
                 DatumObjave = now.AddDays(-3),
                 Aktivna = true
             },
@@ -556,6 +562,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Nacrt: najava zimske akcije prikupljanja donacija",
                 Sadrzaj = "Radna verzija teksta za predstojeću zimsku akciju prikupljanja hrane i deka – još uvijek čeka odobrenje uprave prije objave.",
+                SlikaPutanja = bella?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Bella' nije pronađen za Obavijest sliku."),
                 DatumObjave = now,
                 Aktivna = false
             }
@@ -750,5 +757,34 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded {Count} zaduzenja volontera za dogadjaje.", zaduzenja.Count);
+    }
+
+    /// <summary>
+    /// Seeds a mix of read/unread Notifikacija rows for the test accounts so the reviewer
+    /// sees populated state immediately, spanning several trigger types (Phase 8).
+    /// </summary>
+    private static async Task EnsureNotifikacijeAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.Notifikacijas.AnyAsync()) return;
+
+        var korisnik = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "korisnik");
+        var volonter = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "volonter");
+        if (korisnik == null || volonter == null) return;
+
+        var now = DateTime.UtcNow;
+        var notifikacije = new List<Notifikacija>
+        {
+            new() { KorisnikId = korisnik.KorisnikId, Tip = NotifikacijaTipovi.PosjetaPotvrdjena, Naslov = "Posjeta potvrđena", Tekst = "Vaša posjeta zakazana za 22.07.2026 10:00 je potvrđena.", Procitano = false, DatumKreiranja = now.AddHours(-2) },
+            new() { KorisnikId = korisnik.KorisnikId, Tip = NotifikacijaTipovi.DonacijaUspjesna, Naslov = "Donacija uspješna", Tekst = "Vaše plaćanje je uspješno obrađeno. Hvala Vam na donaciji!", Procitano = false, DatumKreiranja = now.AddDays(-1) },
+            new() { KorisnikId = korisnik.KorisnikId, Tip = NotifikacijaTipovi.ZahtjevOdobren, Naslov = "Zahtjev za udomljavanje odobren", Tekst = "Vaš zahtjev za udomljavanje psa \"Max\" je odobren.", Procitano = true, DatumKreiranja = now.AddDays(-5) },
+            new() { KorisnikId = korisnik.KorisnikId, Tip = NotifikacijaTipovi.PosjetaOtkazana, Naslov = "Posjeta otkazana", Tekst = "Vaša posjeta zakazana za 10.07.2026 14:00 je otkazana. Razlog: Bolest psa.", Procitano = true, DatumKreiranja = now.AddDays(-8) },
+            new() { KorisnikId = volonter.KorisnikId, Tip = NotifikacijaTipovi.DogadjajZaduzenje, Naslov = "Zaduženje za događaj", Tekst = "Zaduženi ste za događaj \"Dan otvorenih vrata\".", Procitano = false, DatumKreiranja = now.AddHours(-6) },
+            new() { KorisnikId = volonter.KorisnikId, Tip = NotifikacijaTipovi.DogadjajZaduzenje, Naslov = "Zaduženje za događaj", Tekst = "Zaduženi ste za događaj \"Humanitarna akcija - Sakupljanje hrane\".", Procitano = true, DatumKreiranja = now.AddDays(-3) },
+        };
+
+        context.Notifikacijas.AddRange(notifikacije);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} notifikacija.", notifikacije.Count);
     }
 }

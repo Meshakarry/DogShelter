@@ -14,12 +14,14 @@ public class DonacijaService : IDonacijaService
     private readonly DogShelterContext _context;
     private readonly IMapper _mapper;
     private readonly IStripePaymentService _stripePaymentService;
+    private readonly INotifikacijaService _notifikacijaService;
 
-    public DonacijaService(DogShelterContext context, IMapper mapper, IStripePaymentService stripePaymentService)
+    public DonacijaService(DogShelterContext context, IMapper mapper, IStripePaymentService stripePaymentService, INotifikacijaService notifikacijaService)
     {
         _context = context;
         _mapper = mapper;
         _stripePaymentService = stripePaymentService;
+        _notifikacijaService = notifikacijaService;
     }
 
     private IQueryable<Database.Donacija> BaseQuery() =>
@@ -182,6 +184,13 @@ public class DonacijaService : IDonacijaService
         entity.ObradioKorisnikId = adminKorisnikId;
         entity.DatumObrade = DateTime.UtcNow;
 
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.DonacijaPotvrdjena,
+            "Donacija potvrđena",
+            "Vaša materijalna donacija je potvrđena. Hvala Vam na doprinosu!",
+            entity.DonacijaId);
+
         await _context.SaveChangesAsync();
         return await GetById(id);
     }
@@ -206,6 +215,13 @@ public class DonacijaService : IDonacijaService
         entity.ObradioKorisnikId = adminKorisnikId;
         entity.DatumObrade = DateTime.UtcNow;
         entity.RazlogOdbijanja = request.RazlogOdbijanja;
+
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.DonacijaOdbijena,
+            "Donacija odbijena",
+            $"Vaša materijalna donacija je odbijena. Razlog: {request.RazlogOdbijanja}",
+            entity.DonacijaId);
 
         await _context.SaveChangesAsync();
         return await GetById(id);
@@ -246,6 +262,13 @@ public class DonacijaService : IDonacijaService
         entity.DatumObrade = DateTime.UtcNow;
         entity.RazlogVracanja = request.RazlogVracanja;
 
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.DonacijaVracena,
+            "Sredstva vraćena",
+            $"Sredstva za Vašu donaciju su vraćena. Razlog: {request.RazlogVracanja}",
+            entity.DonacijaId);
+
         await _context.SaveChangesAsync();
         return await GetById(id);
     }
@@ -264,6 +287,13 @@ public class DonacijaService : IDonacijaService
         entity.StatusDonacijeId = statusUspjesna.StatusDonacijeId;
         entity.DatumObrade = DateTime.UtcNow;
 
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.DonacijaUspjesna,
+            "Donacija uspješna",
+            "Vaše plaćanje je uspješno obrađeno. Hvala Vam na donaciji!",
+            entity.DonacijaId);
+
         await _context.SaveChangesAsync();
     }
 
@@ -281,6 +311,13 @@ public class DonacijaService : IDonacijaService
         entity.StatusDonacijeId = statusNeuspjesna.StatusDonacijeId;
         entity.DatumObrade = DateTime.UtcNow;
         entity.RazlogOdbijanja = reason;
+
+        _notifikacijaService.StageCreate(
+            entity.KorisnikId,
+            NotifikacijaTipovi.DonacijaNeuspjesna,
+            "Plaćanje nije uspjelo",
+            "Vaše plaćanje nije uspjelo. Pokušajte ponovo ili kontaktirajte azil.",
+            entity.DonacijaId);
 
         await _context.SaveChangesAsync();
     }

@@ -1,6 +1,7 @@
 using AutoMapper;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -14,13 +15,15 @@ public class DogadjajVolonterService : IDogadjajVolonterService
     private readonly DogShelterContext _context;
     private readonly IMapper _mapper;
     private readonly IEmailSender _emailSender;
+    private readonly INotifikacijaService _notifikacijaService;
     private readonly ILogger<DogadjajVolonterService> _logger;
 
-    public DogadjajVolonterService(DogShelterContext context, IMapper mapper, IEmailSender emailSender, ILogger<DogadjajVolonterService> logger)
+    public DogadjajVolonterService(DogShelterContext context, IMapper mapper, IEmailSender emailSender, INotifikacijaService notifikacijaService, ILogger<DogadjajVolonterService> logger)
     {
         _context = context;
         _mapper = mapper;
         _emailSender = emailSender;
+        _notifikacijaService = notifikacijaService;
         _logger = logger;
     }
 
@@ -76,6 +79,13 @@ public class DogadjajVolonterService : IDogadjajVolonterService
             DogadjajId = request.DogadjajId,
             VolonterId = request.VolonterId
         };
+
+        _notifikacijaService.StageCreate(
+            volonter.KorisnikId,
+            NotifikacijaTipovi.DogadjajZaduzenje,
+            "Zaduženje za događaj",
+            $"Zaduženi ste za događaj \"{dogadjaj.Naziv}\" koji se održava {dogadjaj.Datum:dd.MM.yyyy HH:mm}.",
+            dogadjaj.DogadjajId);
 
         _context.DogadjajVolonters.Add(entity);
         await _context.SaveChangesAsync();
