@@ -1,6 +1,8 @@
 using AutoMapper;
 using DogShelter.Model;
+using DogShelter.Model.Reports;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -111,5 +113,48 @@ public class AktivnostVolonteraService : IAktivnostVolonteraService
             ?? throw new BusinessException("Nemate evidentiran volonterski profil.");
 
         return volonter.VolonterId;
+    }
+
+    public async Task<AktivnostVolonteraIzvjestaj> GenerirajIzvjestaj(DateTime? datumOd, DateTime? datumDo)
+    {
+        var query = _context.AktivnostVolonteras.AsNoTracking().AsQueryable();
+
+        if (datumOd.HasValue)
+        {
+            var od = DateOnly.FromDateTime(datumOd.Value);
+            query = query.Where(a => a.DatumAktivnosti >= od);
+        }
+
+        if (datumDo.HasValue)
+        {
+            var doDatuma = DateOnly.FromDateTime(datumDo.Value);
+            query = query.Where(a => a.DatumAktivnosti <= doDatuma);
+        }
+
+        var podaci = await query
+            .Select(a => new { a.DatumAktivnosti, a.BrojSati })
+            .ToListAsync();
+
+        var poMjesecu = podaci
+            .GroupBy(p => new { p.DatumAktivnosti.Year, p.DatumAktivnosti.Month })
+            .Select(g => new MjesecSatiStavka
+            {
+                Godina = g.Key.Year,
+                Mjesec = g.Key.Month,
+                MjesecNaziv = MjeseciNazivi.Naziv(g.Key.Month),
+                BrojAktivnosti = g.Count(),
+                UkupnoSati = g.Sum(x => x.BrojSati)
+            })
+            .OrderBy(x => x.Godina).ThenBy(x => x.Mjesec)
+            .ToList();
+
+        return new AktivnostVolonteraIzvjestaj
+        {
+            DatumOd = datumOd,
+            DatumDo = datumDo,
+            PoMjesecima = poMjesecu,
+            UkupnoAktivnosti = podaci.Count,
+            UkupnoSati = podaci.Sum(p => p.BrojSati)
+        };
     }
 }

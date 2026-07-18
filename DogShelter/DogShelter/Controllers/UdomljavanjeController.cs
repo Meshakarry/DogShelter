@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using DogShelter.Model;
+using DogShelter.Model.Reports;
 using DogShelter.Model.Requests;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -28,6 +29,11 @@ public class UdomljavanjeController : ControllerBase
     [Authorize]
     public async Task<Udomljavanje> GetById(int ID)
         => await _service.GetById(ID, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+
+    [HttpGet("report")]
+    [Authorize(Roles = "Admin")]
+    public async Task<UdomljavanjeIzvjestaj> Report([FromQuery] IzvjestajRequest request)
+        => await _service.GenerirajIzvjestaj(request.DatumOd, request.DatumDo);
 
     private int GetCurrentKorisnikId()
     {

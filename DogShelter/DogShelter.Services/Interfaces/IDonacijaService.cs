@@ -1,4 +1,5 @@
 using DogShelter.Model;
+using DogShelter.Model.Reports;
 using DogShelter.Model.Requests;
 
 namespace DogShelter.Services.Interfaces;
@@ -14,4 +15,5 @@ public interface IDonacijaService
     Task<Donacija> Refund(int id, DonacijaRefundRequest request, int adminKorisnikId);
     Task HandlePaymentSucceededAsync(string paymentIntentId);
     Task HandlePaymentFailedAsync(string paymentIntentId, string? reason);
+    Task<DonacijaIzvjestaj> GenerirajIzvjestaj(DateTime? datumOd, DateTime? datumDo);
 }
