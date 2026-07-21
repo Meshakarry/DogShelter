@@ -2,4 +2,5 @@
   <Project Path="DogShelter.Model/DogShelter.Model.csproj" />
   <Project Path="DogShelter.Services/DogShelter.Services.csproj" />
   <Project Path="DogShelter/DogShelter.csproj" />
+  <Project Path="DogShelter.Worker/DogShelter.Worker.csproj" />
 </Solution>
