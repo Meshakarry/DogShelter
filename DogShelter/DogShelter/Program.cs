@@ -2,6 +2,7 @@ using DogShelter.Filters;
 using DogShelter.Security;
 using DogShelter.Services.Database;
 using DogShelter.Services.Interfaces;
+using DogShelter.Services.RabbitMq;
 using DogShelter.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -134,7 +135,8 @@ builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
 builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
-builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddRabbitMqMailInfrastructure(connectionClientName: "DogShelter API");
+builder.Services.AddScoped<IEmailSender, QueuedEmailSender>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 // Authorization policies and resource-based handlers
