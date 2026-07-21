@@ -1,0 +1,111 @@
+services:
+  dogshelter_sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dogshelter_sqlserver
+    restart: unless-stopped
+    ports:
+      - "1433:1433"
+    environment:
+      MSSQL_SA_PASSWORD: ${SQL_SA_PASSWORD}
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+    volumes:
+      - sqlserverdata:/var/opt/mssql
+    networks:
+      - dogshelter_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" -b -o /dev/null || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  dogshelter_rabbitmq:
+    image: rabbitmq:3-management
+    container_name: dogshelter_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RabbitMQ__Username}
+      RABBITMQ_DEFAULT_PASS: ${RabbitMQ__Password}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - dogshelter_network
+
+  dogshelter_api:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: DogShelter/Dockerfile
+    container_name: dogshelter_api
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DogShelter: "Server=dogshelter_sqlserver;Database=180026;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true;"
+      JWTSettings__Key: ${JWTSettings__Key}
+      JWTSettings__Issuer: ${JWTSettings__Issuer}
+      JWTSettings__Audience: ${JWTSettings__Audience}
+      JWTSettings__DurationInMinutes: ${JWTSettings__DurationInMinutes}
+      AdminSeed__UserName: ${AdminSeed__UserName}
+      AdminSeed__Email: ${AdminSeed__Email}
+      AdminSeed__Password: ${AdminSeed__Password}
+      CORS__AllowedOrigins: ${CORS__AllowedOrigins}
+      Stripe__SecretKey: ${Stripe__SecretKey}
+      Stripe__PublishableKey: ${Stripe__PublishableKey}
+      Stripe__WebhookSecret: ${Stripe__WebhookSecret}
+      Stripe__Currency: ${Stripe__Currency}
+      RabbitMQ__Host: dogshelter_rabbitmq
+      RabbitMQ__Port: "5672"
+      RabbitMQ__Username: ${RabbitMQ__Username}
+      RabbitMQ__Password: ${RabbitMQ__Password}
+    volumes:
+      - dogshelter_images:/app/wwwroot/images
+    networks:
+      - dogshelter_network
+    depends_on:
+      dogshelter_sqlserver:
+        condition: service_healthy
+      dogshelter_rabbitmq:
+        condition: service_started
+
+  dogshelter_worker:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: DogShelter.Worker/Dockerfile
+    container_name: dogshelter_worker
+    environment:
+      RabbitMQ__Host: dogshelter_rabbitmq
+      RabbitMQ__Port: "5672"
+      RabbitMQ__Username: ${RabbitMQ__Username}
+      RabbitMQ__Password: ${RabbitMQ__Password}
+      SMTP__Host: ${SMTP__Host}
+      SMTP__Port: ${SMTP__Port}
+      SMTP__Username: ${SMTP__Username}
+      SMTP__Password: ${SMTP__Password}
+      SMTP__UseSsl: ${SMTP__UseSsl}
+      SMTP__SenderName: ${SMTP__SenderName}
+    depends_on:
+      dogshelter_rabbitmq:
+        condition: service_started
+      dogshelter_api:
+        condition: service_started
+    networks:
+      - dogshelter_network
+
+volumes:
+  sqlserverdata:
+  rabbitmq_data:
+  dogshelter_images:
+
+networks:
+  dogshelter_network:
+    driver: bridge
