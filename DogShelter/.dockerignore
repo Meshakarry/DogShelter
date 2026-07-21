@@ -1,0 +1,11 @@
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/.env
+**/bin
+**/obj
+**/*.user
+**/*.dbmdl
+**/.DS_Store
+**/*.md
