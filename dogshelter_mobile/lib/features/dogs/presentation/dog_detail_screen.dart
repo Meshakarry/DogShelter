@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/image_url.dart';
 import '../../../widgets/error_banner.dart';
 import '../../../widgets/status_pill.dart';
+import '../../adoption_requests/application/adoption_requests_providers.dart';
 import '../application/dogs_providers.dart';
 import '../domain/pas.dart';
 import 'dog_status_style.dart';
@@ -156,8 +158,10 @@ class _DogDetailBodyState extends State<_DogDetailBody> {
 }
 
 /// The adopt CTA plus, per the faculty's "disabled actions need an explanation" rule, a reason
-/// line shown whenever the button is disabled because the dog isn't available.
-class _AdoptRequestBar extends StatelessWidget {
+/// line shown whenever the button is disabled - either the dog isn't available, or the caller
+/// already has an active (Na čekanju) request for this dog (checked via hasPendingZahtjevProvider,
+/// same real-message text the backend itself would reject a duplicate submit with).
+class _AdoptRequestBar extends ConsumerWidget {
   const _AdoptRequestBar({required this.dog});
 
   final Pas dog;
@@ -165,27 +169,46 @@ class _AdoptRequestBar extends StatelessWidget {
   bool get _isAvailable => dog.statusNaziv?.toLowerCase() == 'dostupan';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasPending = ref.watch(hasPendingZahtjevProvider(dog.pasId)).valueOrNull ?? false;
+    final enabled = _isAvailable && !hasPending;
+
+    String? reason;
+    if (!_isAvailable) {
+      reason = 'Zahtjev nije moguć jer pas trenutno nije dostupan (status: ${dog.statusNaziv ?? 'nepoznat'}).';
+    } else if (hasPending) {
+      reason = 'Već imate aktivan zahtjev za ovog psa.';
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!_isAvailable)
+          if (reason != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Zahtjev nije moguć jer pas trenutno nije dostupan (status: ${dog.statusNaziv ?? 'nepoznat'}).',
+                reason,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
               ),
             ),
           _AdoptRequestButton(
-            enabled: _isAvailable,
-            // Real submission wires into POST /api/ZahtjevZaUdomljavanje in the next increment.
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Slanje zahtjeva za udomljavanje uskoro stiže.')),
-            ),
+            enabled: enabled,
+            onPressed: () async {
+              final submitted = await showModalBottomSheet<bool>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => _SubmitRequestSheet(pasId: dog.pasId),
+              );
+              if (submitted == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Zahtjev za udomljavanje je poslan.')),
+                );
+                context.go('/zahtjevi');
+              }
+            },
           ),
         ],
       ),
@@ -234,6 +257,113 @@ class _AdoptRequestButton extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet asking for an optional note before submitting a real
+/// POST /api/ZahtjevZaUdomljavanje - pops `true` on success so the caller can navigate/snackbar.
+class _SubmitRequestSheet extends ConsumerStatefulWidget {
+  const _SubmitRequestSheet({required this.pasId});
+
+  final int pasId;
+
+  @override
+  ConsumerState<_SubmitRequestSheet> createState() => _SubmitRequestSheetState();
+}
+
+class _SubmitRequestSheetState extends ConsumerState<_SubmitRequestSheet> {
+  final _napomenaController = TextEditingController();
+  bool _isSubmitting = false;
+  Object? _error;
+
+  @override
+  void dispose() {
+    _napomenaController.dispose();
+    super.dispose();
+  }
+
+  void _clearError() {
+    if (_error != null) setState(() => _error = null);
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+    try {
+      await ref.read(zahtjevApiProvider).createZahtjev(
+            pasId: widget.pasId,
+            napomena: _napomenaController.text.trim(),
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      setState(() => _error = e);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Zahtjev za udomljavanje',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Možete dodati napomenu za osoblje azila (nije obavezno).',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            ErrorBanner(error: _error),
+            TextField(
+              controller: _napomenaController,
+              onChanged: (_) => _clearError(),
+              maxLines: 4,
+              maxLength: 1000,
+              decoration: const InputDecoration(labelText: 'Napomena', alignLabelWithHint: true),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
+                    child: const Text('Otkaži'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Pošalji'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

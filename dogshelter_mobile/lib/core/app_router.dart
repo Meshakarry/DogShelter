@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/adoption_requests/presentation/adoption_requests_list_screen.dart';
+import '../features/adoption_requests/presentation/zahtjev_detail_screen.dart';
 import '../features/auth/application/auth_notifier.dart';
 import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
@@ -58,7 +60,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/pocetna', builder: (context, state) => const HomeScreen()),
           GoRoute(path: '/dogs', builder: (context, state) => const DogListScreen()),
-          GoRoute(path: '/zahtjevi', builder: (context, state) => const PlaceholderScreen(title: 'Moji zahtjevi')),
+          GoRoute(path: '/zahtjevi', builder: (context, state) => const AdoptionRequestsListScreen()),
           GoRoute(path: '/posjete', builder: (context, state) => const PlaceholderScreen(title: 'Moje posjete')),
           GoRoute(path: '/donacije', builder: (context, state) => const PlaceholderScreen(title: 'Donacije')),
           GoRoute(path: '/obavijesti', builder: (context, state) => const PlaceholderScreen(title: 'Obavijesti')),
@@ -77,6 +79,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dogs/:id',
         builder: (context, state) => DogDetailScreen(pasId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/zahtjevi/:id',
+        builder: (context, state) => ZahtjevDetailScreen(id: int.parse(state.pathParameters['id']!)),
       ),
     ],
   );
