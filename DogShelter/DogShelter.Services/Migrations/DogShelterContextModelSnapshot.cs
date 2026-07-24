@@ -459,6 +459,7 @@ namespace DogShelter.Services.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SlikaNaslovna")
+                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -593,6 +594,40 @@ namespace DogShelter.Services.Migrations
                         .IsUnique();
 
                     b.ToTable("Rasa", (string)null);
+                });
+
+            modelBuilder.Entity("DogShelter.Services.Database.RevokedToken", b =>
+                {
+                    b.Property<int>("RevokedTokenId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RevokedTokenId"));
+
+                    b.Property<DateTime>("ExpiresUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Jti")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("KorisnikId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RevokedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysdatetime())");
+
+                    b.HasKey("RevokedTokenId");
+
+                    b.HasIndex("KorisnikId");
+
+                    b.HasIndex(new[] { "Jti" }, "UQ_RevokedToken_Jti")
+                        .IsUnique();
+
+                    b.ToTable("RevokedToken", (string)null);
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.SlikaPsa", b =>
@@ -1104,6 +1139,17 @@ namespace DogShelter.Services.Migrations
                     b.Navigation("Pas");
                 });
 
+            modelBuilder.Entity("DogShelter.Services.Database.RevokedToken", b =>
+                {
+                    b.HasOne("DogShelter.Services.Database.Korisnik", "Korisnik")
+                        .WithMany("RevokedTokens")
+                        .HasForeignKey("KorisnikId")
+                        .IsRequired()
+                        .HasConstraintName("FK_RevokedToken_Korisnik");
+
+                    b.Navigation("Korisnik");
+                });
+
             modelBuilder.Entity("DogShelter.Services.Database.SlikaPsa", b =>
                 {
                     b.HasOne("DogShelter.Services.Database.Pas", "Pas")
@@ -1200,6 +1246,8 @@ namespace DogShelter.Services.Migrations
                     b.Navigation("PosjetaObradioKorisniks");
 
                     b.Navigation("PregledPsas");
+
+                    b.Navigation("RevokedTokens");
 
                     b.Navigation("Volonter");
 

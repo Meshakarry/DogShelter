@@ -24,7 +24,7 @@ public partial class Pas
 
     public DateOnly DatumPrijema { get; set; }
 
-    public string? SlikaNaslovna { get; set; }
+    public string SlikaNaslovna { get; set; } = null!;
 
     public bool Vakcinisan { get; set; }
 

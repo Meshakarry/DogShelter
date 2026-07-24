@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
@@ -16,10 +17,12 @@ namespace DogShelter.Controllers
     {
         private readonly IKorisnikService _service;
         private readonly IJwtTokenGenerator _tokenGenerator;
-        public KorisnikController(IKorisnikService service, IJwtTokenGenerator tokenGenerator) : base(service)
+        private readonly ITokenRevocationService _tokenRevocationService;
+        public KorisnikController(IKorisnikService service, IJwtTokenGenerator tokenGenerator, ITokenRevocationService tokenRevocationService) : base(service)
         {
             _service = service;
             _tokenGenerator = tokenGenerator;
+            _tokenRevocationService = tokenRevocationService;
         }
 
         [HttpGet]
@@ -116,7 +119,7 @@ namespace DogShelter.Controllers
             var user = await _service.Authenticate(request);
             if (user == null)
             {
-                return Unauthorized();
+                return Unauthorized(new { message = "Neispravno korisničko ime ili lozinka." });
             }
 
             var token = _tokenGenerator.GenerateToken(user);
@@ -127,6 +130,26 @@ namespace DogShelter.Controllers
                 Korisnik = user
             };
             return Ok(response);
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+            var expClaim = User.FindFirstValue(JwtRegisteredClaimNames.Exp);
+
+            if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out var userId) ||
+                string.IsNullOrEmpty(jti) || string.IsNullOrEmpty(expClaim) || !long.TryParse(expClaim, out var expUnix))
+            {
+                throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
+            }
+
+            var expiresUtc = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+            await _tokenRevocationService.RevokeAsync(jti, userId, expiresUtc);
+
+            return Ok(new { message = "Uspješno ste se odjavili." });
         }
     }
 }

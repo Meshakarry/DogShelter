@@ -34,7 +34,8 @@ namespace DogShelter.Security
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.KorisnikId.ToString()),
-                new Claim(ClaimTypes.Name, user.KorisnickoIme)
+                new Claim(ClaimTypes.Name, user.KorisnickoIme),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             if (user.KorisnikUloge != null)

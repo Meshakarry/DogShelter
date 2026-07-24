@@ -41,6 +41,8 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<Rasa> Rasas { get; set; }
 
+    public virtual DbSet<RevokedToken> RevokedTokens { get; set; }
+
     public virtual DbSet<SlikaPsa> SlikaPsas { get; set; }
 
     public virtual DbSet<StatusDonacije> StatusDonacijes { get; set; }
@@ -328,6 +330,21 @@ public partial class DogShelterContext : DbContext
 
             entity.Property(e => e.Aktivan).HasDefaultValue(true, "DF_Rasa_Aktivan");
             entity.Property(e => e.Naziv).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<RevokedToken>(entity =>
+        {
+            entity.ToTable("RevokedToken");
+
+            entity.HasIndex(e => e.Jti, "UQ_RevokedToken_Jti").IsUnique();
+
+            entity.Property(e => e.Jti).HasMaxLength(64);
+            entity.Property(e => e.RevokedAt).HasDefaultValueSql("(sysdatetime())");
+
+            entity.HasOne(d => d.Korisnik).WithMany(p => p.RevokedTokens)
+                .HasForeignKey(d => d.KorisnikId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RevokedToken_Korisnik");
         });
 
         modelBuilder.Entity<SlikaPsa>(entity =>

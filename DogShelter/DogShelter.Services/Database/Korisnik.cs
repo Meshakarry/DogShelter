@@ -48,6 +48,8 @@ public partial class Korisnik
 
     public virtual ICollection<PregledPsa> PregledPsas { get; set; } = new List<PregledPsa>();
 
+    public virtual ICollection<RevokedToken> RevokedTokens { get; set; } = new List<RevokedToken>();
+
     public virtual Volonter? Volonter { get; set; }
 
     public virtual ICollection<ZahtjevZaUdomljavanje> ZahtjevZaUdomljavanjeKorisniks { get; set; } = new List<ZahtjevZaUdomljavanje>();
