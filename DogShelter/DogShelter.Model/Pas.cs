@@ -15,7 +15,7 @@ public class Pas
     public string? VelicinaNaziv { get; set; }
     public decimal? Tezina { get; set; }
     public DateOnly DatumPrijema { get; set; }
-    public string? SlikaNaslovna { get; set; }
+    public string SlikaNaslovna { get; set; } = null!;
     public bool Vakcinisan { get; set; }
     public bool Sterilizovan { get; set; }
     public bool Aktivan { get; set; }

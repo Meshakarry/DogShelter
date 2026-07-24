@@ -4,6 +4,7 @@ using DogShelter.Services.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DogShelter.Services.Migrations
 {
     [DbContext(typeof(DogShelterContext))]
-    partial class DogShelterContextModelSnapshot : ModelSnapshot
+    [Migration("20260722001843_AddRevokedToken")]
+    partial class AddRevokedToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -459,7 +462,6 @@ namespace DogShelter.Services.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SlikaNaslovna")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 

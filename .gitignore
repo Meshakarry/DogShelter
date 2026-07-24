@@ -356,3 +356,25 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 *.dll
+
+## Flutter/Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/android/local.properties
+**/android/.gradle/
+**/android/key.properties
+**/android/app/*.jks
+**/ios/Flutter/.last_build_id
+**/*.g.dart
+**/*.freezed.dart
+**/linux/flutter/generated_plugin*.cc
+**/linux/flutter/generated_plugin*.h
+**/linux/flutter/generated_plugins.cmake
+**/windows/flutter/generated_plugin*.cc
+**/windows/flutter/generated_plugin*.h
+**/windows/flutter/generated_plugins.cmake
+**/macos/Flutter/GeneratedPluginRegistrant.*

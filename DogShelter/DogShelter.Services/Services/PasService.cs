@@ -80,11 +80,12 @@ public class PasService : IPasService
     {
         await ValidateForeignKeysAsync(request.RasaId, request.StatusPsaId, request.VelicinaPsaId);
 
+        if (cover == null)
+            throw new ValidationException("Slika je obavezna.", "slikaNaslovna", "Naslovna slika je obavezna.");
+
         var entity = _mapper.Map<Database.Pas>(request);
         entity.Aktivan = true;
-
-        if (cover != null)
-            entity.SlikaNaslovna = await _fileUpload.SaveImageAsync(cover, "psi");
+        entity.SlikaNaslovna = await _fileUpload.SaveImageAsync(cover, "psi");
 
         _context.Pas.Add(entity);
         await _context.SaveChangesAsync();
