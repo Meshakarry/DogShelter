@@ -210,15 +210,30 @@ public class PosjetaService : IPosjetaService
         return await GetById(id);
     }
 
+    private static readonly string[] AktivniStatusi = [StatusPosjeteNazivi.NaCekanju, StatusPosjeteNazivi.Potvrdjena];
+
     private async Task EnsureSlotAvailableAsync(DateTime datumVrijeme)
     {
-        var aktivniStatusi = new[] { StatusPosjeteNazivi.NaCekanju, StatusPosjeteNazivi.Potvrdjena };
-
         var zauzeto = await _context.Posjeta
             .Include(p => p.StatusPosjete)
-            .AnyAsync(p => p.DatumVrijeme == datumVrijeme && aktivniStatusi.Contains(p.StatusPosjete.Naziv));
+            .AnyAsync(p => p.DatumVrijeme == datumVrijeme && AktivniStatusi.Contains(p.StatusPosjete.Naziv));
 
         if (zauzeto)
             throw new BusinessException("Odabrani termin je već zauzet. Molimo odaberite drugi termin.");
+    }
+
+    // Shelter-wide (not per-dog, not per-user) - mirrors EnsureSlotAvailableAsync's own definition of
+    // "taken" exactly, so the mobile client can grey out slots that would otherwise only be caught
+    // as a BusinessException on submit.
+    public async Task<List<DateTime>> GetZauzetiTermini(DateTime datum)
+    {
+        var datumOd = datum.Date;
+        var datumDo = datumOd.AddDays(1);
+
+        return await _context.Posjeta
+            .Include(p => p.StatusPosjete)
+            .Where(p => p.DatumVrijeme >= datumOd && p.DatumVrijeme < datumDo && AktivniStatusi.Contains(p.StatusPosjete.Naziv))
+            .Select(p => p.DatumVrijeme)
+            .ToListAsync();
     }
 }
