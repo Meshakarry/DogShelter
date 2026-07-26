@@ -7,6 +7,7 @@ import '../../../core/image_url.dart';
 import '../../../widgets/error_banner.dart';
 import '../../../widgets/status_pill.dart';
 import '../../adoption_requests/application/adoption_requests_providers.dart';
+import '../../visits/presentation/book_visit_sheet.dart';
 import '../application/dogs_providers.dart';
 import '../domain/pas.dart';
 import 'dog_status_style.dart';
@@ -209,6 +210,24 @@ class _AdoptRequestBar extends ConsumerWidget {
                 context.go('/zahtjevi');
               }
             },
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final booked = await showModalBottomSheet<bool>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => BookVisitSheet(pasId: dog.pasId, pasNaziv: dog.naziv),
+              );
+              if (booked == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Posjeta je zakazana.')),
+                );
+                context.go('/posjete');
+              }
+            },
+            icon: const Icon(Icons.event),
+            label: const Text('Zakaži posjetu'),
           ),
         ],
       ),

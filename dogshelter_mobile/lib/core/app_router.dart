@@ -17,6 +17,8 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/root/presentation/app_shell.dart';
 import '../features/root/presentation/placeholder_screen.dart';
+import '../features/visits/presentation/posjeta_detail_screen.dart';
+import '../features/visits/presentation/visits_list_screen.dart';
 
 class _AuthRouterRefresh extends ChangeNotifier {
   _AuthRouterRefresh(Ref ref) {
@@ -61,7 +63,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/pocetna', builder: (context, state) => const HomeScreen()),
           GoRoute(path: '/dogs', builder: (context, state) => const DogListScreen()),
           GoRoute(path: '/zahtjevi', builder: (context, state) => const AdoptionRequestsListScreen()),
-          GoRoute(path: '/posjete', builder: (context, state) => const PlaceholderScreen(title: 'Moje posjete')),
+          GoRoute(path: '/posjete', builder: (context, state) => const VisitsListScreen()),
           GoRoute(path: '/donacije', builder: (context, state) => const PlaceholderScreen(title: 'Donacije')),
           GoRoute(path: '/obavijesti', builder: (context, state) => const PlaceholderScreen(title: 'Obavijesti')),
           GoRoute(
@@ -83,6 +85,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/zahtjevi/:id',
         builder: (context, state) => ZahtjevDetailScreen(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/posjete/:id',
+        builder: (context, state) => PosjetaDetailScreen(id: int.parse(state.pathParameters['id']!)),
       ),
     ],
   );

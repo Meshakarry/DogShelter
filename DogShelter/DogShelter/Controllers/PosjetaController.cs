@@ -39,6 +39,11 @@ public class PosjetaController : ControllerBase
         return posjeta;
     }
 
+    [HttpGet("zauzeti-termini")]
+    [Authorize]
+    public async Task<List<DateTime>> ZauzetiTermini([FromQuery] DateTime datum)
+        => await _service.GetZauzetiTermini(datum);
+
     [HttpPost]
     [Authorize]
     public async Task<Posjeta> Insert([FromBody] PosjetaInsertRequest request)

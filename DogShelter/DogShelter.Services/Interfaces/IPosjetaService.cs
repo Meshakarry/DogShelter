@@ -12,4 +12,5 @@ public interface IPosjetaService
     Task<Posjeta> Potvrdi(int id, int adminKorisnikId);
     Task<Posjeta> Otkazi(int id, PosjetaOtkaziRequest request, int callerKorisnikId, bool isAdmin);
     Task<Posjeta> Zavrsi(int id, int adminKorisnikId);
+    Task<List<DateTime>> GetZauzetiTermini(DateTime datum);
 }
