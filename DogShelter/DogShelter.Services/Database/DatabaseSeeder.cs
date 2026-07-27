@@ -21,6 +21,10 @@ public static class DatabaseSeeder
         await EnsurePosjeteAsync(context, logger);
         await EnsureStatusDonacijeAsync(context, logger);
         await EnsureTipDonacijeAsync(context, logger);
+        await EnsureKategorijeDonacijeAsync(context, logger);
+        await EnsureJediniceMjereAsync(context, logger);
+        await EnsurePrioritetiPotrebeAsync(context, logger);
+        await EnsurePotrebeAzilaAsync(context, logger);
         await EnsureDonacijeAsync(context, logger);
         await EnsureObavijestiAsync(context, logger);
         await EnsureTipAktivnostiAsync(context, logger);
@@ -428,6 +432,115 @@ public static class DatabaseSeeder
         }
         await context.SaveChangesAsync();
         logger.LogInformation("Seeded TipDonacije.");
+    }
+
+    private static async Task EnsureKategorijeDonacijeAsync(DogShelterContext context, ILogger logger)
+    {
+        var kategorije = new (string Naziv, string IkonaKljuc)[]
+        {
+            (KategorijaDonacijeNazivi.HranaZaPse, "hrana_psi"),
+            (KategorijaDonacijeNazivi.HranaZaStenad, "hrana_stenad"),
+            (KategorijaDonacijeNazivi.DekeIPosteljina, "deke"),
+            (KategorijaDonacijeNazivi.Igracke, "igracke"),
+            (KategorijaDonacijeNazivi.PovodciIOgrlice, "povodci"),
+            (KategorijaDonacijeNazivi.Posude, "posude"),
+            (KategorijaDonacijeNazivi.Lijekovi, "lijekovi"),
+            (KategorijaDonacijeNazivi.SredstvaZaCiscenje, "cistoca"),
+            (KategorijaDonacijeNazivi.Ostalo, "ostalo"),
+        };
+
+        foreach (var (naziv, ikona) in kategorije)
+        {
+            if (!await context.KategorijaDonacijes.AnyAsync(k => k.Naziv == naziv))
+                context.KategorijaDonacijes.Add(new KategorijaDonacije { Naziv = naziv, IkonaKljuc = ikona });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded KategorijaDonacije.");
+    }
+
+    private static async Task EnsureJediniceMjereAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { "kom", "vreće", "kg", "kutije", "boce" };
+        foreach (var naziv in names)
+        {
+            if (!await context.JedinicaMjeres.AnyAsync(j => j.Naziv == naziv))
+                context.JedinicaMjeres.Add(new JedinicaMjere { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded JedinicaMjere.");
+    }
+
+    private static async Task EnsurePrioritetiPotrebeAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { PrioritetPotrebeNazivi.Hitno, PrioritetPotrebeNazivi.PotrebnoUskoro, PrioritetPotrebeNazivi.NaStanju };
+        foreach (var naziv in names)
+        {
+            if (!await context.PrioritetPotrebes.AnyAsync(p => p.Naziv == naziv))
+                context.PrioritetPotrebes.Add(new PrioritetPotrebe { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded PrioritetPotrebe.");
+    }
+
+    /// <summary>
+    /// Seeds the admin-curated "what the shelter currently needs" board shown read-only to donors
+    /// on the mobile Materijalna donation screen - never editable by donors themselves.
+    /// </summary>
+    private static async Task EnsurePotrebeAzilaAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.PotrebeAzila.AnyAsync()) return;
+
+        var hitno = await context.PrioritetPotrebes.FirstAsync(p => p.Naziv == PrioritetPotrebeNazivi.Hitno);
+        var uskoro = await context.PrioritetPotrebes.FirstAsync(p => p.Naziv == PrioritetPotrebeNazivi.PotrebnoUskoro);
+        var naStanju = await context.PrioritetPotrebes.FirstAsync(p => p.Naziv == PrioritetPotrebeNazivi.NaStanju);
+
+        var potrebe = new List<PotrebaAzila>
+        {
+            new()
+            {
+                Naziv = "Hrana za pse",
+                Opis = "Trenutno nam je potrebna suha hrana za odrasle pse.",
+                PrioritetPotrebeId = hitno.PrioritetPotrebeId,
+                IkonaKljuc = "hrana_psi",
+                Aktivna = true
+            },
+            new()
+            {
+                Naziv = "Sredstva za čišćenje",
+                Opis = "Deterdženti i dezinfekciona sredstva za svakodnevno održavanje azila.",
+                PrioritetPotrebeId = hitno.PrioritetPotrebeId,
+                IkonaKljuc = "cistoca",
+                Aktivna = true
+            },
+            new()
+            {
+                Naziv = "Deke",
+                Opis = "Tople deke za štenad i pse tokom hladnijih noći.",
+                PrioritetPotrebeId = uskoro.PrioritetPotrebeId,
+                IkonaKljuc = "deke",
+                Aktivna = true
+            },
+            new()
+            {
+                Naziv = "Lijekovi",
+                Opis = "Osnovni lijekovi i previjački materijal za veterinarsku njegu.",
+                PrioritetPotrebeId = uskoro.PrioritetPotrebeId,
+                IkonaKljuc = "lijekovi",
+                Aktivna = true
+            },
+            new()
+            {
+                Naziv = "Posude za hranu i vodu",
+                Opis = "Trenutne zalihe posuda su dovoljne, ali su uvijek dobrodošle.",
+                PrioritetPotrebeId = naStanju.PrioritetPotrebeId,
+                IkonaKljuc = "posude",
+                Aktivna = true
+            }
+        };
+
+        context.PotrebeAzila.AddRange(potrebe);
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} potrebe azila.", potrebe.Count);
     }
 
     /// <summary>

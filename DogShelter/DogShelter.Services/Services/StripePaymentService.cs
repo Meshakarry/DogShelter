@@ -45,11 +45,19 @@ public class StripePaymentService : IStripePaymentService
         }
     }
 
-    public async Task<PaymentIntent> GetPaymentIntentAsync(string paymentIntentId)
+    public async Task<PaymentIntent?> GetPaymentIntentAsync(string paymentIntentId)
     {
         try
         {
             return await _paymentIntentService.GetAsync(paymentIntentId);
+        }
+        catch (StripeException ex) when (ex.StripeError?.Code == "resource_missing")
+        {
+            // The stored id no longer resolves on Stripe's side (e.g. purged test data, or the
+            // secret key changed since it was created) - treat as "nothing to reconcile" rather
+            // than a hard failure, so callers can fall back to creating a fresh PaymentIntent.
+            _logger.LogInformation("Stripe PaymentIntent {PaymentIntentId} no longer exists remotely.", paymentIntentId);
+            return null;
         }
         catch (StripeException ex)
         {

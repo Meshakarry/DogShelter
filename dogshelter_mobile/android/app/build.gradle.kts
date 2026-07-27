@@ -43,3 +43,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Required by flutter_stripe's native Android SDK - the app theme must derive from
+    // MaterialComponents, which needs this on the classpath.
+    implementation("com.google.android.material:material:1.12.0")
+}

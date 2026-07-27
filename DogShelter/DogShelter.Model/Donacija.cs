@@ -20,4 +20,17 @@ public class Donacija
     public string? RazlogOdbijanja { get; set; }
     public string? RazlogVracanja { get; set; }
     public bool IsPaid { get; set; }
+
+    // --- Materijalna donacija details (null for Novčana) ---
+    public int? KategorijaDonacijeId { get; set; }
+    public string? KategorijaDonacijeNaziv { get; set; }
+    public string? PrilagodjenNaziv { get; set; }
+    public decimal? Kolicina { get; set; }
+    public int? JedinicaMjereId { get; set; }
+    public string? JedinicaMjereNaziv { get; set; }
+    public bool TrebaPreuzimanje { get; set; }
+    public string? AdresaPreuzimanja { get; set; }
+    public string? TelefonPreuzimanja { get; set; }
+    public DateTime? DatumPreuzimanja { get; set; }
+    public DateTime? ZeljeniDatumDostave { get; set; }
 }

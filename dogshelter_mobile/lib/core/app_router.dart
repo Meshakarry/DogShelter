@@ -12,6 +12,9 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/reset_password_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/dogs/presentation/dog_detail_screen.dart';
+import '../features/donations/presentation/donation_detail_screen.dart';
+import '../features/donations/presentation/donations_list_screen.dart';
+import '../features/donations/presentation/new_donation_screen.dart';
 import '../features/dogs/presentation/dog_list_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
@@ -64,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/dogs', builder: (context, state) => const DogListScreen()),
           GoRoute(path: '/zahtjevi', builder: (context, state) => const AdoptionRequestsListScreen()),
           GoRoute(path: '/posjete', builder: (context, state) => const VisitsListScreen()),
-          GoRoute(path: '/donacije', builder: (context, state) => const PlaceholderScreen(title: 'Donacije')),
+          GoRoute(path: '/donacije', builder: (context, state) => const DonationsListScreen()),
           GoRoute(path: '/obavijesti', builder: (context, state) => const PlaceholderScreen(title: 'Obavijesti')),
           GoRoute(
             path: '/notifikacije',
@@ -89,6 +92,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/posjete/:id',
         builder: (context, state) => PosjetaDetailScreen(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/donacije/nova',
+        builder: (context, state) => const NewDonationScreen(),
+      ),
+      GoRoute(
+        path: '/donacije/:id',
+        builder: (context, state) => DonationDetailScreen(id: int.parse(state.pathParameters['id']!)),
       ),
     ],
   );
