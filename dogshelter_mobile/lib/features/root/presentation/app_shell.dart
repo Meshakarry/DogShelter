@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../widgets/app_title.dart';
+import '../../notifications/application/notifications_providers.dart';
 import 'app_drawer.dart';
 
 class AppShell extends ConsumerWidget {
@@ -26,12 +27,22 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = _currentIndex(context);
+    final unreadCount = ref.watch(unreadNotificationCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const AppTitle(),
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text('$unreadCount'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'Notifikacije',
+            onPressed: () => context.go('/notifikacije'),
+          ),
           Builder(
             builder: (innerContext) => IconButton(
               icon: const Icon(Icons.menu),
