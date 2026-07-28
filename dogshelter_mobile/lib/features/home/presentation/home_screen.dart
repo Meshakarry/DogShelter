@@ -25,8 +25,7 @@ class HomeScreen extends ConsumerWidget {
       (icon: Icons.volunteer_activism, label: 'Donacije', route: '/donacije', color: const Color(0xFFDB2777)),
       (icon: Icons.campaign, label: 'Obavijesti', route: '/obavijesti', color: const Color(0xFFD97706)),
       (icon: Icons.notifications, label: 'Notifikacije', route: '/notifikacije', color: const Color(0xFF0891B2)),
-      if (isVolonter)
-        (icon: Icons.event, label: 'Događaji', route: '/dogadjaji', color: const Color(0xFF65A30D)),
+      (icon: Icons.event, label: 'Događaji', route: '/dogadjaji', color: const Color(0xFF65A30D)),
       if (isVolonter)
         (icon: Icons.timer, label: 'Moje aktivnosti', route: '/aktivnosti', color: const Color(0xFF7C3AED)),
     ];

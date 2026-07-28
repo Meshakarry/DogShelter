@@ -75,10 +75,9 @@ class AppDrawer extends ConsumerWidget {
                       icon: Icons.notifications_outlined,
                       label: 'Notifikacije',
                       route: '/notifikacije'),
+                  _DrawerItem(icon: Icons.event_outlined, label: 'Događaji', route: '/dogadjaji'),
                   if (isVolonter) ...[
                     const Divider(),
-                    _DrawerItem(
-                        icon: Icons.event_outlined, label: 'Događaji', route: '/dogadjaji'),
                     _DrawerItem(
                         icon: Icons.timer_outlined,
                         label: 'Moje aktivnosti',

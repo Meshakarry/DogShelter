@@ -65,6 +65,7 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen> {
     final booked = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(),
       builder: (_) => const BookVisitSheet(),
     );
     if (booked == true && mounted) {
