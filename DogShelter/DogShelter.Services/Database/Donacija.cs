@@ -28,6 +28,25 @@ public partial class Donacija
 
     public string? RazlogVracanja { get; set; }
 
+    // --- Materijalna donacija details (all null for Novčana) ---
+    public int? KategorijaDonacijeId { get; set; }
+
+    public string? PrilagodjenNaziv { get; set; }
+
+    public decimal? Kolicina { get; set; }
+
+    public int? JedinicaMjereId { get; set; }
+
+    public bool TrebaPreuzimanje { get; set; }
+
+    public string? AdresaPreuzimanja { get; set; }
+
+    public string? TelefonPreuzimanja { get; set; }
+
+    public DateTime? DatumPreuzimanja { get; set; }
+
+    public DateTime? ZeljeniDatumDostave { get; set; }
+
     public virtual Korisnik Korisnik { get; set; } = null!;
 
     public virtual Korisnik? ObradioKorisnik { get; set; }
@@ -35,4 +54,8 @@ public partial class Donacija
     public virtual StatusDonacije StatusDonacije { get; set; } = null!;
 
     public virtual TipDonacije TipDonacije { get; set; } = null!;
+
+    public virtual KategorijaDonacije? KategorijaDonacije { get; set; }
+
+    public virtual JedinicaMjere? JedinicaMjere { get; set; }
 }

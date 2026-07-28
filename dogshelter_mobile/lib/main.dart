@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'core/app_router.dart';
 import 'core/app_theme.dart';
+import 'environment.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (Environment.stripePublishableKey.isNotEmpty) {
+    Stripe.publishableKey = Environment.stripePublishableKey;
+    await Stripe.instance.applySettings();
+  }
+
   runApp(const ProviderScope(child: DogShelterApp()));
 }
 

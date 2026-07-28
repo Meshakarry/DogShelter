@@ -58,7 +58,9 @@ public class MappingProfile : Profile
             .ForMember(d => d.StatusDonacijeNaziv,     o => o.MapFrom(s => s.StatusDonacije != null ? s.StatusDonacije.Naziv : null))
             .ForMember(d => d.ObradioKorisnikIme,      o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Ime : null))
             .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null))
-            .ForMember(d => d.IsPaid,                  o => o.MapFrom(s => s.StatusDonacije != null && s.StatusDonacije.Naziv == StatusDonacijeNazivi.Uspjesna));
+            .ForMember(d => d.IsPaid,                  o => o.MapFrom(s => s.StatusDonacije != null && s.StatusDonacije.Naziv == StatusDonacijeNazivi.Uspjesna))
+            .ForMember(d => d.KategorijaDonacijeNaziv, o => o.MapFrom(s => s.KategorijaDonacije != null ? s.KategorijaDonacije.Naziv : null))
+            .ForMember(d => d.JedinicaMjereNaziv,      o => o.MapFrom(s => s.JedinicaMjere != null ? s.JedinicaMjere.Naziv : null));
         CreateMap<Database.AktivnostVolontera, Model.AktivnostVolontera>()
             .ForMember(d => d.KorisnikId,          o => o.MapFrom(s => s.Volonter != null ? s.Volonter.KorisnikId : 0))
             .ForMember(d => d.VolonterIme,          o => o.MapFrom(s => s.Volonter != null && s.Volonter.Korisnik != null ? s.Volonter.Korisnik.Ime : null))
@@ -122,6 +124,18 @@ public class MappingProfile : Profile
         CreateMap<Database.StatusZahtjeva, Model.StatusZahtjeva>();
         CreateMap<Database.TipAktivnosti, Model.TipAktivnosti>();
         CreateMap<Database.TipDonacije, Model.TipDonacije>();
+        CreateMap<Database.JedinicaMjere, Model.JedinicaMjere>();
+        CreateMap<Database.KategorijaDonacije, Model.KategorijaDonacije>();
+        CreateMap<Database.PrioritetPotrebe, Model.PrioritetPotrebe>();
+
+        CreateMap<Database.PotrebaAzila, Model.PotrebaAzila>()
+            .ForMember(d => d.PrioritetPotrebeNaziv, o => o.MapFrom(s => s.PrioritetPotrebe != null ? s.PrioritetPotrebe.Naziv : null));
+
+        CreateMap<Model.Requests.PotrebaAzilaInsertRequest, Database.PotrebaAzila>()
+            .ForMember(d => d.DatumKreiranja, o => o.Ignore());
+
+        CreateMap<Model.Requests.PotrebaAzilaUpdateRequest, Database.PotrebaAzila>()
+            .ForMember(d => d.DatumKreiranja, o => o.Ignore());
         CreateMap<Database.Udomljavanje, Model.Udomljavanje>()
             .ForMember(d => d.PasId,           o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.PasId))
             .ForMember(d => d.PasNaziv,        o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.Pas != null ? s.ZahtjevZaUdomljavanje.Pas.Naziv : null))
@@ -156,5 +170,8 @@ public class MappingProfile : Profile
         CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusZahtjeva>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.TipDonacije>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.TipAktivnosti>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.JedinicaMjere>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.PrioritetPotrebe>();
+        CreateMap<Model.Requests.KategorijaDonacijeUpsertRequest, Database.KategorijaDonacije>();
     }
 }

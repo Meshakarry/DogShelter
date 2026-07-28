@@ -38,6 +38,11 @@ namespace DogShelter.Model
         public const string IznosRange = "Iznos donacije mora biti veći od 0.";
         public const string RazlogVracanjaRequired = "Razlog vraćanja sredstava je obavezan.";
         public const string RazlogVracanjaMaxLength = "Razlog vraćanja sredstava može imati najviše 1000 karaktera.";
+        // Materijalna donacija
+        public const string PrilagodjenNazivMaxLength = "Naziv stavke može imati najviše 200 karaktera.";
+        public const string KolicinaRange = "Količina mora biti veća od 0.";
+        public const string AdresaPreuzimanjaMaxLength = "Adresa može imati najviše 255 karaktera.";
+        public const string TelefonPreuzimanjaMaxLength = "Broj telefona može imati najviše 30 karaktera.";
         // Volonter
         public const string DatumPridruzivanjaRequired = "Datum pridruživanja je obavezan.";
         // Dogadjaj

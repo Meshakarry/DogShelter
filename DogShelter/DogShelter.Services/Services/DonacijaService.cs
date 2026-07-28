@@ -31,6 +31,8 @@ public class DonacijaService : IDonacijaService
             .Include(d => d.TipDonacije)
             .Include(d => d.StatusDonacije)
             .Include(d => d.ObradioKorisnik)
+            .Include(d => d.KategorijaDonacije)
+            .Include(d => d.JedinicaMjere)
             .AsNoTracking();
 
     public async Task<PagedResult<Model.Donacija>> Get(DonacijaSearchRequest search, int currentKorisnikId, bool isAdmin)
@@ -86,8 +88,49 @@ public class DonacijaService : IDonacijaService
             if (request.Iznos.HasValue)
                 throw new ValidationException("Iznos nije dozvoljen za materijalnu donaciju.", nameof(request.Iznos), "Materijalna donacija nema novčani iznos.");
 
-            if (string.IsNullOrWhiteSpace(request.Napomena))
-                throw new ValidationException("Napomena je obavezna za materijalnu donaciju.", nameof(request.Napomena), "Opišite šta donirate.");
+            if (!request.KategorijaDonacijeId.HasValue)
+                throw new ValidationException("Kategorija je obavezna za materijalnu donaciju.", nameof(request.KategorijaDonacijeId), "Odaberite kategoriju donacije.");
+
+            var kategorija = await _context.KategorijaDonacijes.FirstOrDefaultAsync(k => k.KategorijaDonacijeId == request.KategorijaDonacijeId.Value)
+                ?? throw new ValidationException("Odabrana kategorija ne postoji.", nameof(request.KategorijaDonacijeId), "Kategorija ne postoji.");
+
+            var isOstalo = kategorija.Naziv == KategorijaDonacijeNazivi.Ostalo;
+            if (isOstalo && string.IsNullOrWhiteSpace(request.PrilagodjenNaziv))
+                throw new ValidationException("Naziv stavke je obavezan kada je odabrana kategorija 'Ostalo'.", nameof(request.PrilagodjenNaziv), "Opišite šta donirate.");
+            if (!isOstalo && !string.IsNullOrWhiteSpace(request.PrilagodjenNaziv))
+                throw new ValidationException("Naziv stavke je dozvoljen samo za kategoriju 'Ostalo'.", nameof(request.PrilagodjenNaziv), "Ovo polje se popunjava samo za kategoriju 'Ostalo'.");
+
+            if (!request.Kolicina.HasValue || request.Kolicina.Value <= 0)
+                throw new ValidationException("Količina je obavezna za materijalnu donaciju.", nameof(request.Kolicina), "Unesite količinu veću od 0.");
+
+            if (!request.JedinicaMjereId.HasValue)
+                throw new ValidationException("Jedinica mjere je obavezna za materijalnu donaciju.", nameof(request.JedinicaMjereId), "Odaberite jedinicu mjere.");
+
+            if (!await _context.JedinicaMjeres.AnyAsync(j => j.JedinicaMjereId == request.JedinicaMjereId.Value))
+                throw new ValidationException("Odabrana jedinica mjere ne postoji.", nameof(request.JedinicaMjereId), "Jedinica mjere ne postoji.");
+
+            if (request.TrebaPreuzimanje)
+            {
+                if (string.IsNullOrWhiteSpace(request.AdresaPreuzimanja))
+                    throw new ValidationException("Adresa preuzimanja je obavezna.", nameof(request.AdresaPreuzimanja), "Unesite adresu za preuzimanje.");
+
+                if (string.IsNullOrWhiteSpace(request.TelefonPreuzimanja))
+                    throw new ValidationException("Broj telefona je obavezan.", nameof(request.TelefonPreuzimanja), "Unesite kontakt telefon.");
+
+                if (!request.DatumPreuzimanja.HasValue || request.DatumPreuzimanja.Value <= DateTime.UtcNow)
+                    throw new ValidationException("Željeni termin preuzimanja mora biti u budućnosti.", nameof(request.DatumPreuzimanja), "Odaberite termin u budućnosti.");
+
+                if (request.ZeljeniDatumDostave.HasValue)
+                    throw new ValidationException("Željeni datum dostave nije primjenjiv kada azil preuzima donaciju.", nameof(request.ZeljeniDatumDostave), "Ovo polje se popunjava samo ako sami dostavljate donaciju.");
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(request.AdresaPreuzimanja) || !string.IsNullOrWhiteSpace(request.TelefonPreuzimanja) || request.DatumPreuzimanja.HasValue)
+                    throw new ValidationException("Podaci za preuzimanje su dozvoljeni samo ako je odabrano preuzimanje.", nameof(request.TrebaPreuzimanje), "Podaci o preuzimanju nisu primjenjivi.");
+
+                if (request.ZeljeniDatumDostave.HasValue && request.ZeljeniDatumDostave.Value <= DateTime.UtcNow)
+                    throw new ValidationException("Željeni datum dostave mora biti u budućnosti.", nameof(request.ZeljeniDatumDostave), "Odaberite datum u budućnosti.");
+            }
         }
 
         var entity = new Database.Donacija
@@ -97,7 +140,16 @@ public class DonacijaService : IDonacijaService
             StatusDonacijeId = statusNaCekanju.StatusDonacijeId,
             Iznos = request.Iznos,
             DatumDonacije = DateTime.UtcNow,
-            Napomena = request.Napomena
+            Napomena = request.Napomena,
+            KategorijaDonacijeId = isNovcana ? null : request.KategorijaDonacijeId,
+            PrilagodjenNaziv = isNovcana ? null : request.PrilagodjenNaziv,
+            Kolicina = isNovcana ? null : request.Kolicina,
+            JedinicaMjereId = isNovcana ? null : request.JedinicaMjereId,
+            TrebaPreuzimanje = !isNovcana && request.TrebaPreuzimanje,
+            AdresaPreuzimanja = isNovcana ? null : request.AdresaPreuzimanja,
+            TelefonPreuzimanja = isNovcana ? null : request.TelefonPreuzimanja,
+            DatumPreuzimanja = isNovcana ? null : request.DatumPreuzimanja,
+            ZeljeniDatumDostave = isNovcana ? null : request.ZeljeniDatumDostave
         };
 
         _context.Donacijas.Add(entity);
@@ -142,13 +194,16 @@ public class DonacijaService : IDonacijaService
         if (!string.IsNullOrEmpty(entity.StripePaymentIntentId))
         {
             var remote = await _stripePaymentService.GetPaymentIntentAsync(entity.StripePaymentIntentId);
-            if (remote.Status == "succeeded")
+            if (remote != null)
             {
-                await HandlePaymentSucceededAsync(entity.StripePaymentIntentId);
-                throw new BusinessException("Donacija je već uspješno plaćena.");
-            }
+                if (remote.Status == "succeeded")
+                {
+                    await HandlePaymentSucceededAsync(entity.StripePaymentIntentId);
+                    throw new BusinessException("Donacija je već uspješno plaćena.");
+                }
 
-            await _stripePaymentService.TryCancelPaymentIntentAsync(entity.StripePaymentIntentId);
+                await _stripePaymentService.TryCancelPaymentIntentAsync(entity.StripePaymentIntentId);
+            }
         }
 
         var (paymentIntentId, clientSecret) = await _stripePaymentService.CreatePaymentIntentAsync(entity.Iznos!.Value, entity.DonacijaId, entity.KorisnikId);
@@ -248,7 +303,8 @@ public class DonacijaService : IDonacijaService
         if (string.IsNullOrEmpty(entity.StripePaymentIntentId))
             throw new BusinessException("Donacija nema povezano Stripe plaćanje.");
 
-        var remotePaymentIntent = await _stripePaymentService.GetPaymentIntentAsync(entity.StripePaymentIntentId);
+        var remotePaymentIntent = await _stripePaymentService.GetPaymentIntentAsync(entity.StripePaymentIntentId)
+            ?? throw new BusinessException("Stripe plaćanje povezano s ovom donacijom više ne postoji.");
         var amountReceived = remotePaymentIntent.AmountReceived;
         if (amountReceived <= 0)
             throw new BusinessException("Stripe plaćanje nema naplaćen iznos za vraćanje.");

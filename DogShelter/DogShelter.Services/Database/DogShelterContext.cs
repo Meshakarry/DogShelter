@@ -23,6 +23,10 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<Grad> Grads { get; set; }
 
+    public virtual DbSet<JedinicaMjere> JedinicaMjeres { get; set; }
+
+    public virtual DbSet<KategorijaDonacije> KategorijaDonacijes { get; set; }
+
     public virtual DbSet<Korisnik> Korisniks { get; set; }
 
     public virtual DbSet<KorisnikUloga> KorisnikUlogas { get; set; }
@@ -37,7 +41,11 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<Posjeta> Posjeta { get; set; }
 
+    public virtual DbSet<PotrebaAzila> PotrebeAzila { get; set; }
+
     public virtual DbSet<PregledPsa> PregledPsas { get; set; }
+
+    public virtual DbSet<PrioritetPotrebe> PrioritetPotrebes { get; set; }
 
     public virtual DbSet<Rasa> Rasas { get; set; }
 
@@ -131,6 +139,11 @@ public partial class DogShelterContext : DbContext
             entity.Property(e => e.StripeRefundId).HasMaxLength(200);
             entity.Property(e => e.RazlogOdbijanja).HasMaxLength(1000);
             entity.Property(e => e.RazlogVracanja).HasMaxLength(1000);
+            entity.Property(e => e.PrilagodjenNaziv).HasMaxLength(200);
+            entity.Property(e => e.Kolicina).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.TrebaPreuzimanje).HasDefaultValue(false);
+            entity.Property(e => e.AdresaPreuzimanja).HasMaxLength(255);
+            entity.Property(e => e.TelefonPreuzimanja).HasMaxLength(30);
 
             entity.HasOne(d => d.Korisnik).WithMany(p => p.DonacijaKorisniks)
                 .HasForeignKey(d => d.KorisnikId)
@@ -151,6 +164,16 @@ public partial class DogShelterContext : DbContext
                 .HasForeignKey(d => d.TipDonacijeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Donacija_Tip");
+
+            entity.HasOne(d => d.KategorijaDonacije).WithMany(p => p.Donacijas)
+                .HasForeignKey(d => d.KategorijaDonacijeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Donacija_Kategorija");
+
+            entity.HasOne(d => d.JedinicaMjere).WithMany(p => p.Donacijas)
+                .HasForeignKey(d => d.JedinicaMjereId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Donacija_JedinicaMjere");
         });
 
         modelBuilder.Entity<Grad>(entity =>
@@ -159,6 +182,33 @@ public partial class DogShelterContext : DbContext
 
             entity.Property(e => e.Naziv).HasMaxLength(100);
             entity.Property(e => e.PostanskiBroj).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<JedinicaMjere>(entity =>
+        {
+            entity.ToTable("JedinicaMjere");
+
+            entity.HasIndex(e => e.Naziv, "UQ_JedinicaMjere").IsUnique();
+
+            entity.Property(e => e.Naziv).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<KategorijaDonacije>(entity =>
+        {
+            entity.ToTable("KategorijaDonacije");
+
+            entity.HasIndex(e => e.Naziv, "UQ_KategorijaDonacije").IsUnique();
+
+            entity.Property(e => e.Naziv).HasMaxLength(100);
+            entity.Property(e => e.IkonaKljuc).HasMaxLength(50);
+
+            entity.HasOne(k => k.PodrazumijevanaJedinicaMjere).WithMany()
+                .HasForeignKey(k => k.PodrazumijevanaJedinicaMjereId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_KategorijaDonacije_PodrazumijevanaJedinica");
+
+            entity.HasMany(k => k.DozvoljeneJedinice).WithMany()
+                .UsingEntity(j => j.ToTable("KategorijaDonacijeJedinicaMjere"));
         });
 
         modelBuilder.Entity<Korisnik>(entity =>
@@ -357,6 +407,31 @@ public partial class DogShelterContext : DbContext
                 .HasForeignKey(d => d.PasId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SlikaPsa_Pas");
+        });
+
+        modelBuilder.Entity<PotrebaAzila>(entity =>
+        {
+            entity.ToTable("PotrebaAzila");
+
+            entity.Property(e => e.Naziv).HasMaxLength(150);
+            entity.Property(e => e.Opis).HasMaxLength(500);
+            entity.Property(e => e.IkonaKljuc).HasMaxLength(50);
+            entity.Property(e => e.Aktivna).HasDefaultValue(true);
+            entity.Property(e => e.DatumKreiranja).HasDefaultValueSql("(sysdatetime())");
+
+            entity.HasOne(d => d.PrioritetPotrebe).WithMany(p => p.PotrebeAzila)
+                .HasForeignKey(d => d.PrioritetPotrebeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PotrebaAzila_Prioritet");
+        });
+
+        modelBuilder.Entity<PrioritetPotrebe>(entity =>
+        {
+            entity.ToTable("PrioritetPotrebe");
+
+            entity.HasIndex(e => e.Naziv, "UQ_PrioritetPotrebe").IsUnique();
+
+            entity.Property(e => e.Naziv).HasMaxLength(50);
         });
 
         modelBuilder.Entity<StatusDonacije>(entity =>
