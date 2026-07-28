@@ -201,6 +201,14 @@ public partial class DogShelterContext : DbContext
 
             entity.Property(e => e.Naziv).HasMaxLength(100);
             entity.Property(e => e.IkonaKljuc).HasMaxLength(50);
+
+            entity.HasOne(k => k.PodrazumijevanaJedinicaMjere).WithMany()
+                .HasForeignKey(k => k.PodrazumijevanaJedinicaMjereId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_KategorijaDonacije_PodrazumijevanaJedinica");
+
+            entity.HasMany(k => k.DozvoljeneJedinice).WithMany()
+                .UsingEntity(j => j.ToTable("KategorijaDonacijeJedinicaMjere"));
         });
 
         modelBuilder.Entity<Korisnik>(entity =>

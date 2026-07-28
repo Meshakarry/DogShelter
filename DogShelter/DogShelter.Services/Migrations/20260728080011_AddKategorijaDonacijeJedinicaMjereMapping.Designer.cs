@@ -4,6 +4,7 @@ using DogShelter.Services.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DogShelter.Services.Migrations
 {
     [DbContext(typeof(DogShelterContext))]
-    partial class DogShelterContextModelSnapshot : ModelSnapshot
+    [Migration("20260728080011_AddKategorijaDonacijeJedinicaMjereMapping")]
+    partial class AddKategorijaDonacijeJedinicaMjereMapping
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -577,7 +580,7 @@ namespace DogShelter.Services.Migrations
 
                     b.HasIndex("VelicinaPsaId");
 
-                    b.ToTable("Pas", (string)null);
+                    b.ToTable("Pas");
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.Posjeta", b =>
@@ -627,7 +630,7 @@ namespace DogShelter.Services.Migrations
 
                     b.HasIndex("StatusPosjeteId");
 
-                    b.ToTable("Posjeta", (string)null);
+                    b.ToTable("Posjeta");
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.PotrebaAzila", b =>

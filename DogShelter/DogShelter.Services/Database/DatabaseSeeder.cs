@@ -23,6 +23,7 @@ public static class DatabaseSeeder
         await EnsureTipDonacijeAsync(context, logger);
         await EnsureKategorijeDonacijeAsync(context, logger);
         await EnsureJediniceMjereAsync(context, logger);
+        await EnsureKategorijaDozvoljeneJediniceAsync(context, logger);
         await EnsurePrioritetiPotrebeAsync(context, logger);
         await EnsurePotrebeAzilaAsync(context, logger);
         await EnsureDonacijeAsync(context, logger);
@@ -468,6 +469,46 @@ public static class DatabaseSeeder
         }
         await context.SaveChangesAsync();
         logger.LogInformation("Seeded JedinicaMjere.");
+    }
+
+    /// <summary>
+    /// Restricts each Materijalna donation category to the units that actually make sense for it
+    /// (e.g. Deke i posteljina -> kom only, never kg/litara) so the mobile quantity picker can
+    /// hide/collapse the unit choice instead of offering nonsensical combinations. "Ostalo" is
+    /// left with an empty allowed-list on purpose - that's the signal the client treats as
+    /// unrestricted (show every unit). Re-running this is idempotent: it always reassigns the
+    /// same target sets, which EF no-ops when nothing actually changed.
+    /// </summary>
+    private static async Task EnsureKategorijaDozvoljeneJediniceAsync(DogShelterContext context, ILogger logger)
+    {
+        var kategorije = await context.KategorijaDonacijes.Include(k => k.DozvoljeneJedinice).ToListAsync();
+        var jedinice = await context.JedinicaMjeres.ToListAsync();
+
+        JedinicaMjere J(string naziv) => jedinice.First(j => j.Naziv == naziv);
+
+        var mapping = new Dictionary<string, (string[] Dozvoljene, string? Podrazumijevana)>
+        {
+            [KategorijaDonacijeNazivi.HranaZaPse] = (["vreće", "kg"], "vreće"),
+            [KategorijaDonacijeNazivi.HranaZaStenad] = (["vreće", "kg"], "vreće"),
+            [KategorijaDonacijeNazivi.DekeIPosteljina] = (["kom"], "kom"),
+            [KategorijaDonacijeNazivi.Igracke] = (["kom"], "kom"),
+            [KategorijaDonacijeNazivi.PovodciIOgrlice] = (["kom"], "kom"),
+            [KategorijaDonacijeNazivi.Posude] = (["kom"], "kom"),
+            [KategorijaDonacijeNazivi.Lijekovi] = (["kutije", "kom"], "kutije"),
+            [KategorijaDonacijeNazivi.SredstvaZaCiscenje] = (["boce"], "boce"),
+            [KategorijaDonacijeNazivi.Ostalo] = ([], null),
+        };
+
+        foreach (var kategorija in kategorije)
+        {
+            if (!mapping.TryGetValue(kategorija.Naziv, out var rule)) continue;
+
+            kategorija.DozvoljeneJedinice = rule.Dozvoljene.Select(J).ToList();
+            kategorija.PodrazumijevanaJedinicaMjereId = rule.Podrazumijevana != null ? J(rule.Podrazumijevana).JedinicaMjereId : null;
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Assigned allowed units per KategorijaDonacije.");
     }
 
     private static async Task EnsurePrioritetiPotrebeAsync(DogShelterContext context, ILogger logger)

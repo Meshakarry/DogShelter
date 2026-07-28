@@ -6,10 +6,15 @@ import 'package:go_router/go_router.dart';
 import '../../../widgets/error_banner.dart';
 import '../../visits/presentation/inline_calendar.dart';
 import '../application/donations_providers.dart';
+import '../domain/jedinica_mjere.dart';
 import '../domain/kategorija_donacije.dart';
 import '../domain/tip_donacije.dart';
+import 'chip_button.dart';
 import 'donation_icons.dart';
+import 'quantity_stepper.dart';
+import 'required_label.dart';
 import 'shelter_needs_section.dart';
+import 'unit_picker.dart';
 
 const _amountPresets = [10.0, 20.0, 50.0, 100.0];
 
@@ -33,7 +38,6 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
   final _napomenaController = TextEditingController();
   final _customAmountController = TextEditingController();
   final _prilagodjenNazivController = TextEditingController();
-  final _kolicinaController = TextEditingController();
   final _adresaController = TextEditingController();
   final _telefonController = TextEditingController();
   final _scrollController = ScrollController();
@@ -43,6 +47,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
   bool _customAmountSelected = false;
 
   int? _kategorijaDonacijeId;
+  double? _kolicina;
   int? _jedinicaMjereId;
   bool _trebaPreuzimanje = false;
   DateTime? _pickupDate;
@@ -53,7 +58,19 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
   late final DateTime _lastDate;
 
   bool _isSubmitting = false;
-  Object? _error;
+  Object? _apiError;
+
+  // Per-field validation messages, keyed by field name, rendered directly below that field's
+  // control (faculty rule: validation messages must be clearly shown below the control, never
+  // inside the input or as a dialog) rather than as a single generic banner.
+  final Map<String, String> _fieldErrors = {};
+
+  // One GlobalKey per validatable field, used to scroll precisely to whichever one failed
+  // first - jumping to the top of the form on every failed submit would be disorienting for
+  // errors near the bottom (e.g. pickup fields), since the user would have to scroll back down
+  // past everything they already filled in correctly.
+  static const _fieldOrder = ['tip', 'iznos', 'kategorija', 'prilagodjenNaziv', 'kolicina', 'jedinica', 'adresa', 'telefon', 'termin'];
+  final Map<String, GlobalKey> _fieldKeys = {for (final key in _fieldOrder) key: GlobalKey()};
 
   @override
   void initState() {
@@ -68,22 +85,40 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
     _napomenaController.dispose();
     _customAmountController.dispose();
     _prilagodjenNazivController.dispose();
-    _kolicinaController.dispose();
     _adresaController.dispose();
     _telefonController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _clearError() {
-    if (_error != null) setState(() => _error = null);
+  void _clearFieldError(String key) {
+    if (_fieldErrors.containsKey(key)) setState(() => _fieldErrors.remove(key));
   }
 
-  // Validation messages must be clearly visible below the controls (faculty rule) - since this
-  // is a long scrollable form, an error set from a check near the bottom (or the submit button)
-  // would otherwise render into the ErrorBanner at the top, off-screen and easy to miss.
-  void _setError(Object message) {
-    setState(() => _error = message);
+  void _clearApiError() {
+    if (_apiError != null) setState(() => _apiError = null);
+  }
+
+  void _applyValidationErrors(Map<String, String> errors) {
+    setState(() {
+      _fieldErrors
+        ..clear()
+        ..addAll(errors);
+    });
+    final firstInvalidField = _fieldOrder.firstWhere(errors.containsKey, orElse: () => '');
+    final context = _fieldKeys[firstInvalidField]?.currentContext;
+    if (context != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 300), curve: Curves.easeOut, alignment: 0.2);
+      });
+    }
+  }
+
+  // API/payment failures aren't tied to one control, so a top banner is the right place for
+  // them (unlike the per-field validation messages above) - still needs the scroll-into-view
+  // treatment since this is a long scrollable form and submit sits near the bottom.
+  void _setApiError(Object message) {
+    setState(() => _apiError = message);
     _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
@@ -92,9 +127,14 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
     return tip?.naziv == 'Novčana';
   }
 
-  bool _isOstalo(List<KategorijaDonacije> kategorije) {
-    final kat = kategorije.where((k) => k.kategorijaDonacijeId == _kategorijaDonacijeId).firstOrNull;
-    return kat?.isOstalo ?? false;
+  KategorijaDonacije? _selectedKategorija(List<KategorijaDonacije> kategorije) {
+    return kategorije.where((k) => k.kategorijaDonacijeId == _kategorijaDonacijeId).firstOrNull;
+  }
+
+  DateTime? get _pickupDateTime {
+    if (_pickupDate == null || _pickupTimeSlot == null) return null;
+    final parts = _pickupTimeSlot!.split(':');
+    return DateTime(_pickupDate!.year, _pickupDate!.month, _pickupDate!.day, int.parse(parts[0]), int.parse(parts[1]));
   }
 
   double? get _iznos {
@@ -104,63 +144,43 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
     return _selectedPreset;
   }
 
-  DateTime? get _pickupDateTime {
-    if (_pickupDate == null || _pickupTimeSlot == null) return null;
-    final parts = _pickupTimeSlot!.split(':');
-    return DateTime(_pickupDate!.year, _pickupDate!.month, _pickupDate!.day, int.parse(parts[0]), int.parse(parts[1]));
-  }
-
   Future<void> _submit(List<TipDonacije> tipovi, List<KategorijaDonacije> kategorije) async {
-    if (_tipDonacijeId == null) {
-      _setError('Odaberite tip donacije.');
-      return;
-    }
+    final errors = <String, String>{};
     final isNovcana = _isNovcana(tipovi);
-    final isOstalo = _isOstalo(kategorije);
+    final kategorija = _selectedKategorija(kategorije);
+    final isOstalo = kategorija?.isOstalo ?? false;
 
-    if (isNovcana) {
+    if (_tipDonacijeId == null) {
+      errors['tip'] = 'Odaberite tip donacije.';
+    } else if (isNovcana) {
       final iznos = _iznos;
-      if (iznos == null || iznos <= 0) {
-        _setError('Unesite ispravan iznos donacije.');
-        return;
-      }
+      if (iznos == null || iznos <= 0) errors['iznos'] = 'Unesite ispravan iznos donacije.';
     } else {
       if (_kategorijaDonacijeId == null) {
-        _setError('Odaberite kategoriju donacije.');
-        return;
-      }
-      if (isOstalo && _prilagodjenNazivController.text.trim().isEmpty) {
-        _setError('Opišite šta biste željeli donirati.');
-        return;
-      }
-      final kolicina = double.tryParse(_kolicinaController.text.replaceAll(',', '.'));
-      if (kolicina == null || kolicina <= 0) {
-        _setError('Unesite ispravnu količinu.');
-        return;
-      }
-      if (_jedinicaMjereId == null) {
-        _setError('Odaberite jedinicu mjere.');
-        return;
+        errors['kategorija'] = 'Odaberite kategoriju donacije.';
+      } else {
+        if (isOstalo && _prilagodjenNazivController.text.trim().isEmpty) {
+          errors['prilagodjenNaziv'] = 'Opišite šta biste željeli donirati.';
+        }
+        if (_kolicina == null || _kolicina! <= 0) errors['kolicina'] = 'Unesite ispravnu količinu.';
+        if (_jedinicaMjereId == null) errors['jedinica'] = 'Odaberite jedinicu mjere.';
       }
       if (_trebaPreuzimanje) {
-        if (_adresaController.text.trim().isEmpty) {
-          _setError('Unesite adresu za preuzimanje.');
-          return;
-        }
-        if (_telefonController.text.trim().isEmpty) {
-          _setError('Unesite kontakt telefon za preuzimanje.');
-          return;
-        }
-        if (_pickupDateTime == null) {
-          _setError('Odaberite željeni termin preuzimanja.');
-          return;
-        }
+        if (_adresaController.text.trim().isEmpty) errors['adresa'] = 'Unesite adresu za preuzimanje.';
+        if (_telefonController.text.trim().isEmpty) errors['telefon'] = 'Unesite kontakt telefon za preuzimanje.';
+        if (_pickupDateTime == null) errors['termin'] = 'Odaberite željeni termin preuzimanja.';
       }
+    }
+
+    if (errors.isNotEmpty) {
+      _applyValidationErrors(errors);
+      return;
     }
 
     setState(() {
       _isSubmitting = true;
-      _error = null;
+      _apiError = null;
+      _fieldErrors.clear();
     });
     try {
       final response = await ref.read(donationsApiProvider).createDonacija(
@@ -169,7 +189,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
             napomena: _napomenaController.text.trim(),
             kategorijaDonacijeId: isNovcana ? null : _kategorijaDonacijeId,
             prilagodjenNaziv: isNovcana ? null : _prilagodjenNazivController.text.trim(),
-            kolicina: isNovcana ? null : double.tryParse(_kolicinaController.text.replaceAll(',', '.')),
+            kolicina: isNovcana ? null : _kolicina,
             jedinicaMjereId: isNovcana ? null : _jedinicaMjereId,
             trebaPreuzimanje: !isNovcana && _trebaPreuzimanje,
             adresaPreuzimanja: (!isNovcana && _trebaPreuzimanje) ? _adresaController.text.trim() : null,
@@ -204,9 +224,9 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
       }
     } on StripeException catch (e) {
       final message = e.error.localizedMessage ?? e.error.message;
-      _setError(message ?? 'Plaćanje je otkazano ili nije uspjelo.');
+      _setApiError(message ?? 'Plaćanje je otkazano ili nije uspjelo.');
     } catch (e) {
-      _setError(e);
+      _setApiError(e);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -229,34 +249,37 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ErrorBanner(error: _error),
+                ErrorBanner(error: _apiError),
                 Text('Tip donacije', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<int>(
-                  initialValue: _tipDonacijeId,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Odaberite tip donacije',
+                KeyedSubtree(
+                  key: _fieldKeys['tip'],
+                  child: DropdownButtonFormField<int>(
+                    initialValue: _tipDonacijeId,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Odaberite tip donacije',
+                    ),
+                    items: [
+                      for (final tip in tipovi) DropdownMenuItem(value: tip.tipDonacijeId, child: Text(tip.naziv)),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _fieldErrors.clear();
+                        _tipDonacijeId = value;
+                        _selectedPreset = null;
+                        _customAmountSelected = false;
+                        _customAmountController.clear();
+                      });
+                    },
                   ),
-                  items: [
-                    for (final tip in tipovi) DropdownMenuItem(value: tip.tipDonacijeId, child: Text(tip.naziv)),
-                  ],
-                  onChanged: (value) {
-                    _clearError();
-                    setState(() {
-                      _tipDonacijeId = value;
-                      _selectedPreset = null;
-                      _customAmountSelected = false;
-                      _customAmountController.clear();
-                    });
-                  },
                 ),
+                FieldError(_fieldErrors['tip']),
                 const SizedBox(height: 20),
                 if (_tipDonacijeId != null) ...(isNovcana ? _buildNovcanaFields() : _buildMaterijalnaFields()),
                 const SizedBox(height: 20),
                 TextField(
                   controller: _napomenaController,
-                  onChanged: (_) => _clearError(),
                   maxLines: 3,
                   maxLength: 1000,
                   decoration: const InputDecoration(labelText: 'Napomena (opcionalno)', alignLabelWithHint: true),
@@ -283,53 +306,53 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
 
   List<Widget> _buildNovcanaFields() {
     return [
-      Row(
-        children: [
-          Text('Iznos (KM)', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(width: 4),
-          const Text('*', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        ],
-      ),
+      RequiredLabel('Iznos (KM)'),
       const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final preset in _amountPresets)
-            _ChipButton(
-              label: preset.toStringAsFixed(0),
-              selected: !_customAmountSelected && _selectedPreset == preset,
+      KeyedSubtree(
+        key: _fieldKeys['iznos'],
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final preset in _amountPresets)
+              ChipButton(
+                label: preset.toStringAsFixed(0),
+                selected: !_customAmountSelected && _selectedPreset == preset,
+                onTap: () {
+                  _clearApiError();
+                  _clearFieldError('iznos');
+                  setState(() {
+                    _selectedPreset = preset;
+                    _customAmountSelected = false;
+                  });
+                },
+              ),
+            ChipButton(
+              label: 'Drugo',
+              selected: _customAmountSelected,
               onTap: () {
-                _clearError();
+                _clearApiError();
+                _clearFieldError('iznos');
                 setState(() {
-                  _selectedPreset = preset;
-                  _customAmountSelected = false;
+                  _customAmountSelected = true;
+                  _selectedPreset = null;
                 });
               },
             ),
-          _ChipButton(
-            label: 'Drugo',
-            selected: _customAmountSelected,
-            onTap: () {
-              _clearError();
-              setState(() {
-                _customAmountSelected = true;
-                _selectedPreset = null;
-              });
-            },
-          ),
-        ],
+          ],
+        ),
       ),
       if (_customAmountSelected) ...[
         const SizedBox(height: 12),
         TextField(
           controller: _customAmountController,
-          onChanged: (_) => _clearError(),
+          onChanged: (_) => _clearFieldError('iznos'),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
           decoration: const InputDecoration(labelText: 'Unesite iznos (KM)', border: OutlineInputBorder()),
         ),
       ],
+      FieldError(_fieldErrors['iznos']),
     ];
   }
 
@@ -337,104 +360,111 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
     final kategorijeAsync = ref.watch(kategorijaDonacijeLookupProvider);
     final jediniceAsync = ref.watch(jedinicaMjereLookupProvider);
     final kategorije = kategorijeAsync.valueOrNull ?? const <KategorijaDonacije>[];
-    final isOstalo = _isOstalo(kategorije);
+    final jedinice = jediniceAsync.valueOrNull ?? const <JedinicaMjere>[];
+    final kategorija = _selectedKategorija(kategorije);
+    final isOstalo = kategorija?.isOstalo ?? false;
 
     return [
       const ShelterNeedsSection(),
       const SizedBox(height: 24),
-      Row(
-        children: [
-          Text('Kategorija donacije', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(width: 4),
-          const Text('*', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        ],
-      ),
+      RequiredLabel('Kategorija donacije'),
       const SizedBox(height: 8),
-      kategorijeAsync.when(
-        loading: () => const LinearProgressIndicator(),
-        error: (e, _) => ErrorBanner(error: e),
-        data: (kategorije) => LayoutBuilder(
-          builder: (context, constraints) {
-            const spacing = 10.0;
-            const columns = 3;
-            final cardWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (final kat in kategorije)
-                  _CategoryCard(
-                    label: kat.naziv,
-                    icon: donationIconFor(kat.ikonaKljuc),
-                    width: cardWidth,
-                    selected: _kategorijaDonacijeId == kat.kategorijaDonacijeId,
-                    onTap: () {
-                      _clearError();
-                      setState(() {
-                        _kategorijaDonacijeId = kat.kategorijaDonacijeId;
-                        _kolicinaController.clear();
-                        _jedinicaMjereId = null;
-                      });
-                    },
-                  ),
-              ],
-            );
-          },
-        ),
-      ),
-      if (isOstalo) ...[
-        const SizedBox(height: 16),
-        TextField(
-          controller: _prilagodjenNazivController,
-          onChanged: (_) => _clearError(),
-          decoration: const InputDecoration(
-            labelText: 'Šta biste željeli donirati?',
-            border: OutlineInputBorder(),
+      KeyedSubtree(
+        key: _fieldKeys['kategorija'],
+        child: kategorijeAsync.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (e, _) => ErrorBanner(error: e),
+          data: (kategorije) => LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 10.0;
+              const columns = 3;
+              final cardWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  for (final kat in kategorije)
+                    _CategoryCard(
+                      label: kat.naziv,
+                      icon: donationIconFor(kat.ikonaKljuc),
+                      width: cardWidth,
+                      selected: _kategorijaDonacijeId == kat.kategorijaDonacijeId,
+                      onTap: () {
+                        _clearApiError();
+                        setState(() {
+                          _fieldErrors.remove('kategorija');
+                          _fieldErrors.remove('kolicina');
+                          _fieldErrors.remove('jedinica');
+                          _fieldErrors.remove('prilagodjenNaziv');
+                          _kategorijaDonacijeId = kat.kategorijaDonacijeId;
+                          _kolicina = null;
+                          _jedinicaMjereId = kat.podrazumijevanaJedinicaMjereId;
+                        });
+                      },
+                    ),
+                ],
+              );
+            },
           ),
         ),
+      ),
+      FieldError(_fieldErrors['kategorija']),
+      if (isOstalo) ...[
+        const SizedBox(height: 16),
+        KeyedSubtree(
+          key: _fieldKeys['prilagodjenNaziv'],
+          child: TextField(
+            controller: _prilagodjenNazivController,
+            onChanged: (_) => _clearFieldError('prilagodjenNaziv'),
+            decoration: InputDecoration(
+              label: RequiredLabel('Šta biste željeli donirati?', style: Theme.of(context).textTheme.bodyLarge),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        FieldError(_fieldErrors['prilagodjenNaziv']),
       ],
       if (_kategorijaDonacijeId != null) ...[
         const SizedBox(height: 20),
-        Text('Količina', style: Theme.of(context).textTheme.titleMedium),
+        RequiredLabel('Količina'),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _kolicinaController,
-                onChanged: (_) => _clearError(),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Količina', border: OutlineInputBorder()),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: jediniceAsync.when(
-                loading: () => const SizedBox(height: 56, child: Center(child: CircularProgressIndicator())),
-                error: (e, _) => ErrorBanner(error: e),
-                data: (jedinice) => DropdownButtonFormField<int>(
-                  initialValue: _jedinicaMjereId,
-                  decoration: const InputDecoration(labelText: 'Jedinica', border: OutlineInputBorder()),
-                  items: [
-                    for (final j in jedinice) DropdownMenuItem(value: j.jedinicaMjereId, child: Text(j.naziv)),
-                  ],
-                  onChanged: (value) {
-                    _clearError();
-                    setState(() => _jedinicaMjereId = value);
-                  },
-                ),
-              ),
-            ),
-          ],
+        KeyedSubtree(
+          key: _fieldKeys['kolicina'],
+          child: QuantityStepper(
+            value: _kolicina,
+            step: _stepForSelectedUnit(jedinice),
+            onChanged: (value) {
+              _clearApiError();
+              _clearFieldError('kolicina');
+              setState(() => _kolicina = value);
+            },
+          ),
         ),
+        FieldError(_fieldErrors['kolicina']),
+        KeyedSubtree(
+          key: _fieldKeys['jedinica'],
+          child: UnitPicker(
+            allUnits: jedinice,
+            allowedUnits: kategorija?.dozvoljeneJedinice ?? const [],
+            selectedId: _jedinicaMjereId,
+            onChanged: (value) {
+              _clearApiError();
+              _clearFieldError('jedinica');
+              setState(() => _jedinicaMjereId = value);
+            },
+          ),
+        ),
+        FieldError(_fieldErrors['jedinica']),
       ],
       const SizedBox(height: 20),
       Text('Kako biste željeli dostaviti donaciju?', style: Theme.of(context).textTheme.titleMedium),
       RadioGroup<bool>(
         groupValue: _trebaPreuzimanje,
         onChanged: (value) {
-          _clearError();
+          _clearApiError();
+          _fieldErrors.remove('adresa');
+          _fieldErrors.remove('telefon');
+          _fieldErrors.remove('termin');
           setState(() => _trebaPreuzimanje = value!);
         },
         child: const Column(
@@ -456,42 +486,66 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
     ];
   }
 
+  // kg is the only unit in this app's inventory where a half-unit makes practical sense (0.5 kg
+  // of food); every other unit (kom/vreće/kutije/boce) only ever makes sense as a whole number.
+  double _stepForSelectedUnit(List<JedinicaMjere> jedinice) {
+    final naziv = jedinice.where((j) => j.jedinicaMjereId == _jedinicaMjereId).firstOrNull?.naziv;
+    return naziv == 'kg' ? 0.5 : 1;
+  }
+
   List<Widget> _buildPickupFields() {
     return [
       const SizedBox(height: 8),
-      TextField(
-        controller: _adresaController,
-        onChanged: (_) => _clearError(),
-        decoration: const InputDecoration(labelText: 'Adresa preuzimanja', border: OutlineInputBorder()),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _telefonController,
-        onChanged: (_) => _clearError(),
-        keyboardType: TextInputType.phone,
-        decoration: const InputDecoration(labelText: 'Broj telefona', border: OutlineInputBorder()),
-      ),
-      const SizedBox(height: 16),
-      Text('Željeni termin preuzimanja', style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+      KeyedSubtree(
+        key: _fieldKeys['adresa'],
+        child: TextField(
+          controller: _adresaController,
+          onChanged: (_) => _clearFieldError('adresa'),
+          decoration: InputDecoration(
+            label: RequiredLabel('Adresa preuzimanja', style: Theme.of(context).textTheme.bodyLarge),
+            border: const OutlineInputBorder(),
+          ),
         ),
-        child: InlineCalendar(
-          firstDate: _firstDate,
-          lastDate: _lastDate,
-          selectedDate: _pickupDate,
-          onDateSelected: (date) {
-            _clearError();
-            setState(() {
-              _pickupDate = date;
-              _pickupTimeSlot = null;
-            });
-          },
+      ),
+      FieldError(_fieldErrors['adresa']),
+      const SizedBox(height: 12),
+      KeyedSubtree(
+        key: _fieldKeys['telefon'],
+        child: TextField(
+          controller: _telefonController,
+          onChanged: (_) => _clearFieldError('telefon'),
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(
+            label: RequiredLabel('Broj telefona', style: Theme.of(context).textTheme.bodyLarge),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+      FieldError(_fieldErrors['telefon']),
+      const SizedBox(height: 16),
+      RequiredLabel('Željeni termin preuzimanja'),
+      const SizedBox(height: 8),
+      KeyedSubtree(
+        key: _fieldKeys['termin'],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: InlineCalendar(
+            firstDate: _firstDate,
+            lastDate: _lastDate,
+            selectedDate: _pickupDate,
+            onDateSelected: (date) {
+              _clearFieldError('termin');
+              setState(() {
+                _pickupDate = date;
+                _pickupTimeSlot = null;
+              });
+            },
+          ),
         ),
       ),
       const SizedBox(height: 12),
@@ -501,16 +555,17 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
           runSpacing: 8,
           children: [
             for (final slot in _timeSlots)
-              _ChipButton(
+              ChipButton(
                 label: slot,
                 selected: slot == _pickupTimeSlot,
                 onTap: () {
-                  _clearError();
+                  _clearFieldError('termin');
                   setState(() => _pickupTimeSlot = slot);
                 },
               ),
           ],
         ),
+      FieldError(_fieldErrors['termin']),
     ];
   }
 
@@ -535,10 +590,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
           firstDate: _firstDate,
           lastDate: _lastDate,
           selectedDate: _zeljeniDatumDostave,
-          onDateSelected: (date) {
-            _clearError();
-            setState(() => _zeljeniDatumDostave = date);
-          },
+          onDateSelected: (date) => setState(() => _zeljeniDatumDostave = date),
         ),
       ),
       if (_zeljeniDatumDostave != null)
@@ -550,37 +602,6 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
           ),
         ),
     ];
-  }
-}
-
-class _ChipButton extends StatelessWidget {
-  const _ChipButton({required this.label, required this.selected, required this.onTap});
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF008554) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: selected ? const Color(0xFF008554) : const Color(0xFFD1D5DB)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black87,
-            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
   }
 }
 
