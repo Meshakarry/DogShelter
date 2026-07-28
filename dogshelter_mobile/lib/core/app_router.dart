@@ -17,6 +17,7 @@ import '../features/donations/presentation/donations_list_screen.dart';
 import '../features/donations/presentation/new_donation_screen.dart';
 import '../features/dogs/presentation/dog_list_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/notifications/presentation/notifications_list_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/root/presentation/app_shell.dart';
 import '../features/root/presentation/placeholder_screen.dart';
@@ -71,7 +72,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/obavijesti', builder: (context, state) => const PlaceholderScreen(title: 'Obavijesti')),
           GoRoute(
             path: '/notifikacije',
-            builder: (context, state) => const PlaceholderScreen(title: 'Notifikacije'),
+            builder: (context, state) => const NotificationsListScreen(),
           ),
           GoRoute(path: '/dogadjaji', builder: (context, state) => const PlaceholderScreen(title: 'Događaji')),
           GoRoute(
