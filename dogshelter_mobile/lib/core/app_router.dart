@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/activities/presentation/aktivnosti_list_screen.dart';
 import '../features/adoption_requests/presentation/adoption_requests_list_screen.dart';
 import '../features/adoption_requests/presentation/zahtjev_detail_screen.dart';
 import '../features/auth/application/auth_notifier.dart';
@@ -16,6 +17,8 @@ import '../features/donations/presentation/donation_detail_screen.dart';
 import '../features/donations/presentation/donations_list_screen.dart';
 import '../features/donations/presentation/new_donation_screen.dart';
 import '../features/dogs/presentation/dog_list_screen.dart';
+import '../features/events/presentation/event_detail_screen.dart';
+import '../features/events/presentation/events_list_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/notifications/presentation/notifications_list_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
@@ -74,11 +77,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/notifikacije',
             builder: (context, state) => const NotificationsListScreen(),
           ),
-          GoRoute(path: '/dogadjaji', builder: (context, state) => const PlaceholderScreen(title: 'Događaji')),
-          GoRoute(
-            path: '/aktivnosti',
-            builder: (context, state) => const PlaceholderScreen(title: 'Moje aktivnosti'),
-          ),
+          GoRoute(path: '/dogadjaji', builder: (context, state) => const EventsListScreen()),
+          GoRoute(path: '/aktivnosti', builder: (context, state) => const AktivnostiListScreen()),
           GoRoute(path: '/profil', builder: (context, state) => const ProfileScreen()),
         ],
       ),
@@ -101,6 +101,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/donacije/:id',
         builder: (context, state) => DonationDetailScreen(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/dogadjaji/:id',
+        builder: (context, state) => EventDetailScreen(dogadjajId: int.parse(state.pathParameters['id']!)),
       ),
     ],
   );

@@ -217,6 +217,7 @@ class _AdoptRequestBar extends ConsumerWidget {
               final booked = await showModalBottomSheet<bool>(
                 context: context,
                 isScrollControlled: true,
+                shape: const RoundedRectangleBorder(),
                 builder: (_) => BookVisitSheet(pasId: dog.pasId, pasNaziv: dog.naziv),
               );
               if (booked == true && context.mounted) {
