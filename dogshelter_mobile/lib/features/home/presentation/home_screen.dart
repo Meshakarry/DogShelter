@@ -7,8 +7,8 @@ import '../../../core/image_url.dart';
 import '../../auth/application/auth_notifier.dart';
 import '../../dogs/domain/pas_list_item.dart';
 import '../../dogs/presentation/dog_status_style.dart';
+import '../../news/domain/obavijest_list_item.dart';
 import '../application/home_providers.dart';
-import '../domain/obavijest_preview.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -241,7 +241,7 @@ class _RecommendedDogCard extends StatelessWidget {
 class _ObavijestPreviewTile extends StatelessWidget {
   const _ObavijestPreviewTile({required this.obavijest});
 
-  final ObavijestPreview obavijest;
+  final ObavijestListItem obavijest;
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +253,7 @@ class _ObavijestPreviewTile extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () => context.go('/obavijesti'),
+        onTap: () => context.push('/obavijesti/${obavijest.obavijestId}'),
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Row(

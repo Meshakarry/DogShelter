@@ -1,22 +1,16 @@
 import '../../../core/api_client.dart';
 import '../../../core/api_exception.dart';
-import '../domain/obavijest_preview.dart';
 import '../domain/volonter_summary.dart';
 
-/// Interim data source for the home dashboard - pulls just enough from Obavijest/Volonter/
-/// AktivnostVolontera to preview on Početna. Once the full Obavijesti (Increment 5) and
-/// volunteer activity log (Increment 6) features are built, prefer reusing their repositories
-/// here instead of this hand-rolled one, to avoid two copies of the same fetch logic.
+/// Interim data source for the home dashboard - pulls just enough from Volonter/
+/// AktivnostVolontera to preview on Početna. Once the volunteer activity log (Increment 6)
+/// feature is built, prefer reusing its repository here instead of this hand-rolled one,
+/// to avoid two copies of the same fetch logic. (The Obavijesti preview above used to live
+/// here too - it now reuses NewsApi from the news feature directly, see home_providers.dart.)
 class HomeApi {
   HomeApi(this._client);
 
   final ApiClient _client;
-
-  Future<List<ObavijestPreview>> getLatestObavijesti({int count = 3}) async {
-    final json = await _client.get('/api/Obavijest', query: {'page': 1, 'pageSize': count});
-    final items = (json as Map<String, dynamic>)['items'] as List<dynamic>;
-    return items.map((e) => ObavijestPreview.fromJson(e as Map<String, dynamic>)).toList();
-  }
 
   /// Null if the current user has no Volonter profile (backend 404s in that case).
   Future<VolonterSummary?> getMyVolonterProfile() async {
