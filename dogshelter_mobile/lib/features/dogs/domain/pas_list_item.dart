@@ -1,6 +1,7 @@
+import 'age_label.dart';
 import 'spol.dart';
 
-class PasListItem {
+class PasListItem with AgeLabel {
   PasListItem({
     required this.pasId,
     required this.naziv,
@@ -25,6 +26,7 @@ class PasListItem {
   final int rasaId;
   final String? rasaNaziv;
   final Spol spol;
+  @override
   final DateTime? datumRodjenja;
   final int statusPsaId;
   final String? statusNaziv;
@@ -36,25 +38,6 @@ class PasListItem {
   final bool vakcinisan;
   final bool sterilizovan;
   final bool aktivan;
-
-  /// Approximate age in years, derived client-side from DatumRodjenja - null if unknown.
-  int? get ageYears {
-    if (datumRodjenja == null) return null;
-    final now = DateTime.now();
-    var years = now.year - datumRodjenja!.year;
-    if (now.month < datumRodjenja!.month ||
-        (now.month == datumRodjenja!.month && now.day < datumRodjenja!.day)) {
-      years--;
-    }
-    return years < 0 ? 0 : years;
-  }
-
-  /// Human-readable age - avoids the misleading "0 god." for puppies under a year old.
-  String? get ageLabel {
-    final years = ageYears;
-    if (years == null) return null;
-    return years == 0 ? '<1 god.' : '$years god.';
-  }
 
   factory PasListItem.fromJson(Map<String, dynamic> json) {
     return PasListItem(

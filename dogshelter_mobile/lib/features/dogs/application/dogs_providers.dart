@@ -13,7 +13,8 @@ typedef DogLookups = ({List<Rasa> rase, List<StatusPsa> statusi, List<VelicinaPs
 
 final dogLookupsProvider = FutureProvider<DogLookups>((ref) async {
   final api = ref.watch(dogsApiProvider);
-  // Issued together, not sequentially, per the parallelizable-HTTP-calls rule.
+  // Issued together via Future.wait rather than sequentially, since the three lookups are
+  // independent.
   final results = await Future.wait([api.getRase(), api.getStatusi(), api.getVelicine()]);
   return (
     rase: results[0] as List<Rasa>,
@@ -72,6 +73,7 @@ class DogsListState {
     this.isLoading = false,
     this.error,
     this.filters = const DogFilters(),
+    this.totalCount,
   });
 
   final List<PasListItem> items;
@@ -80,6 +82,7 @@ class DogsListState {
   final bool isLoading;
   final Object? error;
   final DogFilters filters;
+  final int? totalCount;
 
   DogsListState copyWith({
     List<PasListItem>? items,
@@ -89,6 +92,8 @@ class DogsListState {
     Object? error,
     bool clearError = false,
     DogFilters? filters,
+    int? totalCount,
+    bool clearTotalCount = false,
   }) {
     return DogsListState(
       items: items ?? this.items,
@@ -97,6 +102,7 @@ class DogsListState {
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
       filters: filters ?? this.filters,
+      totalCount: clearTotalCount ? null : (totalCount ?? this.totalCount),
     );
   }
 }
@@ -121,7 +127,13 @@ class DogsListNotifier extends StateNotifier<DogsListState> {
         velicinaPsaId: state.filters.velicinaPsaId,
         spol: state.filters.spol,
       );
-      state = state.copyWith(items: result.items, page: 1, hasMore: result.hasMore, isLoading: false);
+      state = state.copyWith(
+        items: result.items,
+        page: 1,
+        hasMore: result.hasMore,
+        isLoading: false,
+        totalCount: result.totalCount,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e);
     }
@@ -146,6 +158,7 @@ class DogsListNotifier extends StateNotifier<DogsListState> {
         page: nextPage,
         hasMore: result.hasMore,
         isLoading: false,
+        totalCount: result.totalCount,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e);
@@ -153,7 +166,7 @@ class DogsListNotifier extends StateNotifier<DogsListState> {
   }
 
   Future<void> applyFilters(DogFilters filters) async {
-    state = state.copyWith(filters: filters, items: [], page: 1, hasMore: true);
+    state = state.copyWith(filters: filters, items: [], page: 1, hasMore: true, clearTotalCount: true);
     await loadFirstPage();
   }
 

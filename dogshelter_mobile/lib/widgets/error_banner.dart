@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../core/api_exception.dart';
 
-/// Forwards the backend's actual validation/error messages verbatim - never a generic
-/// "something went wrong" - per the faculty's error-forwarding rule.
+/// Forwards the backend's actual validation/error messages verbatim, never a generic
+/// "something went wrong".
 class ErrorBanner extends StatelessWidget {
   const ErrorBanner({super.key, required this.error});
 

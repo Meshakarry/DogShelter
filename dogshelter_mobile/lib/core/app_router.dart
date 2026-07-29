@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/activities/presentation/aktivnosti_list_screen.dart';
+import '../features/activities/presentation/log_activity_screen.dart';
 import '../features/adoption_requests/presentation/adoption_requests_list_screen.dart';
 import '../features/adoption_requests/presentation/zahtjev_detail_screen.dart';
 import '../features/auth/application/auth_notifier.dart';
@@ -25,7 +26,7 @@ import '../features/news/presentation/news_list_screen.dart';
 import '../features/notifications/presentation/notifications_list_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/root/presentation/app_shell.dart';
-import '../features/root/presentation/placeholder_screen.dart';
+import '../features/visits/presentation/book_visit_screen.dart';
 import '../features/visits/presentation/posjeta_detail_screen.dart';
 import '../features/visits/presentation/visits_list_screen.dart';
 
@@ -54,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!authState.isLoggedIn) {
         return isAuthRoute ? null : '/login';
       }
-      if (isSplash || isAuthRoute) return '/dogs';
+      if (isSplash || isAuthRoute) return '/pocetna';
       return null;
     },
     routes: [
@@ -97,12 +98,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ZahtjevDetailScreen(id: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
+        path: '/posjete/nova',
+        builder: (context, state) {
+          final args = state.extra as BookVisitArgs?;
+          return BookVisitScreen(pasId: args?.pasId, pasNaziv: args?.pasNaziv);
+        },
+      ),
+      GoRoute(
         path: '/posjete/:id',
         builder: (context, state) => PosjetaDetailScreen(id: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/donacije/nova',
         builder: (context, state) => const NewDonationScreen(),
+      ),
+      GoRoute(
+        path: '/aktivnosti/nova',
+        builder: (context, state) => const LogActivityScreen(),
       ),
       GoRoute(
         path: '/donacije/:id',

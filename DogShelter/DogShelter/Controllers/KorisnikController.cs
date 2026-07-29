@@ -18,11 +18,17 @@ namespace DogShelter.Controllers
         private readonly IKorisnikService _service;
         private readonly IJwtTokenGenerator _tokenGenerator;
         private readonly ITokenRevocationService _tokenRevocationService;
-        public KorisnikController(IKorisnikService service, IJwtTokenGenerator tokenGenerator, ITokenRevocationService tokenRevocationService) : base(service)
+        private readonly IAuthorizationService _authorizationService;
+        public KorisnikController(
+            IKorisnikService service,
+            IJwtTokenGenerator tokenGenerator,
+            ITokenRevocationService tokenRevocationService,
+            IAuthorizationService authorizationService) : base(service)
         {
             _service = service;
             _tokenGenerator = tokenGenerator;
             _tokenRevocationService = tokenRevocationService;
+            _authorizationService = authorizationService;
         }
 
         [HttpGet]
@@ -36,19 +42,16 @@ namespace DogShelter.Controllers
         [Authorize]
         public override async Task<Korisnik> GetById(int ID)
         {
-            if (!User.IsInRole("Admin"))
-            {
-                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (!int.TryParse(userIdClaim, out var currentKorisnikId) || currentKorisnikId != ID)
-                {
-                    throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
-                }
-            }
-
             var user = await _service.GetById(ID);
             if (user == null || user.KorisnikId == 0)
             {
                 throw new NotFoundException("Korisnik nije pronađen.");
+            }
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, user, "CanAccessKorisnik");
+            if (!authResult.Succeeded)
+            {
+                throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
             }
 
             return user;

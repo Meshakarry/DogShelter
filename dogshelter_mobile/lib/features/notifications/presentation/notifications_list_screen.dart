@@ -25,7 +25,7 @@ class _NotificationsListScreenState extends ConsumerState<NotificationsListScree
     super.initState();
     _scrollController.addListener(_onScroll);
     // notifikacijaListProvider outlives this screen - reset the filter on every mount so the tab
-    // indicator never desyncs from the notifier's actual filter, same fix as VisitsListScreen.
+    // indicator never desyncs from the notifier's actual filter.
     Future.microtask(() => ref.read(notifikacijaListProvider.notifier).applyUnreadFilter(false));
   }
 
@@ -167,9 +167,6 @@ class _NotifikacijaTile extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      // Card's default M3 background is already a tonal gray surface, so a plain semi-transparent
-      // overlay muddies into an olive/mauve tone instead of a clean pastel - alphaBlend against an
-      // explicit white base guarantees a crisp tint regardless of that underlying surface color.
       color: isUnread ? Color.alphaBlend(color.withValues(alpha: 0.10), Colors.white) : null,
       child: InkWell(
         onTap: onTap,

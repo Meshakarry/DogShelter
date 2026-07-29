@@ -166,12 +166,15 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new CanModifyVolonterRequirement()));
     options.AddPolicy("CanModifyAktivnostVolontera", policy =>
         policy.Requirements.Add(new CanModifyAktivnostVolonteraRequirement()));
+    options.AddPolicy("CanAccessKorisnik", policy =>
+        policy.Requirements.Add(new CanAccessKorisnikRequirement()));
 });
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyZahtjevHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyPosjetaHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyDonacijaHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyVolonterHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, CanModifyAktivnostVolonteraHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, CanAccessKorisnikHandler>();
 
 // JWT Authentication
 var jwtKey = builder.Configuration["JWTSettings:Key"] ?? string.Empty;

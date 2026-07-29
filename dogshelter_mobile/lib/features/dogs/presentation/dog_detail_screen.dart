@@ -5,9 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/image_url.dart';
 import '../../../widgets/error_banner.dart';
+import '../../../widgets/labeled_field.dart';
 import '../../../widgets/status_pill.dart';
 import '../../adoption_requests/application/adoption_requests_providers.dart';
-import '../../visits/presentation/book_visit_sheet.dart';
+import '../../visits/presentation/book_visit_screen.dart';
 import '../application/dogs_providers.dart';
 import '../domain/pas.dart';
 import 'dog_status_style.dart';
@@ -158,10 +159,9 @@ class _DogDetailBodyState extends State<_DogDetailBody> {
   }
 }
 
-/// The adopt CTA plus, per the faculty's "disabled actions need an explanation" rule, a reason
-/// line shown whenever the button is disabled - either the dog isn't available, or the caller
-/// already has an active (Na čekanju) request for this dog (checked via hasPendingZahtjevProvider,
-/// same real-message text the backend itself would reject a duplicate submit with).
+/// The adopt CTA plus a reason line shown whenever the button is disabled - either the dog
+/// isn't available, or the caller already has an active (Na čekanju) request for this dog
+/// (checked via hasPendingZahtjevProvider).
 class _AdoptRequestBar extends ConsumerWidget {
   const _AdoptRequestBar({required this.dog});
 
@@ -214,11 +214,9 @@ class _AdoptRequestBar extends ConsumerWidget {
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () async {
-              final booked = await showModalBottomSheet<bool>(
-                context: context,
-                isScrollControlled: true,
-                shape: const RoundedRectangleBorder(),
-                builder: (_) => BookVisitSheet(pasId: dog.pasId, pasNaziv: dog.naziv),
+              final booked = await context.push<bool>(
+                '/posjete/nova',
+                extra: BookVisitArgs(pasId: dog.pasId, pasNaziv: dog.naziv),
               );
               if (booked == true && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -236,10 +234,6 @@ class _AdoptRequestBar extends ConsumerWidget {
   }
 }
 
-/// A gradient-filled button. Flutter's ElevatedButton/FilledButton only accept a single flat
-/// backgroundColor - there's no built-in gradient button - so this hand-builds one: a Container
-/// paints the gradient background, and a transparent Material+InkWell on top gives the normal
-/// button tap-ripple feedback.
 class _AdoptRequestButton extends StatelessWidget {
   const _AdoptRequestButton({required this.enabled, required this.onPressed});
 
@@ -283,8 +277,8 @@ class _AdoptRequestButton extends StatelessWidget {
   }
 }
 
-/// Bottom sheet asking for an optional note before submitting a real
-/// POST /api/ZahtjevZaUdomljavanje - pops `true` on success so the caller can navigate/snackbar.
+/// Bottom sheet asking for an optional note before submitting POST /api/ZahtjevZaUdomljavanje -
+/// pops `true` on success so the caller can navigate/snackbar.
 class _SubmitRequestSheet extends ConsumerStatefulWidget {
   const _SubmitRequestSheet({required this.pasId});
 
@@ -352,12 +346,19 @@ class _SubmitRequestSheetState extends ConsumerState<_SubmitRequestSheet> {
             ),
             const SizedBox(height: 16),
             ErrorBanner(error: _error),
-            TextField(
-              controller: _napomenaController,
-              onChanged: (_) => _clearError(),
-              maxLines: 4,
-              maxLength: 1000,
-              decoration: const InputDecoration(labelText: 'Napomena', alignLabelWithHint: true),
+            LabeledField(
+              label: 'Napomena (opcionalno)',
+              required: false,
+              child: TextField(
+                controller: _napomenaController,
+                onChanged: (_) => _clearError(),
+                maxLines: 4,
+                maxLength: 1000,
+                decoration: const InputDecoration(
+                  hintText: 'Dodatne informacije za osoblje azila',
+                  border: OutlineInputBorder(),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Row(

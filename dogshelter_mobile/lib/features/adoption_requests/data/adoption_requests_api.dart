@@ -39,8 +39,8 @@ class ZahtjevApi {
     return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
   }
 
-  // Small lookup table (well under the server's 100-row page cap) - same single-request
-  // pattern as DogsApi.getStatusi/getRase/getVelicine.
+  // Small lookup table, well under the server's 100-row page cap, so a single request
+  // returns the full list.
   Future<List<StatusZahtjeva>> getStatusi() async {
     final json = await _client.get('/api/StatusZahtjeva', query: {'pageSize': 100});
     final result = PagedResult.fromJson(json as Map<String, dynamic>, (item) => StatusZahtjeva.fromJson(item));

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../widgets/error_banner.dart';
+import '../../../widgets/form_error_scroller.dart';
+import '../../../widgets/labeled_field.dart';
 import '../application/auth_notifier.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -12,39 +14,56 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
   ConsumerState<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
+    with FormErrorScroller<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _isSubmitting = false;
-  Object? _error;
+  Object? _apiError;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   @override
+  List<String> get fieldOrder => const ['email'];
+
+  @override
+  ScrollController get errorScrollController => _scrollController;
+
+  @override
   void dispose() {
     _emailController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _clearError() {
-    if (_error != null) setState(() => _error = null);
+  void _clearApiError() {
+    if (_apiError != null) setState(() => _apiError = null);
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      applyValidationErrors({'email': 'Email je obavezan.'});
+      return;
+    }
+    if (!_emailRegex.hasMatch(email)) {
+      applyValidationErrors({'email': 'Unesite ispravan email, npr. ime@primjer.com'});
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
-      _error = null;
+      _apiError = null;
+      clearAllFieldErrors();
     });
 
     try {
-      final email = _emailController.text.trim();
       await ref.read(authApiProvider).requestPasswordReset(email: email);
       if (!mounted) return;
       context.push('/reset-password', extra: email);
     } catch (e) {
-      setState(() => _error = e);
+      setState(() => _apiError = e);
+      scrollToTop();
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -56,39 +75,43 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       appBar: AppBar(title: const Text('Zaboravljena lozinka')),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Unesite email adresu povezanu s vašim računom. Poslat ćemo vam kod za resetiranje lozinke.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 24),
-                ErrorBanner(error: _error),
-                TextFormField(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Unesite email adresu povezanu s vašim računom. Poslat ćemo vam kod za resetiranje lozinke.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              ErrorBanner(error: _apiError),
+              LabeledField(
+                key: keyFor('email'),
+                label: 'Email',
+                child: TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
                   keyboardType: TextInputType.emailAddress,
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Email je obavezan.';
-                    if (!_emailRegex.hasMatch(v.trim())) return 'Unesite ispravan email.';
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('email');
                   },
+                  decoration: InputDecoration(
+                    hintText: 'ime@primjer.com',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['email'],
+                  ),
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Pošalji kod'),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _isSubmitting ? null : _submit,
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                child: _isSubmitting
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Pošalji kod'),
+              ),
+            ],
           ),
         ),
       ),

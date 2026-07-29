@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// A form label with a red required-field asterisk - matches this screen's existing
-/// "Kategorija donacije *" / "Iznos (KM) *" convention, reused wherever a required field
-/// wasn't previously marked (Količina, Jedinica, Adresa preuzimanja, Broj telefona, etc.).
+/// A form label with a red required-field asterisk. Used on every required field across the
+/// app's forms so users can tell at a glance which fields must be filled in.
 class RequiredLabel extends StatelessWidget {
   const RequiredLabel(this.text, {super.key, this.style});
 
@@ -22,9 +21,9 @@ class RequiredLabel extends StatelessWidget {
   }
 }
 
-/// Validation messages must render clearly below their control, never inside the input or as
-/// a dialog (faculty rule) - this is that inline message, used under every field that can fail
-/// client-side validation on this form.
+/// Validation messages render clearly below their control, never inside the input or as a
+/// dialog - this is that inline message, used under every field that can fail client-side
+/// validation.
 class FieldError extends StatelessWidget {
   const FieldError(this.message, {super.key});
 

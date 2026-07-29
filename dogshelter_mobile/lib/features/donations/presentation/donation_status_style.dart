@@ -22,8 +22,6 @@ Color donacijaStatusColor(String? statusNaziv) {
   }
 }
 
-/// A colored badge for a donacija status - tinted background + bold text in the same status
-/// color, same rectangular treatment as PosjetaStatusBadge/ZahtjevStatusBadge.
 class DonacijaStatusBadge extends StatelessWidget {
   const DonacijaStatusBadge({super.key, required this.naziv});
 

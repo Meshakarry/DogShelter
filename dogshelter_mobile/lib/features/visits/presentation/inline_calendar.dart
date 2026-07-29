@@ -11,9 +11,9 @@ const _monthNames = [
 const _weekdayLetters = ['P', 'U', 'S', 'Č', 'P', 'S', 'N'];
 
 /// Hand-rolled inline month calendar - always visible in the booking sheet rather than hidden
-/// behind a native showDatePicker dialog, with Bosnian month/weekday names (no `intl` dependency,
-/// matching this project's formatDate precedent - Flutter's built-in CalendarDatePicker has no
-/// Bosnian locale support and would fall back to English names).
+/// behind a native showDatePicker dialog, with Bosnian month/weekday names and no `intl`
+/// dependency. Flutter's built-in CalendarDatePicker has no Bosnian locale support and would
+/// fall back to English names.
 class InlineCalendar extends StatefulWidget {
   const InlineCalendar({
     super.key,

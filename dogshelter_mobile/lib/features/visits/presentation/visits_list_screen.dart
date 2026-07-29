@@ -8,7 +8,6 @@ import '../../../core/image_url.dart';
 import '../../../widgets/error_banner.dart';
 import '../application/visits_providers.dart';
 import '../domain/posjeta.dart';
-import 'book_visit_sheet.dart';
 import 'posjeta_status_style.dart';
 
 // Real StatusPosjete.Naziv values double as tab labels directly (unlike Zahtjev's tabs, these
@@ -32,7 +31,7 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen> {
     _scrollController.addListener(_onScroll);
     // posjetaListProvider outlives this screen (survives navigating away and back, or a
     // logout/login) - reset the filter on every mount so the tab indicator never desyncs from
-    // the notifier's actual filter, same fix applied to AdoptionRequestsListScreen.
+    // the notifier's actual filter.
     Future.microtask(() => ref.read(posjetaListProvider.notifier).applyStatusFilter(null));
   }
 
@@ -62,12 +61,7 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen> {
   }
 
   Future<void> _bookGeneralVisit() async {
-    final booked = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(),
-      builder: (_) => const BookVisitSheet(),
-    );
+    final booked = await context.push<bool>('/posjete/nova');
     if (booked == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Posjeta je zakazana.')));
       ref.read(posjetaListProvider.notifier).loadFirstPage();

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../widgets/error_banner.dart';
+import '../../../widgets/form_error_scroller.dart';
+import '../../../widgets/labeled_field.dart';
 import '../application/auth_notifier.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -14,39 +16,71 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
   ConsumerState<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
+    with FormErrorScroller<ResetPasswordScreen> {
   final _kodController = TextEditingController();
   final _lozinkaController = TextEditingController();
   final _lozinkaPotvrdaController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _isSubmitting = false;
-  Object? _error;
+  Object? _apiError;
+
+  @override
+  List<String> get fieldOrder => const ['kod', 'lozinka', 'lozinkaPotvrda'];
+
+  @override
+  ScrollController get errorScrollController => _scrollController;
 
   @override
   void dispose() {
     _kodController.dispose();
     _lozinkaController.dispose();
     _lozinkaPotvrdaController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _clearError() {
-    if (_error != null) setState(() => _error = null);
+  void _clearApiError() {
+    if (_apiError != null) setState(() => _apiError = null);
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final errors = <String, String>{};
+
+    final kod = _kodController.text.trim();
+    if (kod.isEmpty) {
+      errors['kod'] = 'Kod je obavezan.';
+    } else if (!RegExp(r'^\d{6}$').hasMatch(kod)) {
+      errors['kod'] = 'Kod mora imati tačno 6 cifara.';
+    }
+
+    final lozinka = _lozinkaController.text;
+    if (lozinka.isEmpty) {
+      errors['lozinka'] = 'Lozinka je obavezna.';
+    } else if (lozinka.length < 6) {
+      errors['lozinka'] = 'Lozinka mora imati najmanje 6 znakova.';
+    }
+
+    if (_lozinkaPotvrdaController.text != lozinka) {
+      errors['lozinkaPotvrda'] = 'Lozinke se ne podudaraju.';
+    }
+
+    if (errors.isNotEmpty) {
+      applyValidationErrors(errors);
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
-      _error = null;
+      _apiError = null;
+      clearAllFieldErrors();
     });
 
     try {
       await ref.read(authApiProvider).resetPassword(
             email: widget.email,
-            kod: _kodController.text.trim(),
-            novaLozinka: _lozinkaController.text,
+            kod: kod,
+            novaLozinka: lozinka,
             novaLozinkaPotvrda: _lozinkaPotvrdaController.text,
           );
       if (!mounted) return;
@@ -55,7 +89,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       );
       context.go('/login');
     } catch (e) {
-      setState(() => _error = e);
+      setState(() => _apiError = e);
+      scrollToTop();
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -67,61 +102,79 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       appBar: AppBar(title: const Text('Novi kod i lozinka')),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Kod je poslan na ${widget.email}. Unesite ga zajedno s novom lozinkom.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 24),
-                ErrorBanner(error: _error),
-                TextFormField(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Kod je poslan na ${widget.email}. Unesite ga zajedno s novom lozinkom.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              ErrorBanner(error: _apiError),
+              LabeledField(
+                key: keyFor('kod'),
+                label: 'Kod',
+                child: TextField(
                   controller: _kodController,
-                  decoration: const InputDecoration(labelText: 'Kod (6 cifara)'),
                   keyboardType: TextInputType.number,
                   maxLength: 6,
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Kod je obavezan.';
-                    if (!RegExp(r'^\d{6}$').hasMatch(v.trim())) {
-                      return 'Kod mora imati tačno 6 cifara.';
-                    }
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('kod');
                   },
+                  decoration: InputDecoration(
+                    hintText: '123456',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['kod'],
+                  ),
                 ),
-                TextFormField(
+              ),
+              LabeledField(
+                key: keyFor('lozinka'),
+                label: 'Nova lozinka',
+                child: TextField(
                   controller: _lozinkaController,
-                  decoration: const InputDecoration(labelText: 'Nova lozinka'),
                   obscureText: true,
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Lozinka je obavezna.';
-                    if (v.length < 6) return 'Lozinka mora imati najmanje 6 znakova.';
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('lozinka');
                   },
+                  decoration: InputDecoration(
+                    hintText: 'Najmanje 6 znakova',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['lozinka'],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
+              ),
+              const SizedBox(height: 16),
+              LabeledField(
+                key: keyFor('lozinkaPotvrda'),
+                label: 'Potvrda nove lozinke',
+                child: TextField(
                   controller: _lozinkaPotvrdaController,
-                  decoration: const InputDecoration(labelText: 'Potvrda nove lozinke'),
                   obscureText: true,
-                  onChanged: (_) => _clearError(),
-                  validator: (v) => v != _lozinkaController.text ? 'Lozinke se ne podudaraju.' : null,
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('lozinkaPotvrda');
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Ponovite lozinku',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['lozinkaPotvrda'],
+                  ),
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Promijeni lozinku'),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _isSubmitting ? null : _submit,
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                child: _isSubmitting
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Promijeni lozinku'),
+              ),
+            ],
           ),
         ),
       ),

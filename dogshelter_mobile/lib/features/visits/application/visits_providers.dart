@@ -13,8 +13,8 @@ final statusPosjeteLookupProvider = FutureProvider<List<StatusPosjete>>((ref) {
   return ref.watch(visitsApiProvider).getStatusi();
 });
 
-// Backs the optional dog picker in the general-visit booking sheet - same single-request,
-// well-under-the-100-row-cap precedent as dogLookupsProvider (Rasa/StatusPsa/Velicina).
+// Backs the optional dog picker in the general-visit booking sheet - a single pageSize=100
+// request covers the full dog list for the dropdown.
 final dogPickerOptionsProvider = FutureProvider<List<PasListItem>>((ref) async {
   final result = await ref.watch(dogsApiProvider).getDogs(page: 1, pageSize: 100);
   return result.items;

@@ -235,12 +235,10 @@ public static class DatabaseSeeder
     }
 
     /// <summary>
-    /// Seeds a handful of ZahtjevZaUdomljavanje records (pending, rejected, approved) so the
-    /// state machine has data to exercise. Also backfills Udomljavanje for the dogs that
-    /// EnsurePsiAsync already seeded with StatusPsa "Udomljen" (Max, Lola, Nera), so their
-    /// adoption has a proper audit trail instead of a bare status flag.
-    /// No dedicated "Korisnik" test account exists yet, so the shelter admin is used as the
-    /// requester/processor here purely for demo data.
+    /// Seeds pending/rejected/approved ZahtjevZaUdomljavanje records and backfills Udomljavanje
+    /// for dogs already marked Udomljen (Max, Lola, Nera) so they have an adoption audit trail.
+    /// Uses the admin account as requester/processor since no dedicated Korisnik test account
+    /// exists.
     /// </summary>
     private static async Task EnsureZahtjeviAsync(DogShelterContext context, ILogger logger)
     {
@@ -324,9 +322,8 @@ public static class DatabaseSeeder
     }
 
     /// <summary>
-    /// Seeds a handful of Posjeta records spanning all four statuses (Na čekanju, Potvrđena,
-    /// Otkazana, Završena) across both the admin and the "korisnik" test account, so the
-    /// confirm/cancel/complete state machine and overlap check have data to exercise.
+    /// Seeds Posjeta records covering all four statuses (Na čekanju, Potvrđena, Otkazana,
+    /// Završena) for both the admin and the "korisnik" test account.
     /// </summary>
     private static async Task EnsurePosjeteAsync(DogShelterContext context, ILogger logger)
     {
@@ -472,12 +469,10 @@ public static class DatabaseSeeder
     }
 
     /// <summary>
-    /// Restricts each Materijalna donation category to the units that actually make sense for it
-    /// (e.g. Deke i posteljina -> kom only, never kg/litara) so the mobile quantity picker can
-    /// hide/collapse the unit choice instead of offering nonsensical combinations. "Ostalo" is
-    /// left with an empty allowed-list on purpose - that's the signal the client treats as
-    /// unrestricted (show every unit). Re-running this is idempotent: it always reassigns the
-    /// same target sets, which EF no-ops when nothing actually changed.
+    /// Restricts each Materijalna category to units that make sense (e.g. Deke i posteljina ->
+    /// kom only). "Ostalo" intentionally keeps an empty allowed-list — the client treats that as
+    /// unrestricted. Idempotent: re-running reassigns the same sets, which EF no-ops when
+    /// unchanged.
     /// </summary>
     private static async Task EnsureKategorijaDozvoljeneJediniceAsync(DogShelterContext context, ILogger logger)
     {
@@ -741,11 +736,9 @@ public static class DatabaseSeeder
     }
 
     /// <summary>
-    /// Seeds a handful of Volonter records: the already-existing "volonter" test account
-    /// (created in Program.cs, already holding the Volonter role) plus three fake Korisnik
-    /// accounts created purely for volunteer-roster demo data. Each gets the Volonter role
-    /// granted the same way VolonterService.Insert does it, so admin-vs-self authorization
-    /// can be exercised end-to-end. One volunteer is seeded inactive for status-management coverage.
+    /// Seeds the "volonter" test account (created in Program.cs) plus three fake Korisnik
+    /// accounts as Volonter roster data. Role is granted the same way VolonterService.Insert
+    /// does it. One volunteer is seeded inactive to cover status handling.
     /// </summary>
     private static async Task EnsureVolonteriAsync(DogShelterContext context, ILogger logger)
     {
@@ -810,9 +803,9 @@ public static class DatabaseSeeder
     }
 
     /// <summary>
-    /// Seeds Dogadjaj records spanning open days, humanitarian actions and adoption
-    /// promotions (per the faculty brief's examples), plus one cancelled (Aktivan = false)
-    /// past event so the non-admin "upcoming only" visibility filter has something to hide.
+    /// Seeds Dogadjaj records spanning open days, humanitarian actions, and adoption
+    /// promotions, plus one cancelled (Aktivan = false) past event so the non-admin
+    /// "upcoming only" visibility filter has something to hide.
     /// </summary>
     private static async Task EnsureDogadjajiAsync(DogShelterContext context, ILogger logger)
     {
@@ -914,8 +907,8 @@ public static class DatabaseSeeder
     }
 
     /// <summary>
-    /// Seeds a mix of read/unread Notifikacija rows for the test accounts so the reviewer
-    /// sees populated state immediately, spanning several trigger types (Phase 8).
+    /// Seeds a mix of read/unread Notifikacija rows across several trigger types for the
+    /// test accounts.
     /// </summary>
     private static async Task EnsureNotifikacijeAsync(DogShelterContext context, ILogger logger)
     {

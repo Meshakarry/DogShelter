@@ -20,8 +20,8 @@ Color prioritetPotrebeColor(String? naziv) {
   }
 }
 
-/// A colored priority badge for the shelter-needs board - same tinted-background treatment as
-/// DonacijaStatusBadge/PosjetaStatusBadge elsewhere in this app.
+/// A colored priority badge for the shelter-needs board - tinted background + bold text in the
+/// priority color.
 class PrioritetBadge extends StatelessWidget {
   const PrioritetBadge({super.key, required this.naziv});
 

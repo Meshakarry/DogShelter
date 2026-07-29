@@ -9,8 +9,7 @@ import 'potreba_azila_style.dart';
 
 /// Admin-curated "what the shelter currently needs" board - purely informational, never
 /// editable by donors, shown above the Materijalna donation form to nudge donors toward items
-/// the shelter actually needs right now. Real API data only - never fabricated placeholder text,
-/// same convention this app follows for every other status/label display.
+/// the shelter actually needs right now.
 class ShelterNeedsSection extends ConsumerWidget {
   const ShelterNeedsSection({super.key});
 

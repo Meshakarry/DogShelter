@@ -24,8 +24,8 @@ public class ObavijestService : IObavijestService
 
     public async Task<PagedResult<Model.ObavijestListItem>> Get(ObavijestSearchRequest search, bool isAdmin)
     {
-        // List view: no Sadrzaj mapping — full text belongs on GetById only,
-        // per the "list endpoints must not return large payloads" rule.
+        // List view omits Sadrzaj (full text) to keep payloads small; full text is returned
+        // only by GetById.
         var query = _context.Obavijests
             .Include(o => o.Autor)
             .AsNoTracking()

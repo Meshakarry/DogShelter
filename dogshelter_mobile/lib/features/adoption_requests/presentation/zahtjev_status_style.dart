@@ -19,9 +19,6 @@ Color zahtjevStatusColor(String? statusNaziv) {
   }
 }
 
-/// A colored badge for a zahtjev status - tinted background + bold text in the same status
-/// color. Rectangular (BorderRadius.circular(6)), not a pill - matches this app's deliberate
-/// rectangular-controls convention (search/filter fields use the same radius).
 class ZahtjevStatusBadge extends StatelessWidget {
   const ZahtjevStatusBadge({super.key, required this.naziv});
 

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/date_format.dart';
 import '../../../core/image_url.dart';
 import '../../../widgets/error_banner.dart';
+import '../../../widgets/labeled_field.dart';
 import '../application/visits_providers.dart';
 import '../domain/posjeta.dart';
 import 'posjeta_status_style.dart';
@@ -48,33 +49,11 @@ class _PosjetaDetailBodyState extends ConsumerState<_PosjetaDetailBody> {
   }
 
   Future<void> _cancel() async {
-    final reasonController = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final reason = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        title: const Text('Otkaži posjetu'),
-        content: TextField(
-          controller: reasonController,
-          maxLines: 3,
-          maxLength: 1000,
-          decoration: const InputDecoration(labelText: 'Razlog otkazivanja', alignLabelWithHint: true),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Otkaži posjetu')),
-        ],
-      ),
+      builder: (dialogContext) => const _CancelReasonDialog(),
     );
-    if (confirmed != true || !mounted) return;
-
-    final reason = reasonController.text.trim();
-    if (reason.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Razlog otkazivanja je obavezan.')),
-      );
-      return;
-    }
+    if (reason == null || !mounted) return;
 
     setState(() => _isCancelling = true);
     try {
@@ -223,6 +202,67 @@ class _PosjetaDetailBodyState extends ConsumerState<_PosjetaDetailBody> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Confirmation dialog for cancelling a Posjeta - the reason is required, so unlike a plain
+/// AlertDialog this validates before closing and shows the error below the field, only popping
+/// with the trimmed reason once it's non-empty.
+class _CancelReasonDialog extends StatefulWidget {
+  const _CancelReasonDialog();
+
+  @override
+  State<_CancelReasonDialog> createState() => _CancelReasonDialogState();
+}
+
+class _CancelReasonDialogState extends State<_CancelReasonDialog> {
+  final _reasonController = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final reason = _reasonController.text.trim();
+    if (reason.isEmpty) {
+      setState(() => _error = 'Razlog otkazivanja je obavezan.');
+      return;
+    }
+    Navigator.of(context).pop(reason);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      title: const Text('Otkaži posjetu'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: LabeledField(
+          label: 'Razlog otkazivanja',
+          child: TextField(
+            controller: _reasonController,
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+            },
+            maxLines: 3,
+            maxLength: 1000,
+            decoration: InputDecoration(
+              hintText: 'Unesite razlog otkazivanja',
+              border: const OutlineInputBorder(),
+              errorText: _error,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Odustani')),
+        FilledButton(onPressed: _confirm, child: const Text('Otkaži posjetu')),
+      ],
     );
   }
 }

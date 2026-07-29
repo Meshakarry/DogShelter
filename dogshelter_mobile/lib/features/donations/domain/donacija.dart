@@ -65,9 +65,8 @@ class Donacija {
 
   bool get isNovcana => tipDonacijeNaziv == 'Novčana';
 
-  /// The category name shown to the user - the real "Ostalo" naziv is replaced by the donor's
-  /// own custom item name, same never-show-a-generic-label-when-real-data-exists precedent used
-  /// elsewhere in this app.
+  /// The category name shown to the user - when the category is the generic "Ostalo", the
+  /// donor's own custom item name is shown instead.
   String? get prikazNazivStavke =>
       (kategorijaDonacijeNaziv == 'Ostalo' && prilagodjenNaziv != null && prilagodjenNaziv!.isNotEmpty)
           ? prilagodjenNaziv

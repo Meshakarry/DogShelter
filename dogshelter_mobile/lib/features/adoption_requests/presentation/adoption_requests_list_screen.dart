@@ -10,9 +10,9 @@ import '../application/adoption_requests_providers.dart';
 import '../domain/zahtjev_za_udomljavanje.dart';
 import 'zahtjev_status_style.dart';
 
-// UI tab labels, in mockup order. "Svi" has no backing StatusZahtjeva row (null filter); the
-// other three map to the backend's real StatusZahtjeva.Naziv values below - the tab copy uses
-// the friendlier adjective form while the card itself always shows the server's real Naziv text.
+// UI tab labels. "Svi" has no backing StatusZahtjeva row (null filter); the other three map to
+// backend StatusZahtjeva.Naziv values below. Tab copy uses a friendlier adjective form while
+// the card always shows the server's real Naziv text.
 const _tabs = ['Svi', 'Na čekanju', 'Odobreno', 'Odbijeno'];
 
 String? _realNazivFor(String tab) => switch (tab) {
