@@ -4,6 +4,8 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../widgets/error_banner.dart';
+import '../../../widgets/form_error_scroller.dart';
+import '../../../widgets/labeled_field.dart';
 import '../../visits/presentation/inline_calendar.dart';
 import '../application/donations_providers.dart';
 import '../domain/jedinica_mjere.dart';
@@ -12,21 +14,17 @@ import '../domain/tip_donacije.dart';
 import 'chip_button.dart';
 import 'donation_icons.dart';
 import 'quantity_stepper.dart';
-import 'required_label.dart';
 import 'shelter_needs_section.dart';
 import 'unit_picker.dart';
 
 const _amountPresets = [10.0, 20.0, 50.0, 100.0];
 
-// Assumed shelter pickup/visiting hours (09:00-16:00, hourly) - not modeled on the backend
-// (Posjeta/Donacija have no time-of-day restriction of their own), so this is a mobile-only UX
-// choice matching the same slot list already used for Posjeta bookings.
+// Assumed shelter pickup/visiting hours (09:00-16:00, hourly)
 const _timeSlots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
 
-/// Full-screen "new donation" form (not a bottom sheet, per the design mockup) - Novčana
-/// (monetary) donations continue into a real Stripe PaymentSheet; Materijalna (in-kind)
-/// donations are logged with structured category/quantity/delivery details for an admin to
-/// review, no payment step.
+/// Full-screen "new donation" form. Novčana (monetary) donations continue into a Stripe
+/// PaymentSheet; Materijalna (in-kind) donations are logged with structured category/quantity/
+/// delivery details for an admin to review, no payment step.
 class NewDonationScreen extends ConsumerStatefulWidget {
   const NewDonationScreen({super.key});
 
@@ -34,7 +32,7 @@ class NewDonationScreen extends ConsumerStatefulWidget {
   ConsumerState<NewDonationScreen> createState() => _NewDonationScreenState();
 }
 
-class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
+class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with FormErrorScroller<NewDonationScreen> {
   final _napomenaController = TextEditingController();
   final _customAmountController = TextEditingController();
   final _prilagodjenNazivController = TextEditingController();
@@ -60,17 +58,25 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
   bool _isSubmitting = false;
   Object? _apiError;
 
-  // Per-field validation messages, keyed by field name, rendered directly below that field's
-  // control (faculty rule: validation messages must be clearly shown below the control, never
-  // inside the input or as a dialog) rather than as a single generic banner.
-  final Map<String, String> _fieldErrors = {};
+  // Field order determines scroll-to-first-error priority. Jumping to the top of the form on
+  // every failed submit would be disorienting for errors near the bottom (e.g. pickup fields),
+  // forcing the user to scroll back past fields already filled in correctly.
+  @override
+  List<String> get fieldOrder => const [
+    'tip',
+    'iznos',
+    'kategorija',
+    'prilagodjenNaziv',
+    'kolicina',
+    'jedinica',
+    'adresa',
+    'telefon',
+    'pickupDatum',
+    'pickupVrijeme',
+  ];
 
-  // One GlobalKey per validatable field, used to scroll precisely to whichever one failed
-  // first - jumping to the top of the form on every failed submit would be disorienting for
-  // errors near the bottom (e.g. pickup fields), since the user would have to scroll back down
-  // past everything they already filled in correctly.
-  static const _fieldOrder = ['tip', 'iznos', 'kategorija', 'prilagodjenNaziv', 'kolicina', 'jedinica', 'adresa', 'telefon', 'termin'];
-  final Map<String, GlobalKey> _fieldKeys = {for (final key in _fieldOrder) key: GlobalKey()};
+  @override
+  ScrollController get errorScrollController => _scrollController;
 
   @override
   void initState() {
@@ -91,35 +97,16 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
     super.dispose();
   }
 
-  void _clearFieldError(String key) {
-    if (_fieldErrors.containsKey(key)) setState(() => _fieldErrors.remove(key));
-  }
-
   void _clearApiError() {
     if (_apiError != null) setState(() => _apiError = null);
   }
 
-  void _applyValidationErrors(Map<String, String> errors) {
-    setState(() {
-      _fieldErrors
-        ..clear()
-        ..addAll(errors);
-    });
-    final firstInvalidField = _fieldOrder.firstWhere(errors.containsKey, orElse: () => '');
-    final context = _fieldKeys[firstInvalidField]?.currentContext;
-    if (context != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 300), curve: Curves.easeOut, alignment: 0.2);
-      });
-    }
-  }
-
   // API/payment failures aren't tied to one control, so a top banner is the right place for
-  // them (unlike the per-field validation messages above) - still needs the scroll-into-view
+  // them (unlike the per-field validation messages below) - still needs the scroll-into-view
   // treatment since this is a long scrollable form and submit sits near the bottom.
   void _setApiError(Object message) {
     setState(() => _apiError = message);
-    _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    scrollToTop();
   }
 
   bool _isNovcana(List<TipDonacije> tipovi) {
@@ -168,19 +155,20 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
       if (_trebaPreuzimanje) {
         if (_adresaController.text.trim().isEmpty) errors['adresa'] = 'Unesite adresu za preuzimanje.';
         if (_telefonController.text.trim().isEmpty) errors['telefon'] = 'Unesite kontakt telefon za preuzimanje.';
-        if (_pickupDateTime == null) errors['termin'] = 'Odaberite željeni termin preuzimanja.';
+        if (_pickupDate == null) errors['pickupDatum'] = 'Odaberite datum preuzimanja.';
+        if (_pickupTimeSlot == null) errors['pickupVrijeme'] = 'Odaberite vrijeme preuzimanja.';
       }
     }
 
     if (errors.isNotEmpty) {
-      _applyValidationErrors(errors);
+      applyValidationErrors(errors);
       return;
     }
 
     setState(() {
       _isSubmitting = true;
       _apiError = null;
-      _fieldErrors.clear();
+      fieldErrors.clear();
     });
     try {
       final response = await ref.read(donationsApiProvider).createDonacija(
@@ -223,8 +211,14 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
         context.pushReplacement('/donacije/${response.donacija.donacijaId}');
       }
     } on StripeException catch (e) {
-      final message = e.error.localizedMessage ?? e.error.message;
-      _setApiError(message ?? 'Plaćanje je otkazano ili nije uspjelo.');
+      if (e.error.code == FailureCode.Canceled) {
+        // Stripe's own message here is a hardcoded, untranslated English string - show our
+        // own Bosnian text instead of surfacing it to the user.
+        _setApiError('Plaćanje je otkazano.');
+      } else {
+        final message = e.error.localizedMessage ?? e.error.message;
+        _setApiError(message ?? 'Plaćanje nije uspjelo. Pokušajte ponovo.');
+      }
     } catch (e) {
       _setApiError(e);
     } finally {
@@ -250,22 +244,23 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ErrorBanner(error: _apiError),
-                Text('Tip donacije', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 8),
-                KeyedSubtree(
-                  key: _fieldKeys['tip'],
+                LabeledField(
+                  key: keyFor('tip'),
+                  label: 'Tip donacije',
                   child: DropdownButtonFormField<int>(
                     initialValue: _tipDonacijeId,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
                       hintText: 'Odaberite tip donacije',
+                      errorText: fieldErrors['tip'],
                     ),
                     items: [
                       for (final tip in tipovi) DropdownMenuItem(value: tip.tipDonacijeId, child: Text(tip.naziv)),
                     ],
                     onChanged: (value) {
                       setState(() {
-                        _fieldErrors.clear();
+                        fieldErrors.clear();
+                        _apiError = null;
                         _tipDonacijeId = value;
                         _selectedPreset = null;
                         _customAmountSelected = false;
@@ -274,15 +269,18 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
                     },
                   ),
                 ),
-                FieldError(_fieldErrors['tip']),
                 const SizedBox(height: 20),
                 if (_tipDonacijeId != null) ...(isNovcana ? _buildNovcanaFields() : _buildMaterijalnaFields()),
                 const SizedBox(height: 20),
-                TextField(
-                  controller: _napomenaController,
-                  maxLines: 3,
-                  maxLength: 1000,
-                  decoration: const InputDecoration(labelText: 'Napomena (opcionalno)', alignLabelWithHint: true),
+                LabeledField(
+                  label: 'Napomena (opcionalno)',
+                  required: false,
+                  child: TextField(
+                    controller: _napomenaController,
+                    maxLines: 3,
+                    maxLength: 1000,
+                    decoration: const InputDecoration(hintText: 'Dodatne informacije za osoblje azila'),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 FilledButton(
@@ -306,53 +304,62 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
 
   List<Widget> _buildNovcanaFields() {
     return [
-      RequiredLabel('Iznos (KM)'),
-      const SizedBox(height: 8),
-      KeyedSubtree(
-        key: _fieldKeys['iznos'],
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
+      LabeledField(
+        key: keyFor('iznos'),
+        label: 'Iznos (KM)',
+        errorText: fieldErrors['iznos'],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final preset in _amountPresets)
-              ChipButton(
-                label: preset.toStringAsFixed(0),
-                selected: !_customAmountSelected && _selectedPreset == preset,
-                onTap: () {
-                  _clearApiError();
-                  _clearFieldError('iznos');
-                  setState(() {
-                    _selectedPreset = preset;
-                    _customAmountSelected = false;
-                  });
-                },
-              ),
-            ChipButton(
-              label: 'Drugo',
-              selected: _customAmountSelected,
-              onTap: () {
-                _clearApiError();
-                _clearFieldError('iznos');
-                setState(() {
-                  _customAmountSelected = true;
-                  _selectedPreset = null;
-                });
-              },
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final preset in _amountPresets)
+                  ChipButton(
+                    label: preset.toStringAsFixed(0),
+                    selected: !_customAmountSelected && _selectedPreset == preset,
+                    onTap: () {
+                      _clearApiError();
+                      clearFieldError('iznos');
+                      setState(() {
+                        _selectedPreset = preset;
+                        _customAmountSelected = false;
+                      });
+                    },
+                  ),
+                ChipButton(
+                  label: 'Drugo',
+                  selected: _customAmountSelected,
+                  onTap: () {
+                    _clearApiError();
+                    clearFieldError('iznos');
+                    setState(() {
+                      _customAmountSelected = true;
+                      _selectedPreset = null;
+                    });
+                  },
+                ),
+              ],
             ),
+            if (_customAmountSelected) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _customAmountController,
+                onChanged: (_) => clearFieldError('iznos'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Unesite iznos u KM',
+                  border: const OutlineInputBorder(),
+                  errorText: fieldErrors['iznos'],
+                  errorStyle: const TextStyle(height: 0, fontSize: 0),
+                ),
+              ),
+            ],
           ],
         ),
       ),
-      if (_customAmountSelected) ...[
-        const SizedBox(height: 12),
-        TextField(
-          controller: _customAmountController,
-          onChanged: (_) => _clearFieldError('iznos'),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Unesite iznos (KM)', border: OutlineInputBorder()),
-        ),
-      ],
-      FieldError(_fieldErrors['iznos']),
     ];
   }
 
@@ -367,10 +374,10 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
     return [
       const ShelterNeedsSection(),
       const SizedBox(height: 24),
-      RequiredLabel('Kategorija donacije'),
-      const SizedBox(height: 8),
-      KeyedSubtree(
-        key: _fieldKeys['kategorija'],
+      LabeledField(
+        key: keyFor('kategorija'),
+        label: 'Kategorija donacije',
+        errorText: fieldErrors['kategorija'],
         child: kategorijeAsync.when(
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => ErrorBanner(error: e),
@@ -392,10 +399,10 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
                       onTap: () {
                         _clearApiError();
                         setState(() {
-                          _fieldErrors.remove('kategorija');
-                          _fieldErrors.remove('kolicina');
-                          _fieldErrors.remove('jedinica');
-                          _fieldErrors.remove('prilagodjenNaziv');
+                          fieldErrors.remove('kategorija');
+                          fieldErrors.remove('kolicina');
+                          fieldErrors.remove('jedinica');
+                          fieldErrors.remove('prilagodjenNaziv');
                           _kategorijaDonacijeId = kat.kategorijaDonacijeId;
                           _kolicina = null;
                           _jedinicaMjereId = kat.podrazumijevanaJedinicaMjereId;
@@ -408,53 +415,55 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
           ),
         ),
       ),
-      FieldError(_fieldErrors['kategorija']),
       if (isOstalo) ...[
         const SizedBox(height: 16),
-        KeyedSubtree(
-          key: _fieldKeys['prilagodjenNaziv'],
+        LabeledField(
+          key: keyFor('prilagodjenNaziv'),
+          label: 'Šta biste željeli donirati?',
           child: TextField(
             controller: _prilagodjenNazivController,
-            onChanged: (_) => _clearFieldError('prilagodjenNaziv'),
+            onChanged: (_) => clearFieldError('prilagodjenNaziv'),
             decoration: InputDecoration(
-              label: RequiredLabel('Šta biste željeli donirati?', style: Theme.of(context).textTheme.bodyLarge),
+              hintText: 'npr. Hrana za pse, dekice, povodci',
               border: const OutlineInputBorder(),
+              errorText: fieldErrors['prilagodjenNaziv'],
             ),
           ),
         ),
-        FieldError(_fieldErrors['prilagodjenNaziv']),
       ],
       if (_kategorijaDonacijeId != null) ...[
         const SizedBox(height: 20),
-        RequiredLabel('Količina'),
-        const SizedBox(height: 8),
-        KeyedSubtree(
-          key: _fieldKeys['kolicina'],
+        LabeledField(
+          key: keyFor('kolicina'),
+          label: 'Količina',
+          errorText: fieldErrors['kolicina'],
           child: QuantityStepper(
             value: _kolicina,
             step: _stepForSelectedUnit(jedinice),
             onChanged: (value) {
               _clearApiError();
-              _clearFieldError('kolicina');
+              clearFieldError('kolicina');
               setState(() => _kolicina = value);
             },
           ),
         ),
-        FieldError(_fieldErrors['kolicina']),
-        KeyedSubtree(
-          key: _fieldKeys['jedinica'],
+        const SizedBox(height: 16),
+        LabeledField(
+          key: keyFor('jedinica'),
+          label: 'Jedinica mjere',
+          errorText: fieldErrors['jedinica'],
           child: UnitPicker(
             allUnits: jedinice,
             allowedUnits: kategorija?.dozvoljeneJedinice ?? const [],
             selectedId: _jedinicaMjereId,
+            errorText: fieldErrors['jedinica'],
             onChanged: (value) {
               _clearApiError();
-              _clearFieldError('jedinica');
+              clearFieldError('jedinica');
               setState(() => _jedinicaMjereId = value);
             },
           ),
         ),
-        FieldError(_fieldErrors['jedinica']),
       ],
       const SizedBox(height: 20),
       Text('Kako biste željeli dostaviti donaciju?', style: Theme.of(context).textTheme.titleMedium),
@@ -462,9 +471,10 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
         groupValue: _trebaPreuzimanje,
         onChanged: (value) {
           _clearApiError();
-          _fieldErrors.remove('adresa');
-          _fieldErrors.remove('telefon');
-          _fieldErrors.remove('termin');
+          fieldErrors.remove('adresa');
+          fieldErrors.remove('telefon');
+          fieldErrors.remove('pickupDatum');
+          fieldErrors.remove('pickupVrijeme');
           setState(() => _trebaPreuzimanje = value!);
         },
         child: const Column(
@@ -496,50 +506,52 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
   List<Widget> _buildPickupFields() {
     return [
       const SizedBox(height: 8),
-      KeyedSubtree(
-        key: _fieldKeys['adresa'],
+      LabeledField(
+        key: keyFor('adresa'),
+        label: 'Adresa preuzimanja',
         child: TextField(
           controller: _adresaController,
-          onChanged: (_) => _clearFieldError('adresa'),
+          onChanged: (_) => clearFieldError('adresa'),
           decoration: InputDecoration(
-            label: RequiredLabel('Adresa preuzimanja', style: Theme.of(context).textTheme.bodyLarge),
+            hintText: 'npr. Ulica i broj, grad',
             border: const OutlineInputBorder(),
+            errorText: fieldErrors['adresa'],
           ),
         ),
       ),
-      FieldError(_fieldErrors['adresa']),
       const SizedBox(height: 12),
-      KeyedSubtree(
-        key: _fieldKeys['telefon'],
+      LabeledField(
+        key: keyFor('telefon'),
+        label: 'Broj telefona',
         child: TextField(
           controller: _telefonController,
-          onChanged: (_) => _clearFieldError('telefon'),
+          onChanged: (_) => clearFieldError('telefon'),
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(
-            label: RequiredLabel('Broj telefona', style: Theme.of(context).textTheme.bodyLarge),
+            hintText: 'npr. 061 234 567',
             border: const OutlineInputBorder(),
+            errorText: fieldErrors['telefon'],
           ),
         ),
       ),
-      FieldError(_fieldErrors['telefon']),
       const SizedBox(height: 16),
-      RequiredLabel('Željeni termin preuzimanja'),
-      const SizedBox(height: 8),
-      KeyedSubtree(
-        key: _fieldKeys['termin'],
+      LabeledField(
+        key: keyFor('pickupDatum'),
+        label: 'Odaberite datum preuzimanja',
+        errorText: fieldErrors['pickupDatum'],
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            border: Border.all(color: fieldErrors['pickupDatum'] != null ? Theme.of(context).colorScheme.error : const Color(0xFFE5E7EB)),
           ),
           child: InlineCalendar(
             firstDate: _firstDate,
             lastDate: _lastDate,
             selectedDate: _pickupDate,
             onDateSelected: (date) {
-              _clearFieldError('termin');
+              clearFieldError('pickupDatum');
               setState(() {
                 _pickupDate = date;
                 _pickupTimeSlot = null;
@@ -548,24 +560,32 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> {
           ),
         ),
       ),
-      const SizedBox(height: 12),
-      if (_pickupDate != null)
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final slot in _timeSlots)
-              ChipButton(
-                label: slot,
-                selected: slot == _pickupTimeSlot,
-                onTap: () {
-                  _clearFieldError('termin');
-                  setState(() => _pickupTimeSlot = slot);
-                },
+      const SizedBox(height: 20),
+      LabeledField(
+        key: keyFor('pickupVrijeme'),
+        label: 'Odaberite vrijeme preuzimanja',
+        errorText: fieldErrors['pickupVrijeme'],
+        child: _pickupDate == null
+            ? Text(
+                'Prvo odaberite datum.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
+              )
+            : Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final slot in _timeSlots)
+                    ChipButton(
+                      label: slot,
+                      selected: slot == _pickupTimeSlot,
+                      onTap: () {
+                        clearFieldError('pickupVrijeme');
+                        setState(() => _pickupTimeSlot = slot);
+                      },
+                    ),
+                ],
               ),
-          ],
-        ),
-      FieldError(_fieldErrors['termin']),
+      ),
     ];
   }
 

@@ -24,8 +24,8 @@ public class PasService : IPasService
 
     public async Task<PagedResult<Model.PasListItem>> Get(PasSearchRequest search)
     {
-        // List view: no SlikaPsas include and no Opis mapping — full gallery/description
-        // are only returned by GetById, per the "list endpoints must not return large payloads" rule.
+        // List view omits SlikaPsas and Opis to keep payloads small; full gallery/description
+        // are returned only by GetById.
         var query = _context.Pas
             .Include(p => p.Rasa)
             .Include(p => p.StatusPsa)
@@ -110,7 +110,6 @@ public class PasService : IPasService
         }
         else
         {
-            // preserve existing cover when no new file is provided
             entity.SlikaNaslovna = oldCover;
         }
 

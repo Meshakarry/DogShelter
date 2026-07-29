@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/date_format.dart';
 import '../../../core/image_url.dart';
+import '../../../core/pluralize.dart';
 import '../../../widgets/error_banner.dart';
 import '../application/events_providers.dart';
 import '../domain/dogadjaj.dart';
@@ -27,7 +28,7 @@ class _EventsListScreenState extends ConsumerState<EventsListScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     // eventsListProvider outlives this screen - reset the tab on every mount so the tab
-    // indicator never desyncs from the notifier's actual tab, same fix as VisitsListScreen.
+    // indicator never desyncs from the notifier's actual tab.
     Future.microtask(() => ref.read(eventsListProvider.notifier).applyTab(EventsTab.nadolazeci));
   }
 
@@ -199,7 +200,12 @@ class _DogadjajListTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${dogadjaj.brojZaduzenihVolontera} zaduženih volontera',
+                      pluralize(
+                        dogadjaj.brojZaduzenihVolontera,
+                        one: 'zadužen volonter',
+                        few: 'zadužena volontera',
+                        many: 'zaduženih volontera',
+                      ),
                       style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF65A30D)),
                     ),
                   ],

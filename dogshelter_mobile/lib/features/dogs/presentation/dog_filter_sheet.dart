@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../widgets/error_banner.dart';
+import '../../../widgets/labeled_field.dart';
 import '../application/dogs_providers.dart';
 
 class DogFilterSheet extends ConsumerStatefulWidget {
@@ -52,37 +53,49 @@ class _DogFilterSheetState extends ConsumerState<DogFilterSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                initialValue: _rasaId,
-                decoration: const InputDecoration(labelText: 'Rasa'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Sve rase')),
-                  for (final rasa in lookups.rase)
-                    DropdownMenuItem(value: rasa.rasaId, child: Text(rasa.naziv)),
-                ],
-                onChanged: (value) => setState(() => _rasaId = value),
+              LabeledField(
+                label: 'Rasa',
+                required: false,
+                child: DropdownButtonFormField<int>(
+                  initialValue: _rasaId,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Sve rase')),
+                    for (final rasa in lookups.rase)
+                      DropdownMenuItem(value: rasa.rasaId, child: Text(rasa.naziv)),
+                  ],
+                  onChanged: (value) => setState(() => _rasaId = value),
+                ),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                initialValue: _statusPsaId,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Svi statusi')),
-                  for (final status in lookups.statusi)
-                    DropdownMenuItem(value: status.statusPsaId, child: Text(status.naziv)),
-                ],
-                onChanged: (value) => setState(() => _statusPsaId = value),
+              LabeledField(
+                label: 'Status',
+                required: false,
+                child: DropdownButtonFormField<int>(
+                  initialValue: _statusPsaId,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Svi statusi')),
+                    for (final status in lookups.statusi)
+                      DropdownMenuItem(value: status.statusPsaId, child: Text(status.naziv)),
+                  ],
+                  onChanged: (value) => setState(() => _statusPsaId = value),
+                ),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                initialValue: _velicinaPsaId,
-                decoration: const InputDecoration(labelText: 'Veličina'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Sve veličine')),
-                  for (final velicina in lookups.velicine)
-                    DropdownMenuItem(value: velicina.velicinaPsaId, child: Text(velicina.naziv)),
-                ],
-                onChanged: (value) => setState(() => _velicinaPsaId = value),
+              LabeledField(
+                label: 'Veličina',
+                required: false,
+                child: DropdownButtonFormField<int>(
+                  initialValue: _velicinaPsaId,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Sve veličine')),
+                    for (final velicina in lookups.velicine)
+                      DropdownMenuItem(value: velicina.velicinaPsaId, child: Text(velicina.naziv)),
+                  ],
+                  onChanged: (value) => setState(() => _velicinaPsaId = value),
+                ),
               ),
               const SizedBox(height: 24),
               Row(

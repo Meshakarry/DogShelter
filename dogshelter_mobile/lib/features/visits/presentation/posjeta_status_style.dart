@@ -23,8 +23,6 @@ Color posjetaStatusColor(String? statusNaziv) {
   }
 }
 
-/// A colored badge for a posjeta status - tinted background + bold text in the same status
-/// color, same rectangular treatment as ZahtjevStatusBadge.
 class PosjetaStatusBadge extends StatelessWidget {
   const PosjetaStatusBadge({super.key, required this.naziv});
 

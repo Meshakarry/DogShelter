@@ -10,8 +10,8 @@ using RabbitMQ.Client.Exceptions;
 namespace DogShelter.Worker;
 
 /// <summary>
-/// Consumes queued email messages from RabbitMQ and sends them via SMTP.
-/// This is the "real async work" second service required alongside the API — see faculty-requirements.
+/// Consumes queued email messages from RabbitMQ and sends them via SMTP. Runs as a standalone
+/// background worker process, separate from the API.
 /// </summary>
 public class EmailQueueConsumer : BackgroundService
 {

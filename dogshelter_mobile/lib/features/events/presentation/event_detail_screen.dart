@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/date_format.dart';
 import '../../../core/image_url.dart';
+import '../../../core/pluralize.dart';
 import '../../../widgets/error_banner.dart';
 import '../../../widgets/status_pill.dart';
 import '../../auth/application/auth_notifier.dart';
@@ -76,7 +77,14 @@ class _EventDetailBody extends ConsumerWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     if (isZaduzen) const StatusPill(label: 'Zaduženi ste', color: Color(0xFFDCFCE7)),
-                    StatusPill(label: '${dogadjaj.brojZaduzenihVolontera} zaduženih volontera'),
+                    StatusPill(
+                      label: pluralize(
+                        dogadjaj.brojZaduzenihVolontera,
+                        one: 'zadužen volonter',
+                        few: 'zadužena volontera',
+                        many: 'zaduženih volontera',
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),

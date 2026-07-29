@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/date_format.dart';
 import '../../../widgets/error_banner.dart';
 import '../../../widgets/status_pill.dart';
 import '../application/activities_providers.dart';
 import '../domain/aktivnost_volontera.dart';
-import 'log_activity_sheet.dart';
 
 class AktivnostiListScreen extends ConsumerStatefulWidget {
   const AktivnostiListScreen({super.key});
@@ -39,12 +39,7 @@ class _AktivnostiListScreenState extends ConsumerState<AktivnostiListScreen> {
   }
 
   Future<void> _logActivity() async {
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(),
-      builder: (_) => const LogActivitySheet(),
-    );
+    final saved = await context.push<bool>('/aktivnosti/nova');
     if (saved == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aktivnost je evidentirana.')));
       ref.read(aktivnostiListProvider.notifier).loadFirstPage();

@@ -8,8 +8,8 @@ import '../application/donations_providers.dart';
 import '../domain/donacija.dart';
 import 'donation_status_style.dart';
 
-// Real StatusDonacije.Naziv values double as tab labels directly, same precedent as
-// VisitsListScreen's tabs - "Svi" has no backing row (null filter).
+// Real StatusDonacije.Naziv values double as tab labels directly. "Svi" has no backing row
+// (null filter).
 const _tabs = ['Svi', 'Na čekanju', 'Uspješna', 'Neuspješna', 'Vraćena'];
 
 class DonationsListScreen extends ConsumerStatefulWidget {
@@ -28,7 +28,8 @@ class _DonationsListScreenState extends ConsumerState<DonationsListScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     // donacijaListProvider outlives this screen (survives navigating away and back, or a
-    // logout/login) - reset the filter on every mount, same fix as Visits/Zahtjevi lists.
+    // logout/login) - reset the filter on every mount so the tab indicator doesn't desync
+    // from a stale filter.
     Future.microtask(() => ref.read(donacijaListProvider.notifier).applyStatusFilter(null));
   }
 

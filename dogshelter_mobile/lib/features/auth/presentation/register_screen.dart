@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../widgets/error_banner.dart';
+import '../../../widgets/form_error_scroller.dart';
+import '../../../widgets/labeled_field.dart';
 import '../application/auth_notifier.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -11,8 +13,8 @@ class RegisterScreen extends ConsumerStatefulWidget {
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _RegisterScreenState extends ConsumerState<RegisterScreen>
+    with FormErrorScroller<RegisterScreen> {
   final _imeController = TextEditingController();
   final _prezimeController = TextEditingController();
   final _emailController = TextEditingController();
@@ -20,10 +22,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _korisnickoImeController = TextEditingController();
   final _lozinkaController = TextEditingController();
   final _lozinkaPotvrdaController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _isSubmitting = false;
-  Object? _error;
+  Object? _apiError;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  @override
+  List<String> get fieldOrder => const [
+    'ime',
+    'prezime',
+    'email',
+    'telefon',
+    'korisnickoIme',
+    'lozinka',
+    'lozinkaPotvrda',
+  ];
+
+  @override
+  ScrollController get errorScrollController => _scrollController;
 
   @override
   void dispose() {
@@ -34,33 +51,84 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _korisnickoImeController.dispose();
     _lozinkaController.dispose();
     _lozinkaPotvrdaController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _clearError() {
-    if (_error != null) setState(() => _error = null);
+  void _clearApiError() {
+    if (_apiError != null) setState(() => _apiError = null);
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final errors = <String, String>{};
+
+    final ime = _imeController.text.trim();
+    if (ime.isEmpty) {
+      errors['ime'] = 'Ime je obavezno.';
+    } else if (ime.length < 2) {
+      errors['ime'] = 'Ime mora imati najmanje 2 znaka.';
+    }
+
+    final prezime = _prezimeController.text.trim();
+    if (prezime.isEmpty) {
+      errors['prezime'] = 'Prezime je obavezno.';
+    } else if (prezime.length < 2) {
+      errors['prezime'] = 'Prezime mora imati najmanje 2 znaka.';
+    }
+
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      errors['email'] = 'Email je obavezan.';
+    } else if (!_emailRegex.hasMatch(email)) {
+      errors['email'] = 'Unesite ispravan email, npr. ime@primjer.com';
+    }
+
+    final korisnickoIme = _korisnickoImeController.text.trim();
+    if (korisnickoIme.isEmpty) {
+      errors['korisnickoIme'] = 'Korisničko ime je obavezno.';
+    } else if (korisnickoIme.length < 3) {
+      errors['korisnickoIme'] = 'Korisničko ime mora imati najmanje 3 znaka.';
+    }
+
+    final lozinka = _lozinkaController.text;
+    if (lozinka.isEmpty) {
+      errors['lozinka'] = 'Lozinka je obavezna.';
+    } else if (lozinka.length < 6) {
+      errors['lozinka'] = 'Lozinka mora imati najmanje 6 znakova.';
+    }
+
+    if (_lozinkaPotvrdaController.text != lozinka) {
+      errors['lozinkaPotvrda'] = 'Lozinke se ne podudaraju.';
+    }
+
+    if (errors.isNotEmpty) {
+      applyValidationErrors(errors);
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
-      _error = null;
+      _apiError = null;
+      clearAllFieldErrors();
     });
 
     try {
-      await ref.read(authNotifierProvider.notifier).registerThenLogin(
-            ime: _imeController.text.trim(),
-            prezime: _prezimeController.text.trim(),
-            email: _emailController.text.trim(),
-            telefon: _telefonController.text.trim().isEmpty ? null : _telefonController.text.trim(),
-            korisnickoIme: _korisnickoImeController.text.trim(),
-            lozinka: _lozinkaController.text,
+      await ref
+          .read(authNotifierProvider.notifier)
+          .registerThenLogin(
+            ime: ime,
+            prezime: prezime,
+            email: email,
+            telefon: _telefonController.text.trim().isEmpty
+                ? null
+                : _telefonController.text.trim(),
+            korisnickoIme: korisnickoIme,
+            lozinka: lozinka,
             lozinkaPotvrda: _lozinkaPotvrdaController.text,
           );
     } catch (e) {
-      setState(() => _error = e);
+      setState(() => _apiError = e);
+      scrollToTop();
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -72,101 +140,148 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       appBar: AppBar(title: const Text('Registracija')),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ErrorBanner(error: _error),
-                TextFormField(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ErrorBanner(error: _apiError),
+              LabeledField(
+                key: keyFor('ime'),
+                label: 'Ime',
+                child: TextField(
                   controller: _imeController,
-                  decoration: const InputDecoration(labelText: 'Ime'),
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Ime je obavezno.';
-                    if (v.trim().length < 2) return 'Ime mora imati najmanje 2 znaka.';
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('ime');
                   },
+                  decoration: InputDecoration(
+                    hintText: 'npr. Amina',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['ime'],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
+              ),
+              const SizedBox(height: 16),
+              LabeledField(
+                key: keyFor('prezime'),
+                label: 'Prezime',
+                child: TextField(
                   controller: _prezimeController,
-                  decoration: const InputDecoration(labelText: 'Prezime'),
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Prezime je obavezno.';
-                    if (v.trim().length < 2) return 'Prezime mora imati najmanje 2 znaka.';
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('prezime');
                   },
+                  decoration: InputDecoration(
+                    hintText: 'npr. Hodžić',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['prezime'],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
+              ),
+              const SizedBox(height: 16),
+              LabeledField(
+                key: keyFor('email'),
+                label: 'Email',
+                child: TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
                   keyboardType: TextInputType.emailAddress,
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Email je obavezan.';
-                    if (!_emailRegex.hasMatch(v.trim())) {
-                      return 'Unesite ispravan email, npr. ime@primjer.com';
-                    }
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('email');
                   },
+                  decoration: InputDecoration(
+                    hintText: 'ime@primjer.com',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['email'],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
+              ),
+              const SizedBox(height: 16),
+              LabeledField(
+                label: 'Telefon (opcionalno)',
+                required: false,
+                child: TextField(
                   controller: _telefonController,
-                  decoration: const InputDecoration(labelText: 'Telefon (opcionalno)'),
                   keyboardType: TextInputType.phone,
-                  onChanged: (_) => _clearError(),
+                  onChanged: (_) => _clearApiError(),
+                  decoration: const InputDecoration(
+                    hintText: 'npr. 061 234 567',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
+              ),
+              const SizedBox(height: 16),
+              LabeledField(
+                key: keyFor('korisnickoIme'),
+                label: 'Korisničko ime',
+                child: TextField(
                   controller: _korisnickoImeController,
-                  decoration: const InputDecoration(labelText: 'Korisničko ime'),
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Korisničko ime je obavezno.';
-                    if (v.trim().length < 3) return 'Korisničko ime mora imati najmanje 3 znaka.';
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('korisnickoIme');
                   },
+                  decoration: InputDecoration(
+                    hintText: 'npr. amina123',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['korisnickoIme'],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
+              ),
+              const SizedBox(height: 16),
+              LabeledField(
+                key: keyFor('lozinka'),
+                label: 'Lozinka',
+                child: TextField(
                   controller: _lozinkaController,
-                  decoration: const InputDecoration(labelText: 'Lozinka'),
                   obscureText: true,
-                  onChanged: (_) => _clearError(),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Lozinka je obavezna.';
-                    if (v.length < 6) return 'Lozinka mora imati najmanje 6 znakova.';
-                    return null;
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('lozinka');
                   },
+                  decoration: InputDecoration(
+                    hintText: 'Najmanje 6 znakova',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['lozinka'],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
+              ),
+              const SizedBox(height: 16),
+              LabeledField(
+                key: keyFor('lozinkaPotvrda'),
+                label: 'Potvrda lozinke',
+                child: TextField(
                   controller: _lozinkaPotvrdaController,
-                  decoration: const InputDecoration(labelText: 'Potvrda lozinke'),
                   obscureText: true,
-                  onChanged: (_) => _clearError(),
-                  validator: (v) =>
-                      v != _lozinkaController.text ? 'Lozinke se ne podudaraju.' : null,
+                  onChanged: (_) {
+                    _clearApiError();
+                    clearFieldError('lozinkaPotvrda');
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Ponovite lozinku',
+                    border: const OutlineInputBorder(),
+                    errorText: fieldErrors['lozinkaPotvrda'],
+                  ),
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Registruj se'),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _isSubmitting ? null : _submit,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-              ],
-            ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Registruj se'),
+              ),
+            ],
           ),
         ),
       ),

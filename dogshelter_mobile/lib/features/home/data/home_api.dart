@@ -2,11 +2,8 @@ import '../../../core/api_client.dart';
 import '../../../core/api_exception.dart';
 import '../domain/volonter_summary.dart';
 
-/// Interim data source for the home dashboard - pulls just enough from Volonter/
-/// AktivnostVolontera to preview on Početna. Once the volunteer activity log (Increment 6)
-/// feature is built, prefer reusing its repository here instead of this hand-rolled one,
-/// to avoid two copies of the same fetch logic. (The Obavijesti preview above used to live
-/// here too - it now reuses NewsApi from the news feature directly, see home_providers.dart.)
+/// Data source for the home dashboard - pulls just enough from Volonter/AktivnostVolontera to
+/// preview on Početna.
 class HomeApi {
   HomeApi(this._client);
 

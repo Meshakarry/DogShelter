@@ -24,7 +24,8 @@ typedef VolonterDashboard = ({VolonterSummary? profile, int activityCount});
 
 final volonterDashboardProvider = FutureProvider<VolonterDashboard>((ref) async {
   final api = ref.watch(homeApiProvider);
-  // Issued together, not sequentially, per the parallelizable-HTTP-calls rule.
+  // Issued together via Future.wait rather than sequentially, since the two calls are
+  // independent.
   final results = await Future.wait([api.getMyVolonterProfile(), api.getMyActivityCount()]);
   return (profile: results[0] as VolonterSummary?, activityCount: results[1] as int);
 });

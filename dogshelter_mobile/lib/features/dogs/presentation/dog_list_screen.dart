@@ -56,10 +56,10 @@ class _DogListScreenState extends ConsumerState<DogListScreen> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
       final query = value.trim();
-      // Breed stays dropdown-driven (Filteri) per the faculty's no-free-text-for-FK rule; this
-      // just recognizes when typed text matches (partially, diacritic-insensitively) a known
-      // breed and applies the same rasaId filter the dropdown would - a convenience on top of
-      // the dropdown, not a replacement for it.
+      // Breed filtering stays dropdown-driven since rasaId is a foreign key, not free text;
+      // this just recognizes when typed text matches (partially, diacritic-insensitively) a
+      // known breed and applies the same rasaId filter the dropdown would, as a convenience
+      // on top of it.
       final lookups = ref.read(dogLookupsProvider).valueOrNull;
       final normalizedQuery = normalizeForSearch(query);
       final matchedRasa = query.isEmpty
@@ -126,7 +126,9 @@ class _DogListScreenState extends ConsumerState<DogListScreen> {
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              '${state.items.length} od ukupno prikazanih pasa',
+              state.totalCount != null
+                  ? 'Prikazano ${state.items.length} od ${state.totalCount} pasa'
+                  : 'Trenutno je prikazano ${state.items.length} pasa',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

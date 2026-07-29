@@ -61,8 +61,7 @@ class EventsListNotifier extends StateNotifier<EventsListState> {
   final EventsApi _api;
   static const _pageSize = 20;
 
-  // Nadolazeći passes DatumOd=now (soonest-first); Prošli passes DatumDo=now (backend then
-  // orders most-recent-first) - see DogadjajService.Get's isPastOnlyQuery heuristic.
+  // Nadolazeći passes DatumOd=now (soonest-first); Prošli passes DatumDo=now
   DateTime? get _datumOd => state.tab == EventsTab.nadolazeci ? DateTime.now() : null;
   DateTime? get _datumDo => state.tab == EventsTab.prosli ? DateTime.now() : null;
 

@@ -1,7 +1,8 @@
+import 'age_label.dart';
 import 'slika_psa.dart';
 import 'spol.dart';
 
-class Pas {
+class Pas with AgeLabel {
   Pas({
     required this.pasId,
     required this.naziv,
@@ -28,6 +29,7 @@ class Pas {
   final int rasaId;
   final String? rasaNaziv;
   final Spol spol;
+  @override
   final DateTime? datumRodjenja;
   final String? opis;
   final int statusPsaId;
@@ -41,24 +43,6 @@ class Pas {
   final bool sterilizovan;
   final bool aktivan;
   final List<SlikaPsa> slike;
-
-  int? get ageYears {
-    if (datumRodjenja == null) return null;
-    final now = DateTime.now();
-    var years = now.year - datumRodjenja!.year;
-    if (now.month < datumRodjenja!.month ||
-        (now.month == datumRodjenja!.month && now.day < datumRodjenja!.day)) {
-      years--;
-    }
-    return years < 0 ? 0 : years;
-  }
-
-  /// Human-readable age - avoids the misleading "0 god." for puppies under a year old.
-  String? get ageLabel {
-    final years = ageYears;
-    if (years == null) return null;
-    return years == 0 ? '<1 god.' : '$years god.';
-  }
 
   factory Pas.fromJson(Map<String, dynamic> json) {
     return Pas(

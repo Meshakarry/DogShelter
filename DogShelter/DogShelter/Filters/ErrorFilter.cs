@@ -28,12 +28,17 @@ namespace DogShelter.Filters
                 }),
                 BusinessException => new BadRequestObjectResult(new { message = ex.Message }),
                 ConflictException => new ConflictObjectResult(new { message = ex.Message }),
-                _ => null
+                _ => new ObjectResult(new { message = "Došlo je do neočekivane greške. Pokušajte ponovo kasnije." })
+                {
+                    StatusCode = 500
+                }
             };
 
-            if (context.Result != null)
+            context.ExceptionHandled = true;
+
+            if (ex is NotFoundException or ForbiddenException or ValidationException or BusinessException or ConflictException)
             {
-                context.ExceptionHandled = true;
+                _logger.LogWarning(ex, "Handled {ExceptionType}: {Message}", ex.GetType().Name, ex.Message);
             }
             else
             {

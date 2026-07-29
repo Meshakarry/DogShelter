@@ -71,8 +71,8 @@ class DonationsApi {
     return DonacijaPaymentResponse.fromJson(json as Map<String, dynamic>);
   }
 
-  // Small lookup tables (well under the server's 100-row page cap) - same single-request
-  // pattern as DogsApi/ZahtjevApi/VisitsApi's own lookup getters.
+  // Small lookup tables, well under the server's 100-row page cap, so a single request
+  // returns the full list.
   Future<List<TipDonacije>> getTipovi() async {
     final json = await _client.get('/api/TipDonacije', query: {'pageSize': 100});
     final result = PagedResult.fromJson(json as Map<String, dynamic>, (item) => TipDonacije.fromJson(item));

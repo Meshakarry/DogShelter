@@ -31,7 +31,7 @@ class AppShell extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const AppTitle(),
+        title: AppTitle(onTap: () => context.go('/pocetna')),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
