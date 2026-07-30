@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../widgets/error_banner.dart';
-import '../../../widgets/form_error_scroller.dart';
-import '../../../widgets/labeled_field.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
+import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../visits/presentation/inline_calendar.dart';
 import '../application/activities_providers.dart';
 

@@ -1,6 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import '../data/donations_api.dart';
 import '../domain/donacija.dart';
 import '../domain/jedinica_mjere.dart';

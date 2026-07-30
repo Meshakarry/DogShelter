@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../widgets/error_banner.dart';
-import '../../../widgets/form_error_scroller.dart';
-import '../../../widgets/labeled_field.dart';
-import '../application/auth_notifier.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
+import 'package:dogshelter_shared/widgets/labeled_field.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key, required this.email});

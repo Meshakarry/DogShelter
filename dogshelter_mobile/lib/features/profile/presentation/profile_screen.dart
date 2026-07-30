@@ -1,14 +1,15 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/image_url.dart';
-import '../../../widgets/error_banner.dart';
-import '../../../widgets/form_error_scroller.dart';
-import '../../../widgets/labeled_field.dart';
-import '../../auth/application/auth_notifier.dart';
-import '../../auth/domain/korisnik.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
+import 'package:dogshelter_shared/widgets/labeled_field.dart';
+import 'package:dogshelter_shared/auth/domain/korisnik.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import '../application/profile_providers.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -239,7 +240,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   Widget build(BuildContext context) {
     ref.watch(authNotifierProvider); // rebuild on avatar/profile updates
     final korisnik = _korisnik;
-    final avatarUrl = resolveImageUrl(korisnik.slikaPutanja);
+    final avatarUrl = resolveImageUrl(korisnik.slikaPutanja, Environment.apiBaseUrl);
 
     return SingleChildScrollView(
       controller: _scrollController,

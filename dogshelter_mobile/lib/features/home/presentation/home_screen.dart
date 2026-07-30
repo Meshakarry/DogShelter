@@ -1,10 +1,11 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/image_url.dart';
-import '../../auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import '../../dogs/domain/pas_list_item.dart';
 import '../../dogs/presentation/dog_status_style.dart';
 import '../../news/domain/obavijest_list_item.dart';
@@ -197,7 +198,7 @@ class _RecommendedDogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = resolveImageUrl(dog.slikaNaslovna);
+    final imageUrl = resolveImageUrl(dog.slikaNaslovna, Environment.apiBaseUrl);
 
     return SizedBox(
       width: 130,
@@ -244,7 +245,7 @@ class _ObavijestPreviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = resolveImageUrl(obavijest.slikaPutanja);
+    final imageUrl = resolveImageUrl(obavijest.slikaPutanja, Environment.apiBaseUrl);
     final date = obavijest.datumObjave;
     final dateLabel = '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}.';
 

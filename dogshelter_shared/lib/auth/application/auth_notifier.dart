@@ -3,13 +3,18 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api_client.dart';
-import '../../../core/auth_token_holder.dart';
-import '../../../core/secure_storage_service.dart';
+import '../../core/api_client.dart';
+import '../../core/auth_token_holder.dart';
+import '../../core/secure_storage_service.dart';
 import '../data/auth_api.dart';
 import '../domain/auth_state.dart';
 import '../domain/korisnik.dart';
 import '../domain/token_response.dart';
+
+/// Each app overrides this with its own `Environment.apiBaseUrl` in its root `ProviderScope`.
+final Provider<String> apiBaseUrlProvider = Provider<String>(
+  (ref) => throw UnimplementedError('apiBaseUrlProvider must be overridden by the app'),
+);
 
 final Provider<SecureStorageService> secureStorageProvider =
     Provider<SecureStorageService>((ref) => SecureStorageService());
@@ -23,6 +28,7 @@ final Provider<AuthTokenHolder> authTokenHolderProvider = Provider<AuthTokenHold
 final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((ref) {
   final holder = ref.watch(authTokenHolderProvider);
   return ApiClient(
+    baseUrl: ref.watch(apiBaseUrlProvider),
     getToken: () => holder.token,
     onUnauthorized: holder.notifyUnauthorized,
   );

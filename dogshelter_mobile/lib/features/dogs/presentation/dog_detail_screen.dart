@@ -1,12 +1,13 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/image_url.dart';
-import '../../../widgets/error_banner.dart';
-import '../../../widgets/labeled_field.dart';
-import '../../../widgets/status_pill.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/labeled_field.dart';
+import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../adoption_requests/application/adoption_requests_providers.dart';
 import '../../visits/presentation/book_visit_screen.dart';
 import '../application/dogs_providers.dart';
@@ -49,9 +50,9 @@ class _DogDetailBodyState extends State<_DogDetailBody> {
   @override
   void initState() {
     super.initState();
-    final coverUrl = resolveImageUrl(widget.dog.slikaNaslovna);
+    final coverUrl = resolveImageUrl(widget.dog.slikaNaslovna, Environment.apiBaseUrl);
     final galleryUrls =
-        widget.dog.slike.map((s) => resolveImageUrl(s.putanja)).whereType<String>().toList();
+        widget.dog.slike.map((s) => resolveImageUrl(s.putanja, Environment.apiBaseUrl)).whereType<String>().toList();
     _images = [?coverUrl, ...galleryUrls.where((url) => url != coverUrl)];
     _selectedIndex = 0;
   }

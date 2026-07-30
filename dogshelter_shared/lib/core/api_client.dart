@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../environment.dart';
 import 'api_exception.dart';
 
 class ApiClient {
-  ApiClient({required this.getToken, required this.onUnauthorized}) : _client = http.Client();
+  ApiClient({required this.baseUrl, required this.getToken, required this.onUnauthorized}) : _client = http.Client();
 
+  final String baseUrl;
   final String? Function() getToken;
   final void Function() onUnauthorized;
   final http.Client _client;
@@ -35,7 +35,7 @@ class ApiClient {
     Map<String, String>? fields,
     List<http.MultipartFile> files = const [],
   }) async {
-    final uri = Uri.parse('${Environment.apiBaseUrl}$path');
+    final uri = Uri.parse('$baseUrl$path');
     final request = http.MultipartRequest(method, uri);
 
     final token = getToken();
@@ -48,7 +48,7 @@ class ApiClient {
   }
 
   Future<dynamic> _send(String method, String path, {Map<String, dynamic>? query, Object? body}) async {
-    var uri = Uri.parse('${Environment.apiBaseUrl}$path');
+    var uri = Uri.parse('$baseUrl$path');
     if (query != null && query.isNotEmpty) {
       final stringQuery = <String, String>{};
       query.forEach((key, value) {

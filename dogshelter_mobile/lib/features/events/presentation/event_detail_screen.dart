@@ -1,13 +1,14 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/date_format.dart';
-import '../../../core/image_url.dart';
-import '../../../core/pluralize.dart';
-import '../../../widgets/error_banner.dart';
-import '../../../widgets/status_pill.dart';
-import '../../auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/core/date_format.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/core/pluralize.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/status_pill.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import '../application/events_providers.dart';
 import '../domain/dogadjaj.dart';
 
@@ -38,7 +39,7 @@ class _EventDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final imageUrl = resolveImageUrl(dogadjaj.slikaPutanja);
+    final imageUrl = resolveImageUrl(dogadjaj.slikaPutanja, Environment.apiBaseUrl);
     // Only volunteers can ever be "zadužen" for an event, and GET /api/DogadjajVolonter is
     // Admin+Volonter only - skip the call entirely for a plain Korisnik rather than firing a
     // request that would just 403.

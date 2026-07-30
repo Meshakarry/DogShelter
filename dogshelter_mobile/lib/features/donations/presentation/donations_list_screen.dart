@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/date_format.dart';
-import '../../../widgets/error_banner.dart';
+import 'package:dogshelter_shared/core/date_format.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/donations_providers.dart';
 import '../domain/donacija.dart';
 import 'donation_status_style.dart';

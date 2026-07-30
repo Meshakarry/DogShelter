@@ -1,8 +1,8 @@
-import 'package:http/http.dart' as http;
+﻿import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/api_client.dart';
-import '../../auth/domain/korisnik.dart';
+import 'package:dogshelter_shared/auth/domain/korisnik.dart';
+import 'package:dogshelter_shared/core/api_client.dart';
 
 class ProfileApi {
   ProfileApi(this._client);

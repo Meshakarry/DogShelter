@@ -11,6 +11,7 @@ public static class DatabaseSeeder
 {
     public static async Task SeedAllAsync(DogShelterContext context, ILogger logger, string wwwrootPath)
     {
+        await EnsureGradoviAsync(context, logger);
         await EnsureVelicinePsaAsync(context, logger);
         await EnsureStatusPsaAsync(context, logger);
         await EnsureStatusZahtjevaAsync(context, logger);
@@ -65,6 +66,30 @@ public static class DatabaseSeeder
 
         logger.LogWarning("Seed image not found: {BaseName}.jpg", baseName);
         return null;
+    }
+
+    private static async Task EnsureGradoviAsync(DogShelterContext context, ILogger logger)
+    {
+        var gradovi = new (string Naziv, string PostanskiBroj)[]
+        {
+            ("Bugojno", "70230"),
+            ("Sarajevo", "71000"),
+            ("Zenica", "72000"),
+            ("Travnik", "72270"),
+            ("Donji Vakuf", "70220"),
+            ("Gornji Vakuf-Uskoplje", "70240"),
+            ("Novi Travnik", "72290"),
+            ("Jajce", "70101"),
+            ("Mostar", "88000"),
+            ("Tuzla", "75000"),
+        };
+        foreach (var (naziv, postanskiBroj) in gradovi)
+        {
+            if (!await context.Grads.AnyAsync(g => g.Naziv == naziv))
+                context.Grads.Add(new Grad { Naziv = naziv, PostanskiBroj = postanskiBroj });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded Grad.");
     }
 
     private static async Task EnsureVelicinePsaAsync(DogShelterContext context, ILogger logger)
@@ -172,8 +197,8 @@ public static class DatabaseSeeder
             new() { Naziv = "Bella",   RasaId = rMjesanac.RasaId,   Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 17.5m, DatumPrijema = new DateOnly(2024,  1,  5), DatumRodjenja = null,                      Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas3"),  Opis = "Bella je pronađena uz cestu u lošem stanju – uplašena i iscrpljena. Sada je puna snage i sreće. Malo je stidljiva pri prvom susretu, ali brzo se opusti uz mirne ljude. Voli šetnje i sunčanje ispred azila, a s ostalim psima se slaže bez imalo problema." },
             // 4 ── Max (Udomljen, Srednja, mužjak, 3 god)
             new() { Naziv = "Max",     RasaId = rDalma.RasaId,      Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 23.0m, DatumPrijema = new DateOnly(2023, 11, 12), DatumRodjenja = new DateOnly(2022,  3, 20), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas4"),  Opis = "Max je pronašao svoju porodicu! Energičan i bezbrižan dalmatinac otišao je u dom s troje djece i prostranim dvorištem. Odrastao je uz trčanje i igru – nova porodica mu pruža upravo to." },
-            // 5 ── Zlatko (Dostupan, Velika, mužjak, 2 god)
-            new() { Naziv = "Zlatko",  RasaId = rGolden.RasaId,     Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 29.5m, DatumPrijema = new DateOnly(2024,  6,  1), DatumRodjenja = new DateOnly(2023,  1, 10), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas5"),  Opis = "Mlad i bezbrižan, Zlatko je štene u tijelu odraslog psa. Žvače sve do čega dođe, ali ne možeš mu se naljutiti. Obožava vodu, bacanje loptice i beskonačno grljenje. S psima ide odlično, a mačke još upoznaje uz nadzor. Idealan za aktivne porodice." },
+            // 5 ── Zlatko (Udomljen, Velika, mužjak, 2 god)
+            new() { Naziv = "Zlatko",  RasaId = rGolden.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 29.5m, DatumPrijema = new DateOnly(2024,  6,  1), DatumRodjenja = new DateOnly(2023,  1, 10), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas5"),  Opis = "Mlad i bezbrižan, Zlatko je štene u tijelu odraslog psa. Žvače sve do čega dođe, ali ne možeš mu se naljutiti. Obožava vodu, bacanje loptice i beskonačno grljenje. Sada uživa u novom domu s aktivnom porodicom koja mu svaki dan pruža šetnje, vodu i beskonačno grljenje." },
             // 6 ── Maci (U tretmanu, Srednja, ženka, 4 god)
             new() { Naziv = "Maci",    RasaId = rBorder.RasaId,     Spol = Zenka,  StatusPsaId = sTretman.StatusPsaId,  VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 15.5m, DatumPrijema = new DateOnly(2024,  4,  8), DatumRodjenja = new DateOnly(2021,  9,  5), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas6"),  Opis = "Maci je bila pronađena na putu s ozljedom prednje šape. Šapa je operisana i sada je na fizioterapiji. Izrazito pametan border koli koji treba mentalnu stimulaciju. Veterinar procjenjuje da će biti potpuno zdrava za tri do četiri sedmice." },
             // 7 ── Vuk (Dostupan, Velika, mužjak, 4 god)
@@ -182,8 +207,8 @@ public static class DatabaseSeeder
             new() { Naziv = "Roki",    RasaId = rBokser.RasaId,     Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 31.0m, DatumPrijema = new DateOnly(2024,  2, 28), DatumRodjenja = new DateOnly(2020,  7,  4), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas8"),  Opis = "Roki je prava stara duša – miran, uglađen i zna svoja pravila. Idealan za mir i tišinu kućnog života. Voli kratke šetnje ujutro i dugačka drijemanja poslijepodne. Nervozni ambijent ga umori, pa nije idealan za domove s malom djecom." },
             // 9 ── Pahulja (Dostupan, Mala, ženka, 2 god)
             new() { Naziv = "Pahulja", RasaId = rPudl.RasaId,       Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId,      Tezina =  6.0m, DatumPrijema = new DateOnly(2024,  7, 18), DatumRodjenja = new DateOnly(2023,  5, 15), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas9"),  Opis = "Pahulja brine o svojoj frizuri više nego o mišima u dvorištu. Mala, elegantna i pametna do bola. Jako je vezana za ljude i ne podnosi dugo ostati sama. Podučena je čistim manirima i voli rutinu. Savršena za stan i za vlasnike koji imaju vremena za njenu pažnju." },
-            // 10 ── Šaki (Dostupan, Mala, mužjak, nepoznata starost)
-            new() { Naziv = "Šaki",    RasaId = rCivava.RasaId,     Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId,      Tezina =  2.8m, DatumPrijema = new DateOnly(2024,  8,  3), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas10"), Opis = "Šaki je primljen bez ikakvog dokumenta – nađen je u kartonskoj kutiji kod tržnog centra. Starost se procjenjuje na 2-4 godine. Nije bio vakcinisan ni registrovan. Zna biti glasaša i mrzovoljan prema nepoznatima, ali s poznatim ljudima je topla i privržena maža." },
+            // 10 ── Šaki (Udomljen, Mala, mužjak, nepoznata starost)
+            new() { Naziv = "Šaki",    RasaId = rCivava.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId,      Tezina =  2.8m, DatumPrijema = new DateOnly(2024,  8,  3), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas10"), Opis = "Šaki je primljen bez ikakvog dokumenta – nađen je u kartonskoj kutiji kod tržnog centra. Starost se procjenjuje na 2-4 godine. Nije bio vakcinisan ni registrovan. Zna biti glasaša i mrzovoljan prema nepoznatima, ali s poznatim ljudima je topla i privržena maža. Sada mirno živi kod starijeg bračnog para koji mu posvećuje punu pažnju." },
             // 11 ── Bora (Dostupan, Džinovska, mužjak, 5 god)
             new() { Naziv = "Bora",    RasaId = rTornjak.RasaId,    Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, Tezina = 52.0m, DatumPrijema = new DateOnly(2023,  6, 10), DatumRodjenja = new DateOnly(2020, 11, 10), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas11"), Opis = "Bora je pravi tornjak – čuva, pazi i laje na sve nepoznato. Nije pas za stan ni za lančanje uz kuću. Treba imanje, ograđeno dvorište i vlasnika koji razumije pastirske rase. U azilu je miran i omiljen kod osoblja, ali zaslužuje pravi dom u prirodi." },
             // 12 ── Sjena (U tretmanu, Srednja, ženka, nepoznata starost)
@@ -200,8 +225,8 @@ public static class DatabaseSeeder
             new() { Naziv = "Đuro",    RasaId = rMjesanac.RasaId,   Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId,      Tezina =  8.5m, DatumPrijema = new DateOnly(2024,  5, 30), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas17"), Opis = "Đuro je mali mješanac koji si nikad ne daje mira. Skakuće, trčkara i hvata sve što mu se nađe pred nosom. Procjenjuje se da ima između jedne i tri godine. Nije bio vakcinisan pri dolasku. S psima u azilu se odlično slaže i uvijek je raspoložen za igru." },
             // 18 ── Nera (Udomljen, Džinovska, ženka, 5 god)
             new() { Naziv = "Nera",    RasaId = rTornjak.RasaId,    Spol = Zenka,  StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, Tezina = 44.0m, DatumPrijema = new DateOnly(2023,  4, 20), DatumRodjenja = new DateOnly(2020,  6, 15), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas18"), Opis = "Nera je udomljena i otišla je živjeti na farmu u blizini Kiseljaka. Tornjak kakav treba biti – mirna, dostojanstvena i puna prirodne inteligencije. Čuvamo fotografije od prvog dana do odlaska." },
-            // 19 ── Piki (Dostupan, Srednja, mužjak, 1 god)
-            new() { Naziv = "Piki",    RasaId = rBeagle.RasaId,     Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 11.5m, DatumPrijema = new DateOnly(2024,  9, 12), DatumRodjenja = new DateOnly(2023,  9,  1), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas19"), Opis = "Piki je štene u punom smislu te riječi. Nos mu uvijek ide naprijed, a glava se tek kasnije javi. Beagle rasa traži puno kretanja i mentalne stimulacije. Odlično s djecom – može se igrati satima bez prestanka. Idealan za aktivne porodice sa dvorištem." },
+            // 19 ── Piki (Udomljen, Srednja, mužjak, 1 god)
+            new() { Naziv = "Piki",    RasaId = rBeagle.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 11.5m, DatumPrijema = new DateOnly(2024,  9, 12), DatumRodjenja = new DateOnly(2023,  9,  1), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas19"), Opis = "Piki je štene u punom smislu te riječi. Nos mu uvijek ide naprijed, a glava se tek kasnije javi. Beagle rasa traži puno kretanja i mentalne stimulacije. Sada trči po dvorištu svoje nove porodice i igra se s njihovo dvoje djece cijeli dan." },
         };
 
         context.Pas.AddRange(psi);
@@ -244,8 +269,9 @@ public static class DatabaseSeeder
     {
         if (await context.ZahtjevZaUdomljavanjes.AnyAsync()) return;
 
-        var trazilac = await context.Korisniks.OrderBy(k => k.KorisnikId).FirstOrDefaultAsync();
-        if (trazilac == null) return;
+        var admin = await context.Korisniks.OrderBy(k => k.KorisnikId).FirstOrDefaultAsync();
+        var trazilac = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "korisnik") ?? admin;
+        if (admin == null || trazilac == null) return;
 
         var sNaCekanju = await context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.NaCekanju);
         var sOdobren = await context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Odobren);
@@ -257,6 +283,9 @@ public static class DatabaseSeeder
         var max = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Max");
         var lola = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Lola");
         var nera = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Nera");
+        var zlatko = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Zlatko");
+        var piki = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Piki");
+        var saki = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Šaki");
 
         var pending = new[] { bella, pahulja };
         foreach (var pas in pending)
@@ -281,7 +310,7 @@ public static class DatabaseSeeder
                 StatusZahtjevaId = sOdbijen.StatusZahtjevaId,
                 DatumPodnosenja = DateTime.UtcNow.AddDays(-10),
                 DatumObrade = DateTime.UtcNow.AddDays(-9),
-                ObradioKorisnikId = trazilac.KorisnikId,
+                ObradioKorisnikId = admin.KorisnikId,
                 RazlogOdbijanja = "Nema odgovarajući prostor za psa ove veličine."
             });
         }
@@ -290,9 +319,12 @@ public static class DatabaseSeeder
 
         var udomljeni = new (Database.Pas? Pas, DateOnly Datum)[]
         {
-            (max, new DateOnly(2024, 11, 20)),
-            (lola, new DateOnly(2024, 9, 2)),
-            (nera, new DateOnly(2024, 5, 10)),
+            (max, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-1))),
+            (lola, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-1).AddDays(-12))),
+            (nera, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-2))),
+            (zlatko, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-3))),
+            (piki, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-4))),
+            (saki, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-6))),
         };
 
         var udomljavanja = new List<Udomljavanje>();
@@ -307,7 +339,7 @@ public static class DatabaseSeeder
                 StatusZahtjevaId = sOdobren.StatusZahtjevaId,
                 DatumPodnosenja = datum.ToDateTime(TimeOnly.MinValue).AddDays(-7),
                 DatumObrade = datum.ToDateTime(TimeOnly.MinValue),
-                ObradioKorisnikId = trazilac.KorisnikId
+                ObradioKorisnikId = admin.KorisnikId
             };
             context.ZahtjevZaUdomljavanjes.Add(zahtjev);
             await context.SaveChangesAsync();
