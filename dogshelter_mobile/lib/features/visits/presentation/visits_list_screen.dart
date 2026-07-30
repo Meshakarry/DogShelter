@@ -1,11 +1,12 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/date_format.dart';
-import '../../../core/image_url.dart';
-import '../../../widgets/error_banner.dart';
+import 'package:dogshelter_shared/core/date_format.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/visits_providers.dart';
 import '../domain/posjeta.dart';
 import 'posjeta_status_style.dart';
@@ -175,7 +176,7 @@ class _PosjetaListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = resolveImageUrl(posjeta.pasSlikaNaslovna);
+    final imageUrl = resolveImageUrl(posjeta.pasSlikaNaslovna, Environment.apiBaseUrl);
     final greyText = Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6B7280));
 
     return Card(

@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../widgets/error_banner.dart';
-import '../../../widgets/labeled_field.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../application/dogs_providers.dart';
 
 class DogFilterSheet extends ConsumerStatefulWidget {

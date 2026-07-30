@@ -1,5 +1,5 @@
-import '../../../core/api_client.dart';
-import '../../../core/api_exception.dart';
+﻿import 'package:dogshelter_shared/core/api_client.dart';
+import 'package:dogshelter_shared/core/api_exception.dart';
 import '../domain/volonter_summary.dart';
 
 /// Data source for the home dashboard - pulls just enough from Volonter/AktivnostVolontera to

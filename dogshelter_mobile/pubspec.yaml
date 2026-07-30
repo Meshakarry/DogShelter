@@ -39,9 +39,11 @@ dependencies:
   http: ^1.2.2
   image_picker: ^1.1.2
   go_router: ^14.6.2
-  flutter_secure_storage: ^9.2.2
   cached_network_image: ^3.4.1
   flutter_stripe: ^11.5.0
+
+  dogshelter_shared:
+    path: ../dogshelter_shared
 
 dev_dependencies:
   flutter_test:

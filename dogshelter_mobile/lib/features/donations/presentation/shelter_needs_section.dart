@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/donations_providers.dart';
 import '../domain/potreba_azila.dart';
 import 'donation_icons.dart';

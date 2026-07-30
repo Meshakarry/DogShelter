@@ -1,11 +1,12 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/date_format.dart';
-import '../../../core/image_url.dart';
-import '../../../widgets/error_banner.dart';
+import 'package:dogshelter_shared/core/date_format.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/adoption_requests_providers.dart';
 import '../domain/zahtjev_za_udomljavanje.dart';
 import 'zahtjev_status_style.dart';
@@ -37,7 +38,7 @@ class _ZahtjevDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = resolveImageUrl(zahtjev.pasSlikaNaslovna);
+    final imageUrl = resolveImageUrl(zahtjev.pasSlikaNaslovna, Environment.apiBaseUrl);
     final isOdbijen = zahtjev.statusZahtjevaNaziv?.toLowerCase() == 'odbijen';
 
     return SingleChildScrollView(

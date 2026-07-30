@@ -11,6 +11,7 @@ public static class DatabaseSeeder
 {
     public static async Task SeedAllAsync(DogShelterContext context, ILogger logger, string wwwrootPath)
     {
+        await EnsureGradoviAsync(context, logger);
         await EnsureVelicinePsaAsync(context, logger);
         await EnsureStatusPsaAsync(context, logger);
         await EnsureStatusZahtjevaAsync(context, logger);
@@ -65,6 +66,30 @@ public static class DatabaseSeeder
 
         logger.LogWarning("Seed image not found: {BaseName}.jpg", baseName);
         return null;
+    }
+
+    private static async Task EnsureGradoviAsync(DogShelterContext context, ILogger logger)
+    {
+        var gradovi = new (string Naziv, string PostanskiBroj)[]
+        {
+            ("Bugojno", "70230"),
+            ("Sarajevo", "71000"),
+            ("Zenica", "72000"),
+            ("Travnik", "72270"),
+            ("Donji Vakuf", "70220"),
+            ("Gornji Vakuf-Uskoplje", "70240"),
+            ("Novi Travnik", "72290"),
+            ("Jajce", "70101"),
+            ("Mostar", "88000"),
+            ("Tuzla", "75000"),
+        };
+        foreach (var (naziv, postanskiBroj) in gradovi)
+        {
+            if (!await context.Grads.AnyAsync(g => g.Naziv == naziv))
+                context.Grads.Add(new Grad { Naziv = naziv, PostanskiBroj = postanskiBroj });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded Grad.");
     }
 
     private static async Task EnsureVelicinePsaAsync(DogShelterContext context, ILogger logger)

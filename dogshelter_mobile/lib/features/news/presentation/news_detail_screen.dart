@@ -1,10 +1,11 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/date_format.dart';
-import '../../../core/image_url.dart';
-import '../../../widgets/error_banner.dart';
+import 'package:dogshelter_shared/core/date_format.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/news_providers.dart';
 import '../domain/obavijest.dart';
 
@@ -35,7 +36,7 @@ class _NewsDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = resolveImageUrl(obavijest.slikaPutanja);
+    final imageUrl = resolveImageUrl(obavijest.slikaPutanja, Environment.apiBaseUrl);
     final autor = [obavijest.autorIme, obavijest.autorPrezime].where((s) => s != null && s.isNotEmpty).join(' ');
 
     return SingleChildScrollView(

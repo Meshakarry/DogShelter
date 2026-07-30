@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,8 +6,8 @@ import '../features/activities/presentation/aktivnosti_list_screen.dart';
 import '../features/activities/presentation/log_activity_screen.dart';
 import '../features/adoption_requests/presentation/adoption_requests_list_screen.dart';
 import '../features/adoption_requests/presentation/zahtjev_detail_screen.dart';
-import '../features/auth/application/auth_notifier.dart';
-import '../features/auth/domain/auth_state.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/auth/domain/auth_state.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';

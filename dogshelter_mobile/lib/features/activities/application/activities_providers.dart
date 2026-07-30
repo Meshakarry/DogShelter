@@ -1,6 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import '../data/activities_api.dart';
 import '../domain/aktivnost_volontera.dart';
 import '../domain/tip_aktivnosti.dart';

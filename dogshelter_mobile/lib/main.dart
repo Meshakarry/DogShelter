@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'core/app_router.dart';
 import 'core/app_theme.dart';
 import 'environment.dart';
@@ -14,7 +15,12 @@ Future<void> main() async {
     await Stripe.instance.applySettings();
   }
 
-  runApp(const ProviderScope(child: DogShelterApp()));
+  runApp(
+    ProviderScope(
+      overrides: [apiBaseUrlProvider.overrideWithValue(Environment.apiBaseUrl)],
+      child: const DogShelterApp(),
+    ),
+  );
 }
 
 class DogShelterApp extends ConsumerWidget {

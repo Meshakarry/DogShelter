@@ -1,10 +1,11 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/image_url.dart';
-import '../../auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -13,7 +14,7 @@ class AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final korisnik = ref.watch(authNotifierProvider).korisnik;
     final isVolonter = korisnik?.hasRole('Volonter') ?? false;
-    final avatarUrl = resolveImageUrl(korisnik?.slikaPutanja);
+    final avatarUrl = resolveImageUrl(korisnik?.slikaPutanja, Environment.apiBaseUrl);
 
     return Drawer(
       child: SafeArea(

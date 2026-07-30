@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/date_format.dart';
-import '../../../widgets/error_banner.dart';
+import 'package:dogshelter_shared/core/date_format.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/notifications_providers.dart';
 import '../domain/notifikacija.dart';
 import 'notification_type_style.dart';

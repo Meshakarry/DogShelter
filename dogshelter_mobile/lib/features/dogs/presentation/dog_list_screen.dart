@@ -1,13 +1,14 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/image_url.dart';
-import '../../../core/text_normalize.dart';
-import '../../../widgets/error_banner.dart';
+import 'package:dogshelter_shared/core/image_url.dart';
+import '../../../environment.dart';
+import 'package:dogshelter_shared/core/text_normalize.dart';
+import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/dogs_providers.dart';
 import '../domain/pas_list_item.dart';
 import 'dog_filter_sheet.dart';
@@ -178,7 +179,7 @@ class _DogListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = resolveImageUrl(dog.slikaNaslovna);
+    final imageUrl = resolveImageUrl(dog.slikaNaslovna, Environment.apiBaseUrl);
     final greyText = Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6B7280));
 
     return Card(

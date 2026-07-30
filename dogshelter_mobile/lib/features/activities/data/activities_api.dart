@@ -1,5 +1,5 @@
-import '../../../core/api_client.dart';
-import '../../../core/paged_result.dart';
+﻿import 'package:dogshelter_shared/core/api_client.dart';
+import 'package:dogshelter_shared/core/paged_result.dart';
 import '../domain/aktivnost_volontera.dart';
 import '../domain/tip_aktivnosti.dart';
 
