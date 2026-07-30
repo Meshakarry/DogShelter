@@ -6,6 +6,7 @@ import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/auth/domain/auth_state.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/splash_screen.dart';
+import '../features/pocetna/presentation/pocetna_screen.dart';
 import '../features/postavke/domain/lookup_item.dart';
 import '../features/postavke/presentation/grad_crud_screen.dart';
 import '../features/postavke/presentation/kategorija_donacije_crud_screen.dart';
@@ -48,7 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(path: '/pocetna', builder: (context, state) => const PlaceholderScreen(title: 'Početna')),
+          GoRoute(path: '/pocetna', builder: (context, state) => const PocetnaScreen()),
           GoRoute(path: '/psi', builder: (context, state) => const PlaceholderScreen(title: 'Psi')),
           GoRoute(
             path: '/zahtjevi',

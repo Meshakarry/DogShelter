@@ -27,6 +27,15 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(seedColor: seedColor),
       appBarTheme: const AppBarTheme(centerTitle: false, elevation: 0),
       inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
     );
   }
 }
