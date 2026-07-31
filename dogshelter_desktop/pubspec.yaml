@@ -36,6 +36,7 @@ dependencies:
   http: ^1.2.2
   window_manager: ^0.5.1
   fl_chart: ^1.1.0
+  file_picker: ^8.1.2
 
   dogshelter_shared:
     path: ../dogshelter_shared

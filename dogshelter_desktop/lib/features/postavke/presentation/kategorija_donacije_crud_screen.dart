@@ -6,9 +6,11 @@ import 'package:dogshelter_shared/core/api_exception.dart';
 import 'package:dogshelter_shared/core/paged_result.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/paged_list_notifier.dart';
 import '../data/lookup_api.dart';
 import '../domain/lookup_item.dart';
 import '../../../widgets/debounced_search_field.dart';
+import '../../../widgets/page_footer.dart';
 
 const _jedinicaMjereConfig = LookupTableConfig(path: '/api/JedinicaMjere', idKey: 'jedinicaMjereId', label: 'Jedinice mjere');
 
@@ -44,10 +46,10 @@ class KategorijaDonacijeApi {
   KategorijaDonacijeApi(this._client);
   final dynamic _client;
 
-  Future<PagedResult<KategorijaDonacije>> search({String? naziv}) async {
+  Future<PagedResult<KategorijaDonacije>> search({String? naziv, int page = 1}) async {
     final json = await _client.get('/api/KategorijaDonacije', query: {
       if (naziv != null && naziv.isNotEmpty) 'Naziv': naziv,
-      'Page': 1,
+      'Page': page,
       'PageSize': 100,
     });
     return PagedResult<KategorijaDonacije>.fromJson(json as Map<String, dynamic>, KategorijaDonacije.fromJson);
@@ -85,39 +87,32 @@ final jedinicaMjereOptionsProvider = FutureProvider<List<LookupItem>>((ref) asyn
   return (await api.search()).items;
 });
 
-class KategorijaDonacijeListNotifier extends StateNotifier<AsyncValue<List<KategorijaDonacije>>> {
-  KategorijaDonacijeListNotifier(this._api) : super(const AsyncValue.loading()) {
-    load();
-  }
+class KategorijaDonacijeListNotifier extends PagedListNotifier<KategorijaDonacije> {
+  KategorijaDonacijeListNotifier(this._api);
   final KategorijaDonacijeApi _api;
-  String? _naziv;
 
-  Future<void> load({String? naziv}) async {
-    _naziv = naziv ?? _naziv;
-    if (!state.hasValue) {
-      state = const AsyncValue.loading();
-    }
-    state = await AsyncValue.guard(() async => (await _api.search(naziv: _naziv)).items);
-  }
+  @override
+  Future<PagedResult<KategorijaDonacije>> fetch({String? query, required int page}) =>
+      _api.search(naziv: query, page: page);
 
   Future<void> create(String naziv, String ikonaKljuc, int? jedinicaId, List<int> jedinice) async {
     await _api.create(naziv, ikonaKljuc, jedinicaId, jedinice);
-    await load();
+    await refresh();
   }
 
   Future<void> update(int id, String naziv, String ikonaKljuc, int? jedinicaId, List<int> jedinice) async {
     await _api.update(id, naziv, ikonaKljuc, jedinicaId, jedinice);
-    await load();
+    await refresh();
   }
 
   Future<void> remove(int id) async {
     await _api.delete(id);
-    await load();
+    await refresh();
   }
 }
 
 final kategorijaDonacijeListProvider =
-    StateNotifierProvider<KategorijaDonacijeListNotifier, AsyncValue<List<KategorijaDonacije>>>((ref) {
+    StateNotifierProvider<KategorijaDonacijeListNotifier, AsyncValue<PagedResult<KategorijaDonacije>>>((ref) {
   return KategorijaDonacijeListNotifier(ref.watch(kategorijaDonacijeApiProvider));
 });
 
@@ -205,7 +200,7 @@ class _KategorijaDonacijeCrudScreenState extends ConsumerState<KategorijaDonacij
                 Expanded(
                   child: DebouncedSearchField(
                     controller: _searchController,
-                    onChanged: (value) => ref.read(kategorijaDonacijeListProvider.notifier).load(naziv: value),
+                    onChanged: (value) => ref.read(kategorijaDonacijeListProvider.notifier).load(query: value),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -223,7 +218,8 @@ class _KategorijaDonacijeCrudScreenState extends ConsumerState<KategorijaDonacij
             child: itemsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(child: Text('Greška: $error')),
-              data: (items) {
+              data: (result) {
+                final items = result.items;
                 if (items.isEmpty) return const Center(child: Text('Nema podataka.'));
                 return Card(
                   margin: EdgeInsets.zero,
@@ -260,6 +256,15 @@ class _KategorijaDonacijeCrudScreenState extends ConsumerState<KategorijaDonacij
               },
             ),
           ),
+          if (itemsAsync.valueOrNull != null && itemsAsync.value!.totalCount > 0) ...[
+            const SizedBox(height: 12),
+            PageFooter(
+              page: itemsAsync.value!.page,
+              totalPages: itemsAsync.value!.totalPages,
+              totalCount: itemsAsync.value!.totalCount,
+              onPageChanged: (page) => ref.read(kategorijaDonacijeListProvider.notifier).goToPage(page),
+            ),
+          ],
         ],
       ),
     );

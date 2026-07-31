@@ -8,6 +8,7 @@ import '../../../core/app_theme.dart';
 import '../application/lookup_providers.dart';
 import '../domain/lookup_item.dart';
 import '../../../widgets/debounced_search_field.dart';
+import '../../../widgets/page_footer.dart';
 
 String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
@@ -100,7 +101,7 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
                 Expanded(
                   child: DebouncedSearchField(
                     controller: _searchController,
-                    onChanged: (value) => ref.read(lookupListProvider(widget.config).notifier).load(naziv: value),
+                    onChanged: (value) => ref.read(lookupListProvider(widget.config).notifier).load(query: value),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -118,7 +119,8 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
             child: itemsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(child: ErrorBanner(error: error)),
-              data: (items) {
+              data: (result) {
+                final items = result.items;
                 if (items.isEmpty) {
                   return const Center(child: Text('Nema podataka.'));
                 }
@@ -153,6 +155,15 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
               },
             ),
           ),
+          if (itemsAsync.valueOrNull != null && itemsAsync.value!.totalCount > 0) ...[
+            const SizedBox(height: 12),
+            PageFooter(
+              page: itemsAsync.value!.page,
+              totalPages: itemsAsync.value!.totalPages,
+              totalCount: itemsAsync.value!.totalCount,
+              onPageChanged: (page) => ref.read(lookupListProvider(widget.config).notifier).goToPage(page),
+            ),
+          ],
         ],
       ),
     );

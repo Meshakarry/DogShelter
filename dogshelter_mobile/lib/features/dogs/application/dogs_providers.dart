@@ -1,13 +1,13 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import '../data/dogs_api.dart';
-import '../domain/lookups.dart';
-import '../domain/pas.dart';
-import '../domain/pas_list_item.dart';
-import '../domain/spol.dart';
+import 'package:dogshelter_shared/pas/data/pas_api.dart';
+import 'package:dogshelter_shared/pas/domain/lookups.dart';
+import 'package:dogshelter_shared/pas/domain/pas.dart';
+import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
+import 'package:dogshelter_shared/pas/domain/spol.dart';
 
-final dogsApiProvider = Provider<DogsApi>((ref) => DogsApi(ref.watch(apiClientProvider)));
+final dogsApiProvider = Provider<PasApi>((ref) => PasApi(ref.watch(apiClientProvider)));
 
 typedef DogLookups = ({List<Rasa> rase, List<StatusPsa> statusi, List<VelicinaPsa> velicine});
 
@@ -112,7 +112,7 @@ class DogsListNotifier extends StateNotifier<DogsListState> {
     loadFirstPage();
   }
 
-  final DogsApi _api;
+  final PasApi _api;
   static const _pageSize = 20;
 
   Future<void> loadFirstPage() async {

@@ -10,8 +10,8 @@ import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../adoption_requests/application/adoption_requests_providers.dart';
 import '../../visits/presentation/book_visit_screen.dart';
+import 'package:dogshelter_shared/pas/domain/pas.dart';
 import '../application/dogs_providers.dart';
-import '../domain/pas.dart';
 import 'dog_status_style.dart';
 
 class DogDetailScreen extends ConsumerWidget {

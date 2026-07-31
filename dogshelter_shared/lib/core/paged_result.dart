@@ -8,6 +8,8 @@ class PagedResult<T> {
 
   bool get hasMore => page * pageSize < totalCount;
 
+  int get totalPages => totalCount == 0 ? 1 : ((totalCount + pageSize - 1) ~/ pageSize);
+
   factory PagedResult.fromJson(Map<String, dynamic> json, T Function(Map<String, dynamic>) fromJsonItem) {
     return PagedResult<T>(
       items: (json['items'] as List<dynamic>? ?? [])

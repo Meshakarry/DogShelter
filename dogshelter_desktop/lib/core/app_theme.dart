@@ -31,6 +31,9 @@ class AppTheme {
         color: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
+        // Card doesn't clip its child to the rounded shape by default, so square-edged content
+        // (e.g. a ListView filling the card) pokes past the rounded corners without this.
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
           side: BorderSide(color: Colors.grey.shade200),
