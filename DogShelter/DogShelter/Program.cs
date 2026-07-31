@@ -13,11 +13,19 @@ using Microsoft.OpenApi.Models;
 using Stripe;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 DotNetEnv.Env.TraversePath().Load();
+
+// MVC's default model binder parses [FromForm]/query values using the ambient thread culture, which on a
+// Bosnian-localized machine uses "," as the decimal separator - a plain "11.5" form field then silently
+// parses as 115. Pinning to invariant culture keeps decimal/date form binding consistent regardless of the
+// host OS locale (found via the desktop app's Pas weight field submitting a real "11.5" over multipart/form-data).
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 

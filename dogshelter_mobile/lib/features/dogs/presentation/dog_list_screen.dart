@@ -9,8 +9,8 @@ import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/core/text_normalize.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
 import '../application/dogs_providers.dart';
-import '../domain/pas_list_item.dart';
 import 'dog_filter_sheet.dart';
 import 'dog_status_style.dart';
 

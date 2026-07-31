@@ -6,6 +6,7 @@ import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/auth/domain/auth_state.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/splash_screen.dart';
+import '../features/korisnici/presentation/korisnici_screen.dart';
 import '../features/pocetna/presentation/pocetna_screen.dart';
 import '../features/postavke/domain/lookup_item.dart';
 import '../features/postavke/presentation/grad_crud_screen.dart';
@@ -15,6 +16,8 @@ import '../features/postavke/presentation/postavke_screen.dart';
 import '../features/postavke/presentation/potreba_azila_crud_screen.dart';
 import '../features/postavke/presentation/rasa_crud_screen.dart';
 import '../features/postavke/presentation/simple_lookup_crud_screen.dart';
+import '../features/psi/presentation/psi_form_screen.dart';
+import '../features/psi/presentation/psi_list_screen.dart';
 import '../features/root/app_shell.dart';
 import '../features/root/placeholder_screen.dart';
 
@@ -50,7 +53,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(path: '/pocetna', builder: (context, state) => const PocetnaScreen()),
-          GoRoute(path: '/psi', builder: (context, state) => const PlaceholderScreen(title: 'Psi')),
+          GoRoute(path: '/psi', builder: (context, state) => const PsiListScreen()),
+          GoRoute(path: '/psi/novi', builder: (context, state) => const PsiFormScreen()),
+          GoRoute(
+            path: '/psi/:id',
+            builder: (context, state) => PsiFormScreen(pasId: int.parse(state.pathParameters['id']!)),
+          ),
           GoRoute(
             path: '/zahtjevi',
             builder: (context, state) => const PlaceholderScreen(title: 'Zahtjevi za udomljavanje'),
@@ -65,7 +73,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/obavijesti', builder: (context, state) => const PlaceholderScreen(title: 'Obavijesti')),
           GoRoute(path: '/dogadjaji', builder: (context, state) => const PlaceholderScreen(title: 'Događaji')),
           GoRoute(path: '/izvjestaji', builder: (context, state) => const PlaceholderScreen(title: 'Izvještaji')),
-          GoRoute(path: '/korisnici', builder: (context, state) => const PlaceholderScreen(title: 'Korisnici')),
+          GoRoute(path: '/korisnici', builder: (context, state) => const KorisniciScreen()),
           GoRoute(path: '/postavke', builder: (context, state) => const PostavkeScreen()),
           GoRoute(
             path: '/postavke/gradovi',

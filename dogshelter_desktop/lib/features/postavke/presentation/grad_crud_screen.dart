@@ -6,7 +6,9 @@ import 'package:dogshelter_shared/core/api_exception.dart';
 import 'package:dogshelter_shared/core/paged_result.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/paged_list_notifier.dart';
 import '../../../widgets/debounced_search_field.dart';
+import '../../../widgets/page_footer.dart';
 
 class Grad {
   const Grad({required this.id, required this.naziv, required this.postanskiBroj});
@@ -24,10 +26,10 @@ class GradApi {
   GradApi(this._client);
   final dynamic _client;
 
-  Future<PagedResult<Grad>> search({String? naziv}) async {
+  Future<PagedResult<Grad>> search({String? naziv, int page = 1}) async {
     final json = await _client.get('/api/Grad', query: {
       if (naziv != null && naziv.isNotEmpty) 'Naziv': naziv,
-      'Page': 1,
+      'Page': page,
       'PageSize': 100,
     });
     return PagedResult<Grad>.fromJson(json as Map<String, dynamic>, Grad.fromJson);
@@ -44,38 +46,30 @@ class GradApi {
 
 final gradApiProvider = Provider<GradApi>((ref) => GradApi(ref.watch(apiClientProvider)));
 
-class GradListNotifier extends StateNotifier<AsyncValue<List<Grad>>> {
-  GradListNotifier(this._api) : super(const AsyncValue.loading()) {
-    load();
-  }
+class GradListNotifier extends PagedListNotifier<Grad> {
+  GradListNotifier(this._api);
   final GradApi _api;
-  String? _naziv;
 
-  Future<void> load({String? naziv}) async {
-    _naziv = naziv ?? _naziv;
-    if (!state.hasValue) {
-      state = const AsyncValue.loading();
-    }
-    state = await AsyncValue.guard(() async => (await _api.search(naziv: _naziv)).items);
-  }
+  @override
+  Future<PagedResult<Grad>> fetch({String? query, required int page}) => _api.search(naziv: query, page: page);
 
   Future<void> create(String naziv, String postanskiBroj) async {
     await _api.create(naziv, postanskiBroj);
-    await load();
+    await refresh();
   }
 
   Future<void> update(int id, String naziv, String postanskiBroj) async {
     await _api.update(id, naziv, postanskiBroj);
-    await load();
+    await refresh();
   }
 
   Future<void> remove(int id) async {
     await _api.delete(id);
-    await load();
+    await refresh();
   }
 }
 
-final gradListProvider = StateNotifierProvider<GradListNotifier, AsyncValue<List<Grad>>>((ref) {
+final gradListProvider = StateNotifierProvider<GradListNotifier, AsyncValue<PagedResult<Grad>>>((ref) {
   return GradListNotifier(ref.watch(gradApiProvider));
 });
 
@@ -160,7 +154,7 @@ class _GradCrudScreenState extends ConsumerState<GradCrudScreen> {
                 Expanded(
                   child: DebouncedSearchField(
                     controller: _searchController,
-                    onChanged: (value) => ref.read(gradListProvider.notifier).load(naziv: value),
+                    onChanged: (value) => ref.read(gradListProvider.notifier).load(query: value),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -178,7 +172,8 @@ class _GradCrudScreenState extends ConsumerState<GradCrudScreen> {
             child: itemsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(child: Text('Greška: $error')),
-              data: (items) {
+              data: (result) {
+                final items = result.items;
                 if (items.isEmpty) return const Center(child: Text('Nema podataka.'));
                 return Card(
                   margin: EdgeInsets.zero,
@@ -212,6 +207,15 @@ class _GradCrudScreenState extends ConsumerState<GradCrudScreen> {
               },
             ),
           ),
+          if (itemsAsync.valueOrNull != null && itemsAsync.value!.totalCount > 0) ...[
+            const SizedBox(height: 12),
+            PageFooter(
+              page: itemsAsync.value!.page,
+              totalPages: itemsAsync.value!.totalPages,
+              totalCount: itemsAsync.value!.totalCount,
+              onPageChanged: (page) => ref.read(gradListProvider.notifier).goToPage(page),
+            ),
+          ],
         ],
       ),
     );

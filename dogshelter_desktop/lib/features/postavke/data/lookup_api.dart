@@ -8,10 +8,10 @@ class LookupApi {
   final ApiClient _client;
   final LookupTableConfig _config;
 
-  Future<PagedResult<LookupItem>> search({String? naziv}) async {
+  Future<PagedResult<LookupItem>> search({String? naziv, int page = 1}) async {
     final json = await _client.get(_config.path, query: {
       if (naziv != null && naziv.isNotEmpty) 'Naziv': naziv,
-      'Page': 1,
+      'Page': page,
       'PageSize': 100,
     });
     return PagedResult<LookupItem>.fromJson(

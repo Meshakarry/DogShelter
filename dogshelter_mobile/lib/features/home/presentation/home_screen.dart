@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import '../../dogs/domain/pas_list_item.dart';
+import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
 import '../../dogs/presentation/dog_status_style.dart';
 import '../../news/domain/obavijest_list_item.dart';
 import '../application/home_providers.dart';
