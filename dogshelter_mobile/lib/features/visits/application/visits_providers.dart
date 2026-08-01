@@ -2,12 +2,12 @@
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
+import 'package:dogshelter_shared/posjeta/data/posjeta_api.dart';
+import 'package:dogshelter_shared/posjeta/domain/posjeta.dart';
+import 'package:dogshelter_shared/posjeta/domain/status_posjete.dart';
 import '../../dogs/application/dogs_providers.dart';
-import '../data/visits_api.dart';
-import '../domain/posjeta.dart';
-import '../domain/status_posjete.dart';
 
-final visitsApiProvider = Provider<VisitsApi>((ref) => VisitsApi(ref.watch(apiClientProvider)));
+final visitsApiProvider = Provider<PosjetaApi>((ref) => PosjetaApi(ref.watch(apiClientProvider)));
 
 final statusPosjeteLookupProvider = FutureProvider<List<StatusPosjete>>((ref) {
   return ref.watch(visitsApiProvider).getStatusi();
@@ -73,7 +73,7 @@ class PosjetaListNotifier extends StateNotifier<PosjetaListState> {
     loadFirstPage();
   }
 
-  final VisitsApi _api;
+  final PosjetaApi _api;
   static const _pageSize = 20;
 
   Future<void> loadFirstPage() async {

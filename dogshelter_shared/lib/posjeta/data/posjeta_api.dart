@@ -1,10 +1,10 @@
-﻿import 'package:dogshelter_shared/core/api_client.dart';
+import 'package:dogshelter_shared/core/api_client.dart';
 import 'package:dogshelter_shared/core/paged_result.dart';
 import '../domain/posjeta.dart';
 import '../domain/status_posjete.dart';
 
-class VisitsApi {
-  VisitsApi(this._client);
+class PosjetaApi {
+  PosjetaApi(this._client);
 
   final ApiClient _client;
 
@@ -13,12 +13,18 @@ class VisitsApi {
     int pageSize = 20,
     int? statusPosjeteId,
     int? pasId,
+    int? korisnikId,
+    DateTime? datumOd,
+    DateTime? datumDo,
   }) async {
     final json = await _client.get('/api/Posjeta', query: {
       'page': page,
       'pageSize': pageSize,
       'statusPosjeteId': statusPosjeteId,
       'pasId': pasId,
+      'korisnikId': korisnikId,
+      'datumOd': datumOd?.toIso8601String(),
+      'datumDo': datumDo?.toIso8601String(),
     });
     return PagedResult.fromJson(
       json as Map<String, dynamic>,
@@ -40,10 +46,39 @@ class VisitsApi {
     return Posjeta.fromJson(json as Map<String, dynamic>);
   }
 
+  /// Admin-only walk-in booking - lands directly in Potvrđena (skips Na čekanju) and is
+  /// stamped as processed by the calling admin immediately.
+  Future<Posjeta> insertAdmin({
+    required int korisnikId,
+    required DateTime datumVrijeme,
+    int? pasId,
+    String? napomena,
+  }) async {
+    final json = await _client.post('/api/Posjeta/admin', body: {
+      'korisnikId': korisnikId,
+      'datumVrijeme': datumVrijeme.toIso8601String(),
+      'pasId': pasId,
+      'napomena': (napomena == null || napomena.isEmpty) ? null : napomena,
+    });
+    return Posjeta.fromJson(json as Map<String, dynamic>);
+  }
+
   Future<Posjeta> otkaziPosjetu(int id, {required String razlogOtkazivanja}) async {
     final json = await _client.post('/api/Posjeta/$id/otkazi', body: {
       'razlogOtkazivanja': razlogOtkazivanja,
     });
+    return Posjeta.fromJson(json as Map<String, dynamic>);
+  }
+
+  /// Admin-only: Na čekanju -> Potvrđena.
+  Future<Posjeta> potvrdi(int id) async {
+    final json = await _client.post('/api/Posjeta/$id/potvrdi');
+    return Posjeta.fromJson(json as Map<String, dynamic>);
+  }
+
+  /// Admin-only: Potvrđena -> Završena.
+  Future<Posjeta> zavrsi(int id) async {
+    final json = await _client.post('/api/Posjeta/$id/zavrsi');
     return Posjeta.fromJson(json as Map<String, dynamic>);
   }
 

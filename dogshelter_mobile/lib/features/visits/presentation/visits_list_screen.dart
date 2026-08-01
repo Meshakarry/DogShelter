@@ -8,7 +8,7 @@ import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/visits_providers.dart';
-import '../domain/posjeta.dart';
+import 'package:dogshelter_shared/posjeta/domain/posjeta.dart';
 import 'posjeta_status_style.dart';
 
 // Real StatusPosjete.Naziv values double as tab labels directly (unlike Zahtjev's tabs, these

@@ -9,7 +9,7 @@ import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../application/visits_providers.dart';
-import '../domain/posjeta.dart';
+import 'package:dogshelter_shared/posjeta/domain/posjeta.dart';
 import 'posjeta_status_style.dart';
 
 class PosjetaDetailScreen extends ConsumerWidget {

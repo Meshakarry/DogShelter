@@ -32,4 +32,11 @@ abstract class PagedListNotifier<T> extends StateNotifier<AsyncValue<PagedResult
   }
 
   Future<void> refresh() => load();
+
+  /// For subclasses with non-search filter fields (e.g. a status dropdown) that need to
+  /// jump back to page 1 without going through the search-only [load] parameter.
+  Future<void> resetAndReload() async {
+    _page = 1;
+    state = await AsyncValue.guard(() => fetch(query: _query, page: _page));
+  }
 }

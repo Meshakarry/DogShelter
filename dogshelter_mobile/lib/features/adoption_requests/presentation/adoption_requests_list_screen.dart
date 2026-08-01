@@ -8,7 +8,7 @@ import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../application/adoption_requests_providers.dart';
-import '../domain/zahtjev_za_udomljavanje.dart';
+import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/zahtjev_za_udomljavanje.dart';
 import 'zahtjev_status_style.dart';
 
 // UI tab labels. "Svi" has no backing StatusZahtjeva row (null filter); the other three map to
