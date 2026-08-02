@@ -1,11 +1,12 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import '../data/adoption_requests_api.dart';
-import '../domain/status_zahtjeva.dart';
-import '../domain/zahtjev_za_udomljavanje.dart';
+import 'package:dogshelter_shared/zahtjev_za_udomljavanje/data/zahtjev_za_udomljavanje_api.dart';
+import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/status_zahtjeva.dart';
+import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/zahtjev_za_udomljavanje.dart';
 
-final zahtjevApiProvider = Provider<ZahtjevApi>((ref) => ZahtjevApi(ref.watch(apiClientProvider)));
+final zahtjevApiProvider =
+    Provider<ZahtjevZaUdomljavanjeApi>((ref) => ZahtjevZaUdomljavanjeApi(ref.watch(apiClientProvider)));
 
 final statusZahtjevaLookupProvider = FutureProvider<List<StatusZahtjeva>>((ref) {
   return ref.watch(zahtjevApiProvider).getStatusi();
@@ -74,7 +75,7 @@ class ZahtjevListNotifier extends StateNotifier<ZahtjevListState> {
     loadFirstPage();
   }
 
-  final ZahtjevApi _api;
+  final ZahtjevZaUdomljavanjeApi _api;
   static const _pageSize = 20;
 
   Future<void> loadFirstPage() async {

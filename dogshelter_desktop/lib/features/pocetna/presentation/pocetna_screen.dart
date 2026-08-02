@@ -6,21 +6,9 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
+import '../../../widgets/status_colors.dart';
 import '../application/pocetna_providers.dart';
 import '../domain/pocetna_dashboard_data.dart';
-
-const _statusPillRadius = 6.0;
-
-({Color background, Color foreground}) _statusColors(String naziv) {
-  switch (naziv) {
-    case 'Odobren':
-      return (background: const Color(0xFFDFF3E6), foreground: const Color(0xFF1E7D42));
-    case 'Odbijen':
-      return (background: const Color(0xFFFBE1E1), foreground: const Color(0xFFB3261E));
-    default:
-      return (background: const Color(0xFFFDEBD0), foreground: const Color(0xFFB4690E));
-  }
-}
 
 class PocetnaScreen extends ConsumerWidget {
   const PocetnaScreen({super.key});
@@ -180,12 +168,12 @@ class _RecentZahtjeviCard extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Builder(builder: (context) {
-                              final colors = _statusColors(zahtjev.statusZahtjevaNaziv);
+                              final colors = zahtjevStatusColors(zahtjev.statusZahtjevaNaziv);
                               return StatusPill(
                                 label: zahtjev.statusZahtjevaNaziv,
                                 color: colors.background,
                                 foregroundColor: colors.foreground,
-                                borderRadius: _statusPillRadius,
+                                borderRadius: statusPillRadius,
                               );
                             }),
                           ),

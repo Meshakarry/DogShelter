@@ -4,12 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
+import 'package:dogshelter_shared/widgets/inline_calendar.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
+import 'package:dogshelter_shared/widgets/time_slot_chip.dart';
 import '../application/visits_providers.dart';
-import 'inline_calendar.dart';
-
-// Assumed shelter visiting hours (09:00-16:00, hourly)
-const _timeSlots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
 
 /// Route-navigation arguments for `/posjete/nova` - carries the dog context (if any) through
 /// `GoRouterState.extra` since a plain int/String pair isn't a type go_router can cast reliably.
@@ -55,8 +53,7 @@ class _BookVisitScreenState extends ConsumerState<BookVisitScreen> with FormErro
   void initState() {
     super.initState();
     _selectedPasId = widget.pasId;
-    final now = DateTime.now();
-    _firstDate = DateTime(now.year, now.month, now.day);
+    _firstDate = firstBookableVisitDate();
     _lastDate = _firstDate.add(const Duration(days: 365));
   }
 
@@ -71,18 +68,7 @@ class _BookVisitScreenState extends ConsumerState<BookVisitScreen> with FormErro
     if (_apiError != null) setState(() => _apiError = null);
   }
 
-  List<String> get _availableTimeSlots {
-    final date = _selectedDate;
-    if (date == null) return _timeSlots;
-    final now = DateTime.now();
-    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
-    if (!isToday) return _timeSlots;
-    return _timeSlots.where((slot) {
-      final parts = slot.split(':');
-      final slotTime = DateTime(date.year, date.month, date.day, int.parse(parts[0]), int.parse(parts[1]));
-      return slotTime.isAfter(now);
-    }).toList();
-  }
+  List<String> get _availableTimeSlots => availableTimeSlots(_selectedDate);
 
   DateTime? get _datumVrijeme {
     final date = _selectedDate;
@@ -215,7 +201,7 @@ class _BookVisitScreenState extends ConsumerState<BookVisitScreen> with FormErro
                           runSpacing: 8,
                           children: [
                             for (final slot in timeSlots)
-                              _TimeSlotChip(
+                              TimeSlotChip(
                                 label: slot,
                                 selected: slot == _selectedTimeSlot,
                                 taken: zauzetiTimes.contains(slot),
@@ -256,41 +242,6 @@ class _BookVisitScreenState extends ConsumerState<BookVisitScreen> with FormErro
                   : const Text('Zakaži'),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TimeSlotChip extends StatelessWidget {
-  const _TimeSlotChip({required this.label, required this.selected, required this.taken, required this.onTap});
-
-  final String label;
-  final bool selected;
-  final bool taken;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: taken ? null : onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF008554) : (taken ? const Color(0xFFF3F4F6) : Colors.white),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? const Color(0xFF008554) : const Color(0xFFD1D5DB),
-          ),
-        ),
-        child: Text(
-          taken ? '$label (zauzeto)' : label,
-          style: TextStyle(
-            color: selected ? Colors.white : (taken ? const Color(0xFFBDBDBD) : Colors.black87),
-            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-            decoration: taken ? TextDecoration.lineThrough : null,
-          ),
         ),
       ),
     );

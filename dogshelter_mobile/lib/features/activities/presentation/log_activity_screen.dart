@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
+import 'package:dogshelter_shared/widgets/inline_calendar.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
-import '../../visits/presentation/inline_calendar.dart';
 import '../application/activities_providers.dart';
 
 class LogActivityScreen extends ConsumerStatefulWidget {
