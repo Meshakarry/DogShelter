@@ -12,10 +12,21 @@ class UdomljavanjeListNotifier extends PagedListNotifier<Udomljavanje> {
   UdomljavanjeListNotifier(this._api);
 
   final UdomljavanjeApi _api;
+  DateTime? _datumOd;
+  DateTime? _datumDo;
+
+  DateTime? get datumOd => _datumOd;
+  DateTime? get datumDo => _datumDo;
 
   @override
   Future<PagedResult<Udomljavanje>> fetch({String? query, required int page}) =>
-      _api.getUdomljavanja(page: page);
+      _api.getUdomljavanja(page: page, datumOd: _datumOd, datumDo: _datumDo);
+
+  Future<void> filterByDateRange({DateTime? datumOd, DateTime? datumDo}) async {
+    _datumOd = datumOd;
+    _datumDo = datumDo;
+    await resetAndReload();
+  }
 }
 
 final udomljavanjeListProvider =

@@ -1,3 +1,4 @@
+using DogShelter.Model;
 using DogShelter.Model.Requests;
 using DogShelter.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -17,21 +18,21 @@ namespace DogShelter.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public virtual async Task<T> Insert(TInsert request)
         {
             return await _service.Insert(request);
         }
 
         [HttpPut("{ID:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public virtual async Task<T> Update(int ID, TUpdate request)
         {
             return await _service.Update(ID, request);
         }
 
         [HttpDelete("{ID:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public virtual async Task<bool> Delete(int ID)
         {
             return await _service.Delete(ID);

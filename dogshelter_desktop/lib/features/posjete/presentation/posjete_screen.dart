@@ -261,29 +261,38 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                                         borderRadius: statusPillRadius,
                                       ),
                                       const SizedBox(width: 8),
-                                      if (naziv == _naCekanju) ...[
-                                        IconButton(
-                                          icon: Icon(Icons.check_circle_outline, color: posjetaStatusColors(_potvrdjena).foreground),
-                                          tooltip: 'Potvrdi',
-                                          onPressed: () => _potvrdi(posjeta),
+                                      IconButton(
+                                        icon: Icon(
+                                          naziv == _potvrdjena ? Icons.flag_circle_outlined : Icons.check_circle_outline,
+                                          color: (naziv == _naCekanju || naziv == _potvrdjena)
+                                              ? posjetaStatusColors(naziv == _potvrdjena ? _zavrsena : _potvrdjena)
+                                                  .foreground
+                                              : null,
                                         ),
-                                        IconButton(
-                                          icon: Icon(Icons.cancel_outlined, color: posjetaStatusColors(_otkazana).foreground),
-                                          tooltip: 'Otkaži',
-                                          onPressed: () => _otkazi(posjeta),
+                                        tooltip: switch (naziv) {
+                                          _naCekanju => 'Potvrdi',
+                                          _potvrdjena => 'Označi kao završenu',
+                                          _ => 'Posjeta je već obrađena (status: $naziv) i ne može se dalje mijenjati.',
+                                        },
+                                        onPressed: switch (naziv) {
+                                          _naCekanju => () => _potvrdi(posjeta),
+                                          _potvrdjena => () => _zavrsi(posjeta),
+                                          _ => null,
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.cancel_outlined,
+                                          color: (naziv == _naCekanju || naziv == _potvrdjena)
+                                              ? posjetaStatusColors(_otkazana).foreground
+                                              : null,
                                         ),
-                                      ] else if (naziv == _potvrdjena) ...[
-                                        IconButton(
-                                          icon: Icon(Icons.flag_circle_outlined, color: posjetaStatusColors(_zavrsena).foreground),
-                                          tooltip: 'Označi kao završenu',
-                                          onPressed: () => _zavrsi(posjeta),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.cancel_outlined, color: posjetaStatusColors(_otkazana).foreground),
-                                          tooltip: 'Otkaži',
-                                          onPressed: () => _otkazi(posjeta),
-                                        ),
-                                      ],
+                                        tooltip: (naziv == _naCekanju || naziv == _potvrdjena)
+                                            ? 'Otkaži'
+                                            : 'Posjeta je već obrađena (status: $naziv) i ne može se otkazati.',
+                                        onPressed:
+                                            (naziv == _naCekanju || naziv == _potvrdjena) ? () => _otkazi(posjeta) : null,
+                                      ),
                                       IconButton(
                                         icon: const Icon(Icons.visibility_outlined),
                                         tooltip: 'Detalji',

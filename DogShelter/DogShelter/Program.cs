@@ -138,6 +138,7 @@ builder.Services.AddScoped<ITipDonacijeService, TipDonacijeService>();
 builder.Services.AddScoped<IKategorijaDonacijeService, KategorijaDonacijeService>();
 builder.Services.AddScoped<IJedinicaMjereService, JedinicaMjereService>();
 builder.Services.AddScoped<IPrioritetPotrebeService, PrioritetPotrebeService>();
+builder.Services.AddScoped<IUlogaService, UlogaService>();
 builder.Services.AddScoped<IPotrebaAzilaService, PotrebaAzilaService>();
 builder.Services.AddScoped<ITipAktivnostiService, TipAktivnostiService>();
 builder.Services.AddScoped<IPasService, PasService>();

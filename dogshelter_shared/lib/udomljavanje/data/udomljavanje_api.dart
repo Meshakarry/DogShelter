@@ -12,12 +12,16 @@ class UdomljavanjeApi {
     int pageSize = 20,
     int? korisnikId,
     int? pasId,
+    DateTime? datumOd,
+    DateTime? datumDo,
   }) async {
     final json = await _client.get('/api/Udomljavanje', query: {
       'page': page,
       'pageSize': pageSize,
       'korisnikId': korisnikId,
       'pasId': pasId,
+      'datumOd': datumOd?.toIso8601String(),
+      'datumDo': datumDo?.toIso8601String(),
     });
     return PagedResult.fromJson(
       json as Map<String, dynamic>,

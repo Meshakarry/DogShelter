@@ -38,6 +38,18 @@ public class UdomljavanjeService : IUdomljavanjeService
         if (search.PasId.HasValue)
             query = query.Where(u => u.ZahtjevZaUdomljavanje.PasId == search.PasId.Value);
 
+        if (search.DatumOd.HasValue)
+        {
+            var od = DateOnly.FromDateTime(search.DatumOd.Value);
+            query = query.Where(u => u.DatumUdomljavanja >= od);
+        }
+
+        if (search.DatumDo.HasValue)
+        {
+            var doDatuma = DateOnly.FromDateTime(search.DatumDo.Value);
+            query = query.Where(u => u.DatumUdomljavanja <= doDatuma);
+        }
+
         query = query.OrderByDescending(u => u.DatumUdomljavanja);
 
         return await PagedQueryHelper.ToPagedResultAsync<Database.Udomljavanje, Model.Udomljavanje>(query, search, _mapper);

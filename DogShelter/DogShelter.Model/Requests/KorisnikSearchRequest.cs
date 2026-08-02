@@ -6,5 +6,7 @@ namespace DogShelter.Model.Requests
     {
         [MaxLength(100, ErrorMessage = ValidationMessages.UsernameFilterMaxLength)]
         public string? KorisnickoIme { get; set; }
+        public int? UlogaId { get; set; }
+        public bool? Aktivan { get; set; }
     }
 }

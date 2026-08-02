@@ -26,21 +26,12 @@ public class FileUploadService : IFileUploadService
 
     public async Task<string> SaveImageAsync(IFormFile file, string subfolder)
     {
-        if (file == null || file.Length == 0)
-            throw new ValidationException("Slika nije priložena ili je prazna.");
-
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedExtensions.Contains(ext))
-            throw new ValidationException($"Dozvoljeni formati: {string.Join(", ", AllowedExtensions)}.");
-
-        await ValidateMagicBytesAsync(file);
+        var (ext, fileName) = await ValidateAndNameAsync(file);
 
         var folder = Path.Combine(_env.WebRootPath, "images", subfolder);
         Directory.CreateDirectory(folder);
 
-        var fileName = $"{Guid.NewGuid()}{ext}";
         var fullPath = Path.Combine(folder, fileName);
-
         await using var stream = new FileStream(fullPath, FileMode.Create);
         await file.CopyToAsync(stream);
 
@@ -55,6 +46,56 @@ public class FileUploadService : IFileUploadService
         var fullPath = Path.Combine(_env.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
         if (File.Exists(fullPath))
             File.Delete(fullPath);
+    }
+
+    public async Task<string> SavePrivateImageAsync(IFormFile file, string subfolder)
+    {
+        var (_, fileName) = await ValidateAndNameAsync(file);
+
+        var folder = Path.Combine(_env.ContentRootPath, "PrivateFiles", subfolder);
+        Directory.CreateDirectory(folder);
+
+        var fullPath = Path.Combine(folder, fileName);
+        await using var stream = new FileStream(fullPath, FileMode.Create);
+        await file.CopyToAsync(stream);
+
+        return $"{subfolder}/{fileName}";
+    }
+
+    public void DeletePrivateImage(string? relativePath)
+    {
+        var fullPath = GetPrivateFilePath(relativePath);
+        if (fullPath != null)
+            File.Delete(fullPath);
+    }
+
+    public string? GetPrivateFilePath(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return null;
+
+        var fullPath = Path.Combine(_env.ContentRootPath, "PrivateFiles", relativePath.Replace('/', Path.DirectorySeparatorChar));
+        return File.Exists(fullPath) ? fullPath : null;
+    }
+
+    public string GetContentType(string relativePath) => Path.GetExtension(relativePath).ToLowerInvariant() switch
+    {
+        ".png" => "image/png",
+        ".webp" => "image/webp",
+        _ => "image/jpeg",
+    };
+
+    private static async Task<(string Extension, string FileName)> ValidateAndNameAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            throw new ValidationException("Slika nije priložena ili je prazna.");
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedExtensions.Contains(ext))
+            throw new ValidationException($"Dozvoljeni formati: {string.Join(", ", AllowedExtensions)}.");
+
+        await ValidateMagicBytesAsync(file);
+
+        return (ext, $"{Guid.NewGuid()}{ext}");
     }
 
     private static async Task ValidateMagicBytesAsync(IFormFile file)

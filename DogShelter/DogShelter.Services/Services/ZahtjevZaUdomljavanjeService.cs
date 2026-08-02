@@ -84,6 +84,20 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
         };
 
         _context.ZahtjevZaUdomljavanjes.Add(entity);
+
+        _notifikacijaService.StageCreate(
+            korisnikId,
+            NotifikacijaTipovi.ZahtjevPodnesen,
+            "Zahtjev za udomljavanje poslan",
+            $"Vaš zahtjev za udomljavanje psa \"{pas.Naziv}\" je zaprimljen i čeka obradu.",
+            entity.ZahtjevZaUdomljavanjeId);
+        await _notifikacijaService.StageCreateForRoleAsync(
+            RoleNames.Admin,
+            NotifikacijaTipovi.ZahtjevPodnesen,
+            "Novi zahtjev za udomljavanje",
+            $"Korisnik je poslao zahtjev za udomljavanje psa \"{pas.Naziv}\".",
+            entity.ZahtjevZaUdomljavanjeId);
+
         await _context.SaveChangesAsync();
 
         return await GetById(entity.ZahtjevZaUdomljavanjeId);
@@ -161,6 +175,49 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
             "Zahtjev za udomljavanje odbijen",
             $"Vaš zahtjev za udomljavanje je odbijen. Razlog: {request.RazlogOdbijanja}",
             entity.ZahtjevZaUdomljavanjeId);
+
+        await _context.SaveChangesAsync();
+
+        return await GetById(id);
+    }
+
+    public async Task<Model.ZahtjevZaUdomljavanje> Otkazi(int id, ZahtjevZaUdomljavanjeOtkaziRequest request, int callerKorisnikId, bool isAdmin)
+    {
+        var entity = await _context.ZahtjevZaUdomljavanjes.FindAsync(id)
+            ?? throw new NotFoundException($"Zahtjev za udomljavanje s ID {id} nije pronađen.");
+
+        if (!isAdmin && entity.KorisnikId != callerKorisnikId)
+            throw new ForbiddenException("Nemate pristup ovom zahtjevu.");
+
+        var statusNaCekanju = await _context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.NaCekanju);
+        if (entity.StatusZahtjevaId != statusNaCekanju.StatusZahtjevaId)
+            throw new BusinessException("Zahtjev je već obrađen i ne može se otkazati.");
+
+        var statusOtkazan = await _context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Otkazan);
+
+        entity.StatusZahtjevaId = statusOtkazan.StatusZahtjevaId;
+        entity.ObradioKorisnikId = callerKorisnikId;
+        entity.DatumObrade = DateTime.UtcNow;
+        entity.RazlogOdbijanja = request.RazlogOtkazivanja;
+
+        if (isAdmin)
+        {
+            _notifikacijaService.StageCreate(
+                entity.KorisnikId,
+                NotifikacijaTipovi.ZahtjevOtkazan,
+                "Zahtjev za udomljavanje otkazan",
+                $"Vaš zahtjev za udomljavanje je otkazan. Razlog: {request.RazlogOtkazivanja}",
+                entity.ZahtjevZaUdomljavanjeId);
+        }
+        else
+        {
+            await _notifikacijaService.StageCreateForRoleAsync(
+                RoleNames.Admin,
+                NotifikacijaTipovi.ZahtjevOtkazan,
+                "Zahtjev za udomljavanje povučen",
+                $"Korisnik je povukao svoj zahtjev za udomljavanje. Razlog: {request.RazlogOtkazivanja}",
+                entity.ZahtjevZaUdomljavanjeId);
+        }
 
         await _context.SaveChangesAsync();
 

@@ -47,6 +47,11 @@ class ZahtjevListNotifier extends PagedListNotifier<ZahtjevZaUdomljavanje> {
     await _api.odbij(id, razlogOdbijanja: razlogOdbijanja);
     await refresh();
   }
+
+  Future<void> otkazi(int id, String razlogOtkazivanja) async {
+    await _api.otkazi(id, razlogOtkazivanja: razlogOtkazivanja);
+    await refresh();
+  }
 }
 
 final zahtjevListProvider =

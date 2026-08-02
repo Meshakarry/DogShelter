@@ -16,9 +16,15 @@ import '../application/korisnici_providers.dart';
 import '../data/korisnik_admin_api.dart';
 
 const _gradConfig = LookupTableConfig(path: '/api/Grad', idKey: 'gradId', label: 'grad');
+const _ulogaConfig = LookupTableConfig(path: '/api/Uloga', idKey: 'ulogaId', label: 'uloga');
 
 final gradOptionsProvider = FutureProvider.autoDispose<List<LookupItem>>((ref) async {
   final api = LookupApi(ref.watch(apiClientProvider), _gradConfig);
+  return (await api.search()).items;
+});
+
+final ulogaOptionsProvider = FutureProvider.autoDispose<List<LookupItem>>((ref) async {
+  final api = LookupApi(ref.watch(apiClientProvider), _ulogaConfig);
   return (await api.search()).items;
 });
 
@@ -48,11 +54,16 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
 
   Future<void> _openForm({Korisnik? existing}) async {
     final gradOptions = await ref.read(gradOptionsProvider.future);
+    final roleOptions = await ref.read(ulogaOptionsProvider.future);
     if (!mounted) return;
 
     final result = await showDialog<KorisnikFormData>(
       context: context,
-      builder: (context) => _KorisnikFormDialog(existing: existing, gradOptions: gradOptions),
+      builder: (context) => _KorisnikFormDialog(
+        existing: existing,
+        gradOptions: gradOptions,
+        roleNames: roleOptions.map((r) => r.naziv).toList(),
+      ),
     );
     if (result == null || !mounted) return;
 
@@ -102,6 +113,8 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
   @override
   Widget build(BuildContext context) {
     final itemsAsync = ref.watch(korisnikListProvider);
+    final ulogaOptionsAsync = ref.watch(ulogaOptionsProvider);
+    final notifier = ref.read(korisnikListProvider.notifier);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -126,6 +139,45 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
                   onPressed: () => _openForm(),
                   icon: const Icon(Icons.add),
                   label: const Text('Dodaj korisnika'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: AppTheme.toolbarActionHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 220,
+                  child: ulogaOptionsAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (e, _) => const SizedBox.shrink(),
+                    data: (options) => DropdownButtonFormField<int?>(
+                      initialValue: notifier.ulogaId,
+                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, hintText: 'Uloga'),
+                      items: [
+                        const DropdownMenuItem<int?>(value: null, child: Text('Sve uloge')),
+                        for (final uloga in options) DropdownMenuItem<int?>(value: uloga.id, child: Text(uloga.naziv)),
+                      ],
+                      onChanged: (value) => notifier.filterByUloga(value),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 200,
+                  child: DropdownButtonFormField<bool?>(
+                    initialValue: notifier.aktivan,
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, hintText: 'Status'),
+                    items: const [
+                      DropdownMenuItem<bool?>(value: null, child: Text('Svi')),
+                      DropdownMenuItem<bool?>(value: true, child: Text('Aktivan')),
+                      DropdownMenuItem<bool?>(value: false, child: Text('Neaktivan')),
+                    ],
+                    onChanged: (value) => notifier.filterByAktivan(value),
+                  ),
                 ),
               ],
             ),
@@ -197,10 +249,11 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
 }
 
 class _KorisnikFormDialog extends StatefulWidget {
-  const _KorisnikFormDialog({this.existing, required this.gradOptions});
+  const _KorisnikFormDialog({this.existing, required this.gradOptions, required this.roleNames});
 
   final Korisnik? existing;
   final List<LookupItem> gradOptions;
+  final List<String> roleNames;
 
   @override
   State<_KorisnikFormDialog> createState() => _KorisnikFormDialogState();
@@ -428,7 +481,7 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
               Wrap(
                 spacing: 8,
                 children: [
-                  for (final role in roleNames)
+                  for (final role in widget.roleNames)
                     FilterChip(
                       label: Text(role),
                       selected: _selectedRoles.contains(role),

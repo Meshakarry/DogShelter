@@ -243,19 +243,21 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
       title: const Text('Otkaži posjetu'),
       content: SizedBox(
         width: double.maxFinite,
-        child: LabeledField(
-          label: 'Razlog otkazivanja',
-          child: TextField(
-            controller: _reasonController,
-            onChanged: (_) {
-              if (_error != null) setState(() => _error = null);
-            },
-            maxLines: 3,
-            maxLength: 1000,
-            decoration: InputDecoration(
-              hintText: 'Unesite razlog otkazivanja',
-              border: const OutlineInputBorder(),
-              errorText: _error,
+        child: SingleChildScrollView(
+          child: LabeledField(
+            label: 'Razlog otkazivanja',
+            child: TextField(
+              controller: _reasonController,
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+              maxLines: 3,
+              maxLength: 1000,
+              decoration: InputDecoration(
+                hintText: 'Unesite razlog otkazivanja',
+                border: const OutlineInputBorder(),
+                errorText: _error,
+              ),
             ),
           ),
         ),

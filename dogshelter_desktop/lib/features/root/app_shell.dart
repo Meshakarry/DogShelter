@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/auth/domain/korisnik.dart';
+import 'package:dogshelter_shared/notifications/application/notifications_providers.dart';
 import '../../core/app_theme.dart';
 
 class AppShell extends ConsumerWidget {
@@ -136,6 +137,25 @@ class _Sidebar extends StatelessWidget {
   }
 }
 
+class _NotificationsBell extends ConsumerWidget {
+  const _NotificationsBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(unreadNotificationCountProvider).valueOrNull ?? 0;
+
+    return IconButton(
+      tooltip: 'Notifikacije',
+      onPressed: () => context.go('/notifikacije'),
+      icon: Badge(
+        label: Text('$unreadCount'),
+        isLabelVisible: unreadCount > 0,
+        child: const Icon(Icons.notifications_outlined),
+      ),
+    );
+  }
+}
+
 class _TopBar extends ConsumerWidget {
   const _TopBar({required this.title, required this.korisnik});
 
@@ -152,6 +172,8 @@ class _TopBar extends ConsumerWidget {
         children: [
           Text(title, style: Theme.of(context).textTheme.titleLarge),
           const Spacer(),
+          _NotificationsBell(),
+          const SizedBox(width: 12),
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'odjava') {

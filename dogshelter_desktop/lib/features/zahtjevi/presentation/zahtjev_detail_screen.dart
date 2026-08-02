@@ -194,7 +194,7 @@ class ZahtjevDetailScreen extends ConsumerWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Razlog odbijanja',
+                                        zahtjev.statusZahtjevaNaziv == 'Otkazan' ? 'Razlog otkazivanja' : 'Razlog odbijanja',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Theme.of(context).colorScheme.onErrorContainer,
@@ -210,31 +210,40 @@ class ZahtjevDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ],
-                            if (isPending) ...[
-                              const SizedBox(height: 28),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () => _odbij(context, ref, zahtjev),
-                                      icon: Icon(
-                                        Icons.cancel_outlined,
-                                        color: zahtjevStatusColors('Odbijen').foreground,
-                                      ),
-                                      label: const Text('Odbij'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: () => _odobri(context, ref, zahtjev),
-                                      icon: const Icon(Icons.check_circle_outline),
-                                      label: const Text('Odobri'),
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 28),
+                            if (!isPending)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'Zahtjev je već obrađen (status: ${zahtjev.statusZahtjevaNaziv}) i ne može se ponovo odobriti niti odbiti.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                ),
                               ),
-                            ],
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: isPending ? () => _odbij(context, ref, zahtjev) : null,
+                                    icon: Icon(
+                                      Icons.cancel_outlined,
+                                      color: isPending ? zahtjevStatusColors('Odbijen').foreground : null,
+                                    ),
+                                    label: const Text('Odbij'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: isPending ? () => _odobri(context, ref, zahtjev) : null,
+                                    icon: const Icon(Icons.check_circle_outline),
+                                    label: const Text('Odobri'),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),

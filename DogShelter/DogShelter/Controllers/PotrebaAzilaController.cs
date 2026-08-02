@@ -28,17 +28,17 @@ public class PotrebaAzilaController : ControllerBase
         => await _service.GetById(ID);
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<PotrebaAzila> Insert([FromBody] PotrebaAzilaInsertRequest request)
         => await _service.Insert(request);
 
     [HttpPut("{ID:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<PotrebaAzila> Update(int ID, [FromBody] PotrebaAzilaUpdateRequest request)
         => await _service.Update(ID, request);
 
     [HttpDelete("{ID:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<bool> Delete(int ID)
         => await _service.Delete(ID);
 }

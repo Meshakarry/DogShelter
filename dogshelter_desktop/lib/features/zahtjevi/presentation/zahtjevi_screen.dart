@@ -154,18 +154,26 @@ class ZahtjeviScreen extends ConsumerWidget {
                               borderRadius: statusPillRadius,
                             ),
                             const SizedBox(width: 8),
-                            if (isPending) ...[
-                              IconButton(
-                                icon: Icon(Icons.check_circle_outline, color: zahtjevStatusColors('Odobren').foreground),
-                                tooltip: 'Odobri',
-                                onPressed: () => _odobri(context, ref, zahtjev),
+                            IconButton(
+                              icon: Icon(
+                                Icons.check_circle_outline,
+                                color: isPending ? zahtjevStatusColors('Odobren').foreground : null,
                               ),
-                              IconButton(
-                                icon: Icon(Icons.cancel_outlined, color: zahtjevStatusColors('Odbijen').foreground),
-                                tooltip: 'Odbij',
-                                onPressed: () => _odbij(context, ref, zahtjev),
+                              tooltip: isPending
+                                  ? 'Odobri'
+                                  : 'Zahtjev je već obrađen (status: ${zahtjev.statusZahtjevaNaziv}) i ne može se ponovo odobriti.',
+                              onPressed: isPending ? () => _odobri(context, ref, zahtjev) : null,
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.cancel_outlined,
+                                color: isPending ? zahtjevStatusColors('Odbijen').foreground : null,
                               ),
-                            ],
+                              tooltip: isPending
+                                  ? 'Odbij'
+                                  : 'Zahtjev je već obrađen (status: ${zahtjev.statusZahtjevaNaziv}) i ne može se ponovo odbiti.',
+                              onPressed: isPending ? () => _odbij(context, ref, zahtjev) : null,
+                            ),
                             IconButton(
                               icon: const Icon(Icons.visibility_outlined),
                               tooltip: 'Detalji',

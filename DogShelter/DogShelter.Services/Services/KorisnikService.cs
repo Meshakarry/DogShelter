@@ -28,6 +28,14 @@ namespace DogShelter.Services.Services
             if (!string.IsNullOrWhiteSpace(search.KorisnickoIme))
                 query = query.Where(k => k.KorisnickoIme.Contains(search.KorisnickoIme));
 
+            if (search.UlogaId.HasValue)
+                query = query.Where(k => k.KorisnikUlogas.Any(ku => ku.UlogaId == search.UlogaId.Value));
+
+            if (search.Aktivan.HasValue)
+                query = query.Where(k => k.Aktivan == search.Aktivan.Value);
+
+            query = query.OrderByDescending(k => k.DatumRegistracije);
+
             return await ToPagedResultAsync(query, search);
         }
 
@@ -288,12 +296,26 @@ namespace DogShelter.Services.Services
                 ?? throw new NotFoundException("Korisnik nije pronađen.");
 
             var oldPath = entity.SlikaPutanja;
-            entity.SlikaPutanja = await _fileUpload.SaveImageAsync(file, "korisnici");
+            entity.SlikaPutanja = await _fileUpload.SavePrivateImageAsync(file, "korisnici");
             await _context.SaveChangesAsync();
 
-            _fileUpload.DeleteImage(oldPath);
+            _fileUpload.DeletePrivateImage(oldPath);
 
             return await GetById(userId);
+        }
+
+        public async Task<(string FullPath, string ContentType)> GetAvatarFileAsync(int id, int callerId, bool isAdmin)
+        {
+            if (!isAdmin && id != callerId)
+                throw new ForbiddenException("Nemate pristup ovoj slici.");
+
+            var entity = await _context.Korisniks.FindAsync(id)
+                ?? throw new NotFoundException("Korisnik nije pronađen.");
+
+            var fullPath = _fileUpload.GetPrivateFilePath(entity.SlikaPutanja)
+                ?? throw new NotFoundException("Korisnik nema postavljenu sliku.");
+
+            return (fullPath, _fileUpload.GetContentType(fullPath));
         }
 
         public static string HashPassword(string password)

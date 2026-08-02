@@ -68,8 +68,8 @@ public class PosjetaService : IPosjetaService
         if (request.DatumVrijeme <= DateTime.UtcNow)
             throw new ValidationException("Datum i vrijeme posjete moraju biti u budućnosti.", nameof(request.DatumVrijeme), "Odaberite termin u budućnosti.");
 
-        if (request.PasId.HasValue && !await _context.Pas.AnyAsync(p => p.PasId == request.PasId.Value))
-            throw new ValidationException("Odabrani pas ne postoji.", nameof(request.PasId), "Pas ne postoji.");
+        if (request.PasId.HasValue)
+            await EnsurePasAvailableForVisitAsync(request.PasId.Value);
 
         await EnsureSlotAvailableAsync(request.DatumVrijeme);
 
@@ -87,6 +87,20 @@ public class PosjetaService : IPosjetaService
         };
 
         _context.Posjeta.Add(entity);
+
+        _notifikacijaService.StageCreate(
+            korisnikId,
+            NotifikacijaTipovi.PosjetaZakazana,
+            "Posjeta zakazana",
+            $"Vaša posjeta za {request.DatumVrijeme:dd.MM.yyyy. HH:mm} je zaprimljena i čeka potvrdu.",
+            entity.PosjetaId);
+        await _notifikacijaService.StageCreateForRoleAsync(
+            RoleNames.Admin,
+            NotifikacijaTipovi.PosjetaZakazana,
+            "Nova posjeta zakazana",
+            $"Korisnik je zakazao posjetu za {request.DatumVrijeme:dd.MM.yyyy. HH:mm}.",
+            entity.PosjetaId);
+
         await _context.SaveChangesAsync();
 
         return await GetById(entity.PosjetaId);
@@ -97,8 +111,8 @@ public class PosjetaService : IPosjetaService
         if (!await _context.Korisniks.AnyAsync(k => k.KorisnikId == request.KorisnikId))
             throw new ValidationException("Odabrani korisnik ne postoji.", nameof(request.KorisnikId), "Korisnik ne postoji.");
 
-        if (request.PasId.HasValue && !await _context.Pas.AnyAsync(p => p.PasId == request.PasId.Value))
-            throw new ValidationException("Odabrani pas ne postoji.", nameof(request.PasId), "Pas ne postoji.");
+        if (request.PasId.HasValue)
+            await EnsurePasAvailableForVisitAsync(request.PasId.Value);
 
         await EnsureSlotAvailableAsync(request.DatumVrijeme);
 
@@ -211,6 +225,15 @@ public class PosjetaService : IPosjetaService
     }
 
     private static readonly string[] AktivniStatusi = [StatusPosjeteNazivi.NaCekanju, StatusPosjeteNazivi.Potvrdjena];
+
+    private async Task EnsurePasAvailableForVisitAsync(int pasId)
+    {
+        var pas = await _context.Pas.Include(p => p.StatusPsa).FirstOrDefaultAsync(p => p.PasId == pasId)
+            ?? throw new ValidationException("Odabrani pas ne postoji.", nameof(pasId), "Pas ne postoji.");
+
+        if (pas.StatusPsa.Naziv == StatusPsaNazivi.Udomljen)
+            throw new BusinessException($"Pas \"{pas.Naziv}\" je već udomljen i nije moguće zakazati posjetu za njega.");
+    }
 
     private async Task EnsureSlotAvailableAsync(DateTime datumVrijeme)
     {

@@ -56,6 +56,15 @@ class ZahtjevZaUdomljavanjeApi {
     return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
   }
 
+  /// Flips the request to Otkazan with a required reason - the owning user can withdraw their
+  /// own pending request, or an admin can cancel it; the backend enforces ownership.
+  Future<ZahtjevZaUdomljavanje> otkazi(int id, {required String razlogOtkazivanja}) async {
+    final json = await _client.post('/api/ZahtjevZaUdomljavanje/$id/otkazi', body: {
+      'razlogOtkazivanja': razlogOtkazivanja,
+    });
+    return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
+  }
+
   // Small lookup table, well under the server's 100-row page cap, so a single request
   // returns the full list.
   Future<List<StatusZahtjeva>> getStatusi() async {

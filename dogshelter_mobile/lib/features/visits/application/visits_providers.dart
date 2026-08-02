@@ -14,10 +14,11 @@ final statusPosjeteLookupProvider = FutureProvider<List<StatusPosjete>>((ref) {
 });
 
 // Backs the optional dog picker in the general-visit booking sheet - a single pageSize=100
-// request covers the full dog list for the dropdown.
+// request covers the full dog list for the dropdown. Excludes already-adopted dogs - the backend
+// rejects booking a visit for one anyway, so offering them in the picker would just be a dead end.
 final dogPickerOptionsProvider = FutureProvider<List<PasListItem>>((ref) async {
   final result = await ref.watch(dogsApiProvider).getDogs(page: 1, pageSize: 100);
-  return result.items;
+  return result.items.where((dog) => dog.statusNaziv != 'Udomljen').toList();
 });
 
 // autoDispose so re-opening the booking sheet always re-checks fresh rather than reusing a stale

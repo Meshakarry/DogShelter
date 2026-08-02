@@ -234,30 +234,48 @@ class PosjetaDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ],
-                            if (naziv == _naCekanju || naziv == _potvrdjena) ...[
-                              const SizedBox(height: 28),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () => _otkazi(context, ref, posjeta),
-                                      icon: Icon(Icons.cancel_outlined, color: posjetaStatusColors('Otkazana').foreground),
-                                      label: const Text('Otkaži'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: () => naziv == _naCekanju
-                                          ? _potvrdi(context, ref, posjeta)
-                                          : _zavrsi(context, ref, posjeta),
-                                      icon: Icon(naziv == _naCekanju ? Icons.check_circle_outline : Icons.flag_circle_outlined),
-                                      label: Text(naziv == _naCekanju ? 'Potvrdi' : 'Završi'),
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 28),
+                            if (naziv != _naCekanju && naziv != _potvrdjena)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'Posjeta je već obrađena (status: $naziv) i ne može se dalje mijenjati.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                ),
                               ),
-                            ],
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: (naziv == _naCekanju || naziv == _potvrdjena)
+                                        ? () => _otkazi(context, ref, posjeta)
+                                        : null,
+                                    icon: Icon(
+                                      Icons.cancel_outlined,
+                                      color: (naziv == _naCekanju || naziv == _potvrdjena)
+                                          ? posjetaStatusColors('Otkazana').foreground
+                                          : null,
+                                    ),
+                                    label: const Text('Otkaži'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: switch (naziv) {
+                                      _naCekanju => () => _potvrdi(context, ref, posjeta),
+                                      _potvrdjena => () => _zavrsi(context, ref, posjeta),
+                                      _ => null,
+                                    },
+                                    icon: Icon(naziv == _potvrdjena ? Icons.flag_circle_outlined : Icons.check_circle_outline),
+                                    label: Text(naziv == _potvrdjena ? 'Završi' : 'Potvrdi'),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),

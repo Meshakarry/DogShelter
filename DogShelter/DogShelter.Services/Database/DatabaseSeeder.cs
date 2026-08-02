@@ -118,7 +118,7 @@ public static class DatabaseSeeder
 
     private static async Task EnsureStatusZahtjevaAsync(DogShelterContext context, ILogger logger)
     {
-        var names = new[] { StatusZahtjevaNazivi.NaCekanju, StatusZahtjevaNazivi.Odobren, StatusZahtjevaNazivi.Odbijen };
+        var names = new[] { StatusZahtjevaNazivi.NaCekanju, StatusZahtjevaNazivi.Odobren, StatusZahtjevaNazivi.Odbijen, StatusZahtjevaNazivi.Otkazan };
         foreach (var naziv in names)
         {
             if (!await context.StatusZahtjevas.AnyAsync(s => s.Naziv == naziv))

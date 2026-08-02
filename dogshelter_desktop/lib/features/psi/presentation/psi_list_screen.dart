@@ -37,6 +37,26 @@ class _PsiListScreenState extends ConsumerState<PsiListScreen> {
     );
   }
 
+  Future<void> _openCreateForm() async {
+    final lookups = await ref.read(psiFormLookupsProvider.future);
+    if (!mounted) return;
+
+    final missing = [
+      if (lookups.rase.isEmpty) 'rase',
+      if (lookups.statusi.isEmpty) 'status psa',
+      if (lookups.velicine.isEmpty) 'veličine psa',
+    ];
+    if (missing.isNotEmpty) {
+      _showMessage(
+        'Prije dodavanja psa morate u Postavke dodati barem jednu stavku za: ${missing.join(', ')}.',
+        isError: true,
+      );
+      return;
+    }
+
+    if (mounted) context.go('/psi/novi');
+  }
+
   Future<void> _confirmDelete(PasListItem item) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -84,7 +104,7 @@ class _PsiListScreenState extends ConsumerState<PsiListScreen> {
                 const SizedBox(width: 12),
                 FilledButton.icon(
                   style: AppTheme.toolbarActionButtonStyle,
-                  onPressed: () => context.go('/psi/novi'),
+                  onPressed: _openCreateForm,
                   icon: const Icon(Icons.add),
                   label: const Text('Dodaj psa'),
                 ),

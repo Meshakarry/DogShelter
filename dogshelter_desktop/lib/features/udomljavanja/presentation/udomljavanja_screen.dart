@@ -16,11 +16,61 @@ class UdomljavanjaScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(udomljavanjeListProvider);
 
+    final notifier = ref.read(udomljavanjeListProvider.notifier);
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 200,
+                child: _DateInputField(
+                  value: notifier.datumOd,
+                  hintText: 'Datum od',
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: notifier.datumOd ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      notifier.filterByDateRange(datumOd: picked, datumDo: notifier.datumDo);
+                    }
+                  },
+                  onClear: notifier.datumOd == null
+                      ? null
+                      : () => notifier.filterByDateRange(datumOd: null, datumDo: notifier.datumDo),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 200,
+                child: _DateInputField(
+                  value: notifier.datumDo,
+                  hintText: 'Datum do',
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: notifier.datumDo ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      notifier.filterByDateRange(datumOd: notifier.datumOd, datumDo: picked);
+                    }
+                  },
+                  onClear: notifier.datumDo == null
+                      ? null
+                      : () => notifier.filterByDateRange(datumOd: notifier.datumOd, datumDo: null),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           Expanded(
             child: itemsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -87,6 +137,35 @@ class UdomljavanjaScreen extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _DateInputField extends StatelessWidget {
+  const _DateInputField({required this.value, required this.hintText, required this.onTap, this.onClear});
+
+  final DateTime? value;
+  final String hintText;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          isDense: true,
+          suffixIcon: onClear != null
+              ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: onClear)
+              : const Icon(Icons.calendar_today_outlined, size: 18),
+        ),
+        child: Text(
+          value == null ? hintText : formatDate(value!),
+          style: value == null ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant) : null,
+        ),
       ),
     );
   }

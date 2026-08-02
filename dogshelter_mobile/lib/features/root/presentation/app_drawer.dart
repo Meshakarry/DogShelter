@@ -15,6 +15,7 @@ class AppDrawer extends ConsumerWidget {
     final korisnik = ref.watch(authNotifierProvider).korisnik;
     final isVolonter = korisnik?.hasRole('Volonter') ?? false;
     final avatarUrl = resolveImageUrl(korisnik?.slikaPutanja, Environment.apiBaseUrl);
+    final authToken = ref.watch(authTokenHolderProvider).token;
 
     return Drawer(
       child: SafeArea(
@@ -32,8 +33,12 @@ class AppDrawer extends ConsumerWidget {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: const Color(0xFFE0E0E0),
-                          backgroundImage:
-                              avatarUrl == null ? null : CachedNetworkImageProvider(avatarUrl),
+                          backgroundImage: avatarUrl == null
+                              ? null
+                              : CachedNetworkImageProvider(
+                                  avatarUrl,
+                                  headers: authToken == null ? null : {'Authorization': 'Bearer $authToken'},
+                                ),
                           child: avatarUrl == null ? const Icon(Icons.person) : null,
                         ),
                         const SizedBox(width: 12),

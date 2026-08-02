@@ -2,8 +2,11 @@ namespace DogShelter.Services.Constants;
 
 public static class NotifikacijaTipovi
 {
+    public const string ZahtjevPodnesen = "ZahtjevPodnesen";
     public const string ZahtjevOdobren = "ZahtjevOdobren";
     public const string ZahtjevOdbijen = "ZahtjevOdbijen";
+    public const string ZahtjevOtkazan = "ZahtjevOtkazan";
+    public const string PosjetaZakazana = "PosjetaZakazana";
     public const string PosjetaPotvrdjena = "PosjetaPotvrdjena";
     public const string PosjetaOtkazana = "PosjetaOtkazana";
     public const string PosjetaZavrsena = "PosjetaZavrsena";
