@@ -31,7 +31,7 @@ namespace DogShelter.Services.Services
 
         public virtual async Task<TModel> Update(int ID, TUpdate request)
         {
-            var entity = _context.Set<TDatabase>().Find(ID);
+            var entity = await _context.Set<TDatabase>().FindAsync(ID);
             if (entity == null)
                 throw new NotFoundException($"Entity with ID {ID} not found.");
             _context.Set<TDatabase>().Attach(entity);
@@ -46,7 +46,7 @@ namespace DogShelter.Services.Services
 
         public virtual async Task<bool> Delete(int ID)
         {
-            var entity = _context.Set<TDatabase>().Find(ID);
+            var entity = await _context.Set<TDatabase>().FindAsync(ID);
             if (entity == null)
                 throw new NotFoundException($"Entity with ID {ID} not found.");
             try

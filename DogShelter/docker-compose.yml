@@ -68,6 +68,7 @@ services:
       RabbitMQ__Password: ${RabbitMQ__Password}
     volumes:
       - dogshelter_images:/app/wwwroot/images
+      - dogshelter_private_files:/app/PrivateFiles
     networks:
       - dogshelter_network
     depends_on:
@@ -105,6 +106,7 @@ volumes:
   sqlserverdata:
   rabbitmq_data:
   dogshelter_images:
+  dogshelter_private_files:
 
 networks:
   dogshelter_network:

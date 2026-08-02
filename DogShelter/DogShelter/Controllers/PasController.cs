@@ -43,7 +43,7 @@ public class PasController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     [Consumes("multipart/form-data")]
     public async Task<Model.Pas> Insert([FromForm] PasInsertRequest request)
     {
@@ -52,7 +52,7 @@ public class PasController : ControllerBase
     }
 
     [HttpPut("{ID:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     [Consumes("multipart/form-data")]
     public async Task<Model.Pas> Update(int ID, [FromForm] PasUpdateRequest request)
     {
@@ -61,18 +61,18 @@ public class PasController : ControllerBase
     }
 
     [HttpDelete("{ID:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<bool> Delete(int ID)
         => await _pasService.Delete(ID);
 
     [HttpPost("{pasId:int}/slike")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     [Consumes("multipart/form-data")]
     public async Task<Model.SlikaPsa> AddSlika(int pasId, IFormFile slika, [FromForm] int redniBroj = 0)
         => await _pasService.AddSlika(pasId, slika, redniBroj);
 
     [HttpDelete("{pasId:int}/slike/{slikaId:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<bool> RemoveSlika(int pasId, int slikaId)
         => await _pasService.RemoveSlika(slikaId);
 }

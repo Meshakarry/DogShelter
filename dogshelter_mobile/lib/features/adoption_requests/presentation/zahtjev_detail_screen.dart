@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../application/adoption_requests_providers.dart';
 import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/zahtjev_za_udomljavanje.dart';
 import 'zahtjev_status_style.dart';
@@ -31,15 +32,50 @@ class ZahtjevDetailScreen extends ConsumerWidget {
   }
 }
 
-class _ZahtjevDetailBody extends StatelessWidget {
+class _ZahtjevDetailBody extends ConsumerStatefulWidget {
   const _ZahtjevDetailBody({required this.zahtjev});
 
   final ZahtjevZaUdomljavanje zahtjev;
 
   @override
+  ConsumerState<_ZahtjevDetailBody> createState() => _ZahtjevDetailBodyState();
+}
+
+class _ZahtjevDetailBodyState extends ConsumerState<_ZahtjevDetailBody> {
+  bool _isCancelling = false;
+
+  bool get _canCancel => widget.zahtjev.statusZahtjevaNaziv?.toLowerCase() == 'na čekanju';
+
+  Future<void> _cancel() async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => const _CancelReasonDialog(),
+    );
+    if (reason == null || !mounted) return;
+
+    setState(() => _isCancelling = true);
+    try {
+      await ref.read(zahtjevApiProvider).otkazi(widget.zahtjev.zahtjevZaUdomljavanjeId, razlogOtkazivanja: reason);
+      ref.invalidate(zahtjevDetailProvider(widget.zahtjev.zahtjevZaUdomljavanjeId));
+      ref.read(zahtjevListProvider.notifier).loadFirstPage();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Zahtjev je otkazan.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final zahtjev = widget.zahtjev;
     final imageUrl = resolveImageUrl(zahtjev.pasSlikaNaslovna, Environment.apiBaseUrl);
     final isOdbijen = zahtjev.statusZahtjevaNaziv?.toLowerCase() == 'odbijen';
+    final isOtkazan = zahtjev.statusZahtjevaNaziv?.toLowerCase() == 'otkazan';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -98,7 +134,7 @@ class _ZahtjevDetailBody extends StatelessWidget {
             const SizedBox(height: 4),
             Text(zahtjev.napomena!),
           ],
-          if (isOdbijen && zahtjev.razlogOdbijanja != null && zahtjev.razlogOdbijanja!.isNotEmpty) ...[
+          if ((isOdbijen || isOtkazan) && zahtjev.razlogOdbijanja != null && zahtjev.razlogOdbijanja!.isNotEmpty) ...[
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -112,7 +148,7 @@ class _ZahtjevDetailBody extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Razlog odbijanja',
+                    isOtkazan ? 'Razlog otkazivanja' : 'Razlog odbijanja',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onErrorContainer,
@@ -127,8 +163,82 @@ class _ZahtjevDetailBody extends StatelessWidget {
               ),
             ),
           ],
+          if (_canCancel) ...[
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _isCancelling ? null : _cancel,
+              style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+              icon: _isCancelling
+                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.cancel_outlined),
+              label: const Text('Otkaži zahtjev'),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// Confirmation dialog for withdrawing a pending Zahtjev - the reason is required, so unlike a
+/// plain AlertDialog this validates before closing and shows the error below the field, only
+/// popping with the trimmed reason once it's non-empty. Mirrors visits' _CancelReasonDialog.
+class _CancelReasonDialog extends StatefulWidget {
+  const _CancelReasonDialog();
+
+  @override
+  State<_CancelReasonDialog> createState() => _CancelReasonDialogState();
+}
+
+class _CancelReasonDialogState extends State<_CancelReasonDialog> {
+  final _reasonController = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final reason = _reasonController.text.trim();
+    if (reason.isEmpty) {
+      setState(() => _error = 'Razlog otkazivanja je obavezan.');
+      return;
+    }
+    Navigator.of(context).pop(reason);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      title: const Text('Otkaži zahtjev'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: LabeledField(
+            label: 'Razlog otkazivanja',
+            child: TextField(
+              controller: _reasonController,
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+              maxLines: 3,
+              maxLength: 1000,
+              decoration: InputDecoration(
+                hintText: 'Unesite razlog otkazivanja',
+                border: const OutlineInputBorder(),
+                errorText: _error,
+              ),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Odustani')),
+        FilledButton(onPressed: _confirm, child: const Text('Otkaži zahtjev')),
+      ],
     );
   }
 }

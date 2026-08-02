@@ -50,12 +50,12 @@ public class PosjetaController : ControllerBase
         => await _service.Insert(request, GetCurrentKorisnikId());
 
     [HttpPost("admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<Posjeta> InsertAdmin([FromBody] PosjetaAdminInsertRequest request)
         => await _service.InsertAdmin(request, GetCurrentKorisnikId());
 
     [HttpPost("{ID:int}/potvrdi")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<Posjeta> Potvrdi(int ID)
         => await _service.Potvrdi(ID, GetCurrentKorisnikId());
 
@@ -65,7 +65,7 @@ public class PosjetaController : ControllerBase
         => await _service.Otkazi(ID, request, GetCurrentKorisnikId(), User.IsInRole("Admin"));
 
     [HttpPost("{ID:int}/zavrsi")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<Posjeta> Zavrsi(int ID)
         => await _service.Zavrsi(ID, GetCurrentKorisnikId());
 

@@ -51,22 +51,22 @@ public class DonacijaController : ControllerBase
         => await _service.RetryPlacanje(ID, GetCurrentKorisnikId(), User.IsInRole("Admin"));
 
     [HttpPost("{ID:int}/potvrdi")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<Donacija> Potvrdi(int ID)
         => await _service.Potvrdi(ID, GetCurrentKorisnikId());
 
     [HttpPost("{ID:int}/odbij")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<Donacija> Odbij(int ID, [FromBody] DonacijaOdbijRequest request)
         => await _service.Odbij(ID, request, GetCurrentKorisnikId());
 
     [HttpPost("{ID:int}/refund")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<Donacija> Refund(int ID, [FromBody] DonacijaRefundRequest request)
         => await _service.Refund(ID, request, GetCurrentKorisnikId());
 
     [HttpGet("report")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<DonacijaIzvjestaj> Report([FromQuery] IzvjestajRequest request)
         => await _service.GenerirajIzvjestaj(request.DatumOd, request.DatumDo);
 

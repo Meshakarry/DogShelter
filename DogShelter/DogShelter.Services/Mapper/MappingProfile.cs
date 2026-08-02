@@ -10,7 +10,9 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<Database.Korisnik, Model.Korisnik>()
-            .ForMember(d => d.KorisnikUloge, o => o.MapFrom(s => s.KorisnikUlogas));
+            .ForMember(d => d.KorisnikUloge, o => o.MapFrom(s => s.KorisnikUlogas))
+            .ForMember(d => d.SlikaPutanja, o => o.MapFrom(s =>
+                string.IsNullOrEmpty(s.SlikaPutanja) ? null : $"/api/Korisnik/{s.KorisnikId}/avatar"));
 
         CreateMap<Database.Korisnik, Model.Requests.KorisnikInsertRequest>();
 
@@ -172,6 +174,7 @@ public class MappingProfile : Profile
         CreateMap<Model.Requests.LookupUpsertRequest, Database.TipAktivnosti>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.JedinicaMjere>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.PrioritetPotrebe>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.Uloga>();
         CreateMap<Model.Requests.KategorijaDonacijeUpsertRequest, Database.KategorijaDonacije>();
     }
 }

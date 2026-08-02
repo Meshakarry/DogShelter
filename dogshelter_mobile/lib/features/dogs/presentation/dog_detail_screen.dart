@@ -213,19 +213,30 @@ class _AdoptRequestBar extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 8),
+          if (!_isAvailable)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Posjeta nije moguća jer je pas već udomljen.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
+              ),
+            ),
           OutlinedButton.icon(
-            onPressed: () async {
-              final booked = await context.push<bool>(
-                '/posjete/nova',
-                extra: BookVisitArgs(pasId: dog.pasId, pasNaziv: dog.naziv),
-              );
-              if (booked == true && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Posjeta je zakazana.')),
-                );
-                context.go('/posjete');
-              }
-            },
+            onPressed: !_isAvailable
+                ? null
+                : () async {
+                    final booked = await context.push<bool>(
+                      '/posjete/nova',
+                      extra: BookVisitArgs(pasId: dog.pasId, pasNaziv: dog.naziv),
+                    );
+                    if (booked == true && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Posjeta je zakazana.')),
+                      );
+                      context.go('/posjete');
+                    }
+                  },
             icon: const Icon(Icons.event),
             label: const Text('Zakaži posjetu'),
           ),

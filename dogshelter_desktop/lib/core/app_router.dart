@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/auth/domain/auth_state.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/splash_screen.dart';
 import '../features/korisnici/presentation/korisnici_screen.dart';
+import '../features/notifikacije/presentation/notifikacije_screen.dart';
 import '../features/pocetna/presentation/pocetna_screen.dart';
 import '../features/postavke/domain/lookup_item.dart';
 import '../features/postavke/presentation/grad_crud_screen.dart';
@@ -59,6 +60,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(path: '/pocetna', builder: (context, state) => const PocetnaScreen()),
+          GoRoute(path: '/notifikacije', builder: (context, state) => const NotifikacijeScreen()),
           GoRoute(path: '/psi', builder: (context, state) => const PsiListScreen()),
           GoRoute(path: '/psi/novi', builder: (context, state) => const PsiFormScreen()),
           GoRoute(
@@ -186,6 +188,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               title: 'Status donacije',
               child: SimpleLookupCrudScreen(
                 config: LookupTableConfig(path: '/api/StatusDonacije', idKey: 'statusDonacijeId', label: 'status donacije'),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/postavke/uloge',
+            builder: (context, state) => const LookupDetailPage(
+              title: 'Uloge korisnika',
+              child: SimpleLookupCrudScreen(
+                config: LookupTableConfig(path: '/api/Uloga', idKey: 'ulogaId', label: 'uloga'),
               ),
             ),
           ),

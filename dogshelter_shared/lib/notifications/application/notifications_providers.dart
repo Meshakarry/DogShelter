@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -119,8 +119,8 @@ final notifikacijaListProvider = StateNotifierProvider<NotifikacijaListNotifier,
   return NotifikacijaListNotifier(ref.watch(notificationsApiProvider), ref);
 });
 
-/// Polls the unread count every 30s so the app-bar badge stays fresh without the user having to
-/// open the notifications list. Only polls while logged in - `.select` means this provider (and
+/// Polls the unread count every 30s so the app-bar/topbar badge stays fresh without the user having
+/// to open the notifications list. Only polls while logged in - `.select` means this provider (and
 /// its timer) is only rebuilt when isLoggedIn actually flips, not on every token refresh.
 class UnreadCountNotifier extends StateNotifier<AsyncValue<int>> {
   UnreadCountNotifier(this._api, {required bool isLoggedIn}) : super(const AsyncValue.data(0)) {

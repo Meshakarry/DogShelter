@@ -1,4 +1,4 @@
-﻿import 'package:dogshelter_shared/core/api_client.dart';
+import 'package:dogshelter_shared/core/api_client.dart';
 import 'package:dogshelter_shared/core/paged_result.dart';
 import '../domain/notifikacija.dart';
 

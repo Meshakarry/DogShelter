@@ -38,6 +38,17 @@ public class NotifikacijaService : INotifikacijaService
         await _context.SaveChangesAsync();
     }
 
+    public async Task StageCreateForRoleAsync(string uloga, string tip, string naslov, string tekst, int? vezaniEntitetId = null)
+    {
+        var korisnikIds = await _context.KorisnikUlogas
+            .Where(ku => ku.Uloga.Naziv == uloga)
+            .Select(ku => ku.KorisnikId)
+            .ToListAsync();
+
+        foreach (var korisnikId in korisnikIds)
+            StageCreate(korisnikId, tip, naslov, tekst, vezaniEntitetId);
+    }
+
     public async Task<PagedResult<Model.Notifikacija>> Get(NotifikacijaSearchRequest search, int korisnikId)
     {
         var query = _context.Notifikacijas

@@ -45,14 +45,19 @@ public class ZahtjevZaUdomljavanjeController : ControllerBase
         => await _service.Insert(request, GetCurrentKorisnikId());
 
     [HttpPost("{ID:int}/odobri")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<ZahtjevZaUdomljavanje> Odobri(int ID)
         => await _service.Odobri(ID, GetCurrentKorisnikId());
 
     [HttpPost("{ID:int}/odbij")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<ZahtjevZaUdomljavanje> Odbij(int ID, [FromBody] ZahtjevZaUdomljavanjeOdbijRequest request)
         => await _service.Odbij(ID, request, GetCurrentKorisnikId());
+
+    [HttpPost("{ID:int}/otkazi")]
+    [Authorize]
+    public async Task<ZahtjevZaUdomljavanje> Otkazi(int ID, [FromBody] ZahtjevZaUdomljavanjeOtkaziRequest request)
+        => await _service.Otkazi(ID, request, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     private int GetCurrentKorisnikId()
     {

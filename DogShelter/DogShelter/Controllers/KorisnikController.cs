@@ -32,7 +32,7 @@ namespace DogShelter.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleNames.Admin)]
         public override async Task<PagedResult<Korisnik>> Get([FromQuery] KorisnikSearchRequest search)
         {
             return await _service.Get(search);
@@ -112,6 +112,18 @@ namespace DogShelter.Controllers
                 throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
 
             return await _service.UpdateMyAvatar(userId, slika);
+        }
+
+        [HttpGet("{id:int}/avatar")]
+        [Authorize]
+        public async Task<IActionResult> GetAvatar(int id)
+        {
+            var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out var callerId))
+                throw new ForbiddenException("Nemate dozvolu za pristup ovoj stranici.");
+
+            var (fullPath, contentType) = await _service.GetAvatarFileAsync(id, callerId, User.IsInRole(RoleNames.Admin));
+            return PhysicalFile(fullPath, contentType);
         }
 
         [HttpPost("Token")]

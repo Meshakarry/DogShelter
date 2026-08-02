@@ -34,6 +34,7 @@ class PostavkeScreen extends StatelessWidget {
     _PostavkeEntry(path: '/postavke/status-zahtjeva', icon: Icons.assignment_turned_in_outlined, label: 'Status zahtjeva za udomljavanje'),
     _PostavkeEntry(path: '/postavke/status-posjete', icon: Icons.event_available_outlined, label: 'Status posjete'),
     _PostavkeEntry(path: '/postavke/status-donacije', icon: Icons.receipt_long_outlined, label: 'Status donacije'),
+    _PostavkeEntry(path: '/postavke/uloge', icon: Icons.admin_panel_settings_outlined, label: 'Uloge korisnika'),
   ];
 
   @override

@@ -13,6 +13,7 @@ Color zahtjevStatusColor(String? statusNaziv) {
     case 'odobren':
       return _approvedGreen;
     case 'odbijen':
+    case 'otkazan':
       return _rejectedRed;
     default:
       return _neutralGray;

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/widgets/app_title.dart';
-import '../../notifications/application/notifications_providers.dart';
+import 'package:dogshelter_shared/notifications/application/notifications_providers.dart';
 import 'app_drawer.dart';
 
 class AppShell extends ConsumerWidget {

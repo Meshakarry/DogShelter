@@ -152,16 +152,28 @@ public class DonacijaService : IDonacijaService
             ZeljeniDatumDostave = isNovcana ? null : request.ZeljeniDatumDostave
         };
 
-        _context.Donacijas.Add(entity);
-        await _context.SaveChangesAsync();
-
         string? clientSecret = null;
-        if (isNovcana)
+
+        await using var tx = await _context.Database.BeginTransactionAsync();
+        try
         {
-            var (paymentIntentId, secret) = await _stripePaymentService.CreatePaymentIntentAsync(request.Iznos!.Value, entity.DonacijaId, korisnikId);
-            entity.StripePaymentIntentId = paymentIntentId;
+            _context.Donacijas.Add(entity);
             await _context.SaveChangesAsync();
-            clientSecret = secret;
+
+            if (isNovcana)
+            {
+                var (paymentIntentId, secret) = await _stripePaymentService.CreatePaymentIntentAsync(request.Iznos!.Value, entity.DonacijaId, korisnikId);
+                entity.StripePaymentIntentId = paymentIntentId;
+                await _context.SaveChangesAsync();
+                clientSecret = secret;
+            }
+
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
         }
 
         return new DonacijaPaymentResponse

@@ -58,9 +58,17 @@ class KorisnikAdminApi {
 
   final ApiClient _client;
 
-  Future<PagedResult<Korisnik>> search({String? korisnickoIme, int page = 1, int pageSize = 100}) async {
+  Future<PagedResult<Korisnik>> search({
+    String? korisnickoIme,
+    int? ulogaId,
+    bool? aktivan,
+    int page = 1,
+    int pageSize = 100,
+  }) async {
     final json = await _client.get('/api/Korisnik', query: {
       'korisnickoIme': (korisnickoIme == null || korisnickoIme.isEmpty) ? null : korisnickoIme,
+      'ulogaId': ulogaId,
+      'aktivan': aktivan,
       'page': page,
       'pageSize': pageSize,
     });

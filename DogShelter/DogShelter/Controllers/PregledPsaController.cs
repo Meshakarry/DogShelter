@@ -20,7 +20,7 @@ public class PregledPsaController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<PagedResult<Model.PregledPsa>> Get([FromQuery] PregledPsaSearchRequest search)
         => await _service.Get(search);
 

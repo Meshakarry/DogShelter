@@ -241,6 +241,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     ref.watch(authNotifierProvider); // rebuild on avatar/profile updates
     final korisnik = _korisnik;
     final avatarUrl = resolveImageUrl(korisnik.slikaPutanja, Environment.apiBaseUrl);
+    final authToken = ref.watch(authTokenHolderProvider).token;
 
     return SingleChildScrollView(
       controller: _scrollController,
@@ -258,7 +259,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     backgroundColor: const Color(0xFFE0E0E0),
                     backgroundImage: avatarUrl == null
                         ? null
-                        : CachedNetworkImageProvider(avatarUrl),
+                        : CachedNetworkImageProvider(
+                            avatarUrl,
+                            headers: authToken == null ? null : {'Authorization': 'Bearer $authToken'},
+                          ),
                     child: avatarUrl == null
                         ? const Icon(Icons.person, size: 48)
                         : null,

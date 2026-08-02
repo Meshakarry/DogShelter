@@ -30,7 +30,7 @@ public class ObavijestController : ControllerBase
         => await _obavijestService.GetById(ID, User.IsInRole("Admin"));
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     [Consumes("multipart/form-data")]
     public async Task<Model.Obavijest> Insert([FromForm] ObavijestInsertRequest request)
     {
@@ -43,7 +43,7 @@ public class ObavijestController : ControllerBase
     }
 
     [HttpPut("{ID:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     [Consumes("multipart/form-data")]
     public async Task<Model.Obavijest> Update(int ID, [FromForm] ObavijestUpdateRequest request)
     {
@@ -52,7 +52,7 @@ public class ObavijestController : ControllerBase
     }
 
     [HttpDelete("{ID:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<bool> Delete(int ID)
         => await _obavijestService.Delete(ID);
 }

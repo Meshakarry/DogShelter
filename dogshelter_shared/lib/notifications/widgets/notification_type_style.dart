@@ -7,7 +7,7 @@ const _warningAmber = Color(0xFFD97706);
 const _neutralGray = Color(0xFF6B7280);
 
 /// Icon + color per `Notifikacija.Tip` (mirrors backend's `NotifikacijaTipovi` constants) - purely
-/// a mobile presentation concern, the string itself is never parsed for anything else.
+/// a presentation concern, the string itself is never parsed for anything else.
 (IconData, Color) notificationTypeStyle(String tip) {
   switch (tip) {
     case 'ZahtjevOdobren':
@@ -16,6 +16,7 @@ const _neutralGray = Color(0xFF6B7280);
     case 'DonacijaUspjesna':
       return (Icons.check_circle, _successGreen);
     case 'ZahtjevOdbijen':
+    case 'ZahtjevOtkazan':
     case 'PosjetaOtkazana':
     case 'DonacijaOdbijena':
     case 'DonacijaNeuspjesna':
@@ -24,6 +25,8 @@ const _neutralGray = Color(0xFF6B7280);
       return (Icons.replay, _warningAmber);
     case 'PosjetaZavrsena':
       return (Icons.task_alt, _infoBlue);
+    case 'ZahtjevPodnesen':
+    case 'PosjetaZakazana':
     case 'DogadjajZaduzenje':
       return (Icons.event, _infoBlue);
     default:

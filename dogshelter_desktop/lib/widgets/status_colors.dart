@@ -15,6 +15,7 @@ const _blueGray = (background: Color(0xFFE2E8F0), foreground: Color(0xFF334155))
     case 'Odobren':
       return _green;
     case 'Odbijen':
+    case 'Otkazan':
       return _red;
     default:
       return _amber; // Na čekanju

@@ -31,7 +31,7 @@ public class UdomljavanjeController : ControllerBase
         => await _service.GetById(ID, GetCurrentKorisnikId(), User.IsInRole("Admin"));
 
     [HttpGet("report")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<UdomljavanjeIzvjestaj> Report([FromQuery] IzvjestajRequest request)
         => await _service.GenerirajIzvjestaj(request.DatumOd, request.DatumDo);
 
