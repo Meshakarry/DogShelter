@@ -27,9 +27,14 @@ final statusPosjeteOptionsProvider = FutureProvider.autoDispose<List<LookupItem>
 
 /// Backs the walk-in booking dialog's Korisnik dropdown - a single pageSize=100 request,
 /// same simplification as every other "small enough to list in full" picker in this app.
+/// Filtered to aktivan-only (the backend's soft-delete/anonymize path always sets Aktivan=false
+/// alongside scrambling the name/username - there's no separate "anonymized" flag, so this one
+/// check excludes both plain-deactivated and anonymized accounts in one shot) and excludes the
+/// Admin role - a walk-in visit is booked on behalf of a visiting member of the public, never
+/// the shelter's own admin account.
 final posjetaKorisnikOptionsProvider = FutureProvider.autoDispose<List<Korisnik>>((ref) async {
   final result = await ref.watch(posjetaKorisnikApiProvider).search(page: 1, pageSize: 100);
-  return result.items;
+  return result.items.where((k) => k.aktivan && !k.hasRole('Admin')).toList();
 });
 
 /// Backs the walk-in booking dialog's optional Pas dropdown - mirrors mobile's own
@@ -169,4 +174,10 @@ class PosjetaListNotifier extends StateNotifier<PosjetaListState> {
 
 final posjetaListProvider = StateNotifierProvider.autoDispose<PosjetaListNotifier, PosjetaListState>((ref) {
   return PosjetaListNotifier(ref.watch(posjetaApiProvider));
+});
+
+/// Backs the dedicated /posjete/:id detail page. Invalidated after potvrdi/otkazi/zavrsi from
+/// that page so the detail re-fetches instead of showing stale status.
+final posjetaDetailProvider = FutureProvider.autoDispose.family<Posjeta, int>((ref, id) {
+  return ref.watch(posjetaApiProvider).getPosjetaById(id);
 });

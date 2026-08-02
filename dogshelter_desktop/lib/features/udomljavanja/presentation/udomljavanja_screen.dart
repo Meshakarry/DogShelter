@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
@@ -36,6 +37,7 @@ class UdomljavanjaScreen extends ConsumerWidget {
                       final udomljavanje = items[index];
                       final imageUrl = resolveImageUrl(udomljavanje.pasSlikaNaslovna, Environment.apiBaseUrl);
                       return ListTile(
+                        onTap: () => context.go('/udomljavanja/${udomljavanje.udomljavanjeId}'),
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: SizedBox(
@@ -62,6 +64,11 @@ class UdomljavanjaScreen extends ConsumerWidget {
                         subtitle: Text(
                           'Udomljen: ${formatDate(udomljavanje.datumUdomljavanja)}'
                           '${udomljavanje.napomena != null ? ' · ${udomljavanje.napomena}' : ''}',
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.visibility_outlined),
+                          tooltip: 'Detalji',
+                          onPressed: () => context.go('/udomljavanja/${udomljavanje.udomljavanjeId}'),
                         ),
                       );
                     },

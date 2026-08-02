@@ -22,3 +22,8 @@ final udomljavanjeListProvider =
     StateNotifierProvider<UdomljavanjeListNotifier, AsyncValue<PagedResult<Udomljavanje>>>((ref) {
   return UdomljavanjeListNotifier(ref.watch(udomljavanjeApiProvider));
 });
+
+/// Backs the dedicated /udomljavanja/:id detail page.
+final udomljavanjeDetailProvider = FutureProvider.autoDispose.family<Udomljavanje, int>((ref, id) {
+  return ref.watch(udomljavanjeApiProvider).getUdomljavanjeById(id);
+});

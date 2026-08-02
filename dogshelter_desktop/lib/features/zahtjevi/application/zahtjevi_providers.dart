@@ -53,3 +53,9 @@ final zahtjevListProvider =
     StateNotifierProvider<ZahtjevListNotifier, AsyncValue<PagedResult<ZahtjevZaUdomljavanje>>>((ref) {
   return ZahtjevListNotifier(ref.watch(zahtjevZaUdomljavanjeApiProvider));
 });
+
+/// Backs the dedicated /zahtjevi/:id detail page. autoDispose + invalidated after odobri/odbij
+/// from that page so the detail re-fetches instead of showing stale status.
+final zahtjevDetailProvider = FutureProvider.autoDispose.family<ZahtjevZaUdomljavanje, int>((ref, id) {
+  return ref.watch(zahtjevZaUdomljavanjeApiProvider).getZahtjevById(id);
+});

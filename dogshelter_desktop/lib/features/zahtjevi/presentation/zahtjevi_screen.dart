@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/core/api_exception.dart';
 import 'package:dogshelter_shared/core/date_format.dart';
@@ -65,47 +66,6 @@ class ZahtjeviScreen extends ConsumerWidget {
     }
   }
 
-  void _showDetail(BuildContext context, ZahtjevZaUdomljavanje zahtjev) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Expanded(child: Text('Detalji zahtjeva')),
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'Zatvori',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DetailRow(label: 'Pas', value: zahtjev.pasNaziv ?? '-'),
-              _DetailRow(label: 'Korisnik', value: '${zahtjev.korisnikIme} ${zahtjev.korisnikPrezime}'),
-              _DetailRow(label: 'Podneseno', value: formatDate(zahtjev.datumPodnosenja)),
-              _DetailRow(label: 'Napomena', value: zahtjev.napomena ?? '-'),
-              if (zahtjev.datumObrade != null) ...[
-                const Divider(height: 24),
-                _DetailRow(label: 'Obrađeno', value: formatDate(zahtjev.datumObrade!)),
-                _DetailRow(
-                  label: 'Obradio',
-                  value: '${zahtjev.obradioKorisnikIme ?? ''} ${zahtjev.obradioKorisnikPrezime ?? ''}'.trim(),
-                ),
-                if (zahtjev.razlogOdbijanja != null)
-                  _DetailRow(label: 'Razlog odbijanja', value: zahtjev.razlogOdbijanja!),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(zahtjevListProvider);
@@ -161,6 +121,7 @@ class ZahtjeviScreen extends ConsumerWidget {
                       final colors = zahtjevStatusColors(zahtjev.statusZahtjevaNaziv ?? '');
                       final isPending = zahtjev.statusZahtjevaNaziv == _naCekanju;
                       return ListTile(
+                        onTap: () => context.go('/zahtjevi/${zahtjev.zahtjevZaUdomljavanjeId}'),
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: SizedBox(
@@ -195,12 +156,12 @@ class ZahtjeviScreen extends ConsumerWidget {
                             const SizedBox(width: 8),
                             if (isPending) ...[
                               IconButton(
-                                icon: const Icon(Icons.check_circle_outline),
+                                icon: Icon(Icons.check_circle_outline, color: zahtjevStatusColors('Odobren').foreground),
                                 tooltip: 'Odobri',
                                 onPressed: () => _odobri(context, ref, zahtjev),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.cancel_outlined),
+                                icon: Icon(Icons.cancel_outlined, color: zahtjevStatusColors('Odbijen').foreground),
                                 tooltip: 'Odbij',
                                 onPressed: () => _odbij(context, ref, zahtjev),
                               ),
@@ -208,7 +169,7 @@ class ZahtjeviScreen extends ConsumerWidget {
                             IconButton(
                               icon: const Icon(Icons.visibility_outlined),
                               tooltip: 'Detalji',
-                              onPressed: () => _showDetail(context, zahtjev),
+                              onPressed: () => context.go('/zahtjevi/${zahtjev.zahtjevZaUdomljavanjeId}'),
                             ),
                           ],
                         ),
@@ -228,27 +189,6 @@ class ZahtjeviScreen extends ConsumerWidget {
               onPageChanged: (page) => notifier.goToPage(page),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
-          Expanded(child: Text(value)),
         ],
       ),
     );

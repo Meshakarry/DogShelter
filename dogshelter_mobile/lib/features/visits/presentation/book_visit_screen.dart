@@ -53,8 +53,7 @@ class _BookVisitScreenState extends ConsumerState<BookVisitScreen> with FormErro
   void initState() {
     super.initState();
     _selectedPasId = widget.pasId;
-    final now = DateTime.now();
-    _firstDate = DateTime(now.year, now.month, now.day);
+    _firstDate = firstBookableVisitDate();
     _lastDate = _firstDate.add(const Duration(days: 365));
   }
 
@@ -69,18 +68,7 @@ class _BookVisitScreenState extends ConsumerState<BookVisitScreen> with FormErro
     if (_apiError != null) setState(() => _apiError = null);
   }
 
-  List<String> get _availableTimeSlots {
-    final date = _selectedDate;
-    if (date == null) return shelterVisitTimeSlots;
-    final now = DateTime.now();
-    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
-    if (!isToday) return shelterVisitTimeSlots;
-    return shelterVisitTimeSlots.where((slot) {
-      final parts = slot.split(':');
-      final slotTime = DateTime(date.year, date.month, date.day, int.parse(parts[0]), int.parse(parts[1]));
-      return slotTime.isAfter(now);
-    }).toList();
-  }
+  List<String> get _availableTimeSlots => availableTimeSlots(_selectedDate);
 
   DateTime? get _datumVrijeme {
     final date = _selectedDate;

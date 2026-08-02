@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/auth/domain/korisnik.dart';
 import 'package:dogshelter_shared/core/api_exception.dart';
@@ -20,6 +21,8 @@ import '../application/posjete_providers.dart';
 
 const _naCekanju = 'Na čekanju';
 const _potvrdjena = 'Potvrđena';
+const _zavrsena = 'Završena';
+const _otkazana = 'Otkazana';
 
 String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
@@ -97,45 +100,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
   }
 
   void _showDetail(Posjeta posjeta) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Expanded(child: Text('Detalji posjete')),
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'Zatvori',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DetailRow(label: 'Korisnik', value: '${posjeta.korisnikIme} ${posjeta.korisnikPrezime}'),
-              _DetailRow(label: 'Pas', value: posjeta.pasNaziv ?? 'Opća posjeta'),
-              _DetailRow(label: 'Termin', value: formatDateTime(posjeta.datumVrijeme)),
-              _DetailRow(label: 'Kreirano', value: formatDateTime(posjeta.datumKreiranja)),
-              _DetailRow(label: 'Napomena', value: posjeta.napomena ?? '-'),
-              if (posjeta.datumObrade != null) ...[
-                const Divider(height: 24),
-                _DetailRow(label: 'Obrađeno', value: formatDateTime(posjeta.datumObrade!)),
-                _DetailRow(
-                  label: 'Obradio',
-                  value: '${posjeta.obradioKorisnikIme ?? ''} ${posjeta.obradioKorisnikPrezime ?? ''}'.trim(),
-                ),
-                if (posjeta.razlogOtkazivanja != null)
-                  _DetailRow(label: 'Razlog otkazivanja', value: posjeta.razlogOtkazivanja!),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
+    context.go('/posjete/${posjeta.posjetaId}');
   }
 
   Future<void> _openBookingDialog() async {
@@ -261,6 +226,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                                 final colors = posjetaStatusColors(posjeta.statusPosjeteNaziv ?? '');
                                 final naziv = posjeta.statusPosjeteNaziv;
                                 return ListTile(
+                                  onTap: () => _showDetail(posjeta),
                                   leading: ClipRRect(
                                     borderRadius: BorderRadius.circular(6),
                                     child: SizedBox(
@@ -297,23 +263,23 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                                       const SizedBox(width: 8),
                                       if (naziv == _naCekanju) ...[
                                         IconButton(
-                                          icon: const Icon(Icons.check_circle_outline),
+                                          icon: Icon(Icons.check_circle_outline, color: posjetaStatusColors(_potvrdjena).foreground),
                                           tooltip: 'Potvrdi',
                                           onPressed: () => _potvrdi(posjeta),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.cancel_outlined),
+                                          icon: Icon(Icons.cancel_outlined, color: posjetaStatusColors(_otkazana).foreground),
                                           tooltip: 'Otkaži',
                                           onPressed: () => _otkazi(posjeta),
                                         ),
                                       ] else if (naziv == _potvrdjena) ...[
                                         IconButton(
-                                          icon: const Icon(Icons.task_alt_outlined),
-                                          tooltip: 'Završi',
+                                          icon: Icon(Icons.flag_circle_outlined, color: posjetaStatusColors(_zavrsena).foreground),
+                                          tooltip: 'Označi kao završenu',
                                           onPressed: () => _zavrsi(posjeta),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.cancel_outlined),
+                                          icon: Icon(Icons.cancel_outlined, color: posjetaStatusColors(_otkazana).foreground),
                                           tooltip: 'Otkaži',
                                           onPressed: () => _otkazi(posjeta),
                                         ),
@@ -352,7 +318,7 @@ class _StatusLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const statuses = [_naCekanju, _potvrdjena, 'Završena', 'Otkazana'];
+    const statuses = [_naCekanju, _potvrdjena, _zavrsena, _otkazana];
     return Wrap(
       spacing: 16,
       runSpacing: 4,
@@ -371,27 +337,6 @@ class _StatusLegend extends StatelessWidget {
             ],
           ),
       ],
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 130, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
-          Expanded(child: Text(value)),
-        ],
-      ),
     );
   }
 }
@@ -451,12 +396,12 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
   @override
   void initState() {
     super.initState();
-    // Admin walk-in bookings have no future-date restriction server-side (unlike self-service
-    // booking), so the range is wide enough to log a recent walk-in retroactively too.
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
-    _firstDate = todayDateOnly.subtract(const Duration(days: 30));
-    _lastDate = todayDateOnly.add(const Duration(days: 365));
+    // Same "today onward, never past" range as mobile's self-service booking (shared
+    // firstBookableVisitDate/availableTimeSlots helpers) - the backend's InsertAdmin has no
+    // future-date restriction of its own, but a walk-in should still never be logged for a
+    // moment that has already passed, so the client enforces it consistently on both surfaces.
+    _firstDate = firstBookableVisitDate();
+    _lastDate = _firstDate.add(const Duration(days: 365));
   }
 
   @override
@@ -603,7 +548,7 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          for (final slot in shelterVisitTimeSlots)
+                          for (final slot in availableTimeSlots(selectedDate))
                             TimeSlotChip(
                               label: slot,
                               selected: slot == _selectedTimeSlot,
