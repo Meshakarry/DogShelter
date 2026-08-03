@@ -9,4 +9,7 @@ public class VolonterInsertRequest
 
     [Required(ErrorMessage = ValidationMessages.DatumPridruzivanjaRequired)]
     public DateOnly DatumPridruzivanja { get; set; }
+
+    [MaxLength(500, ErrorMessage = ValidationMessages.VolonterNapomenaMaxLength)]
+    public string? Napomena { get; set; }
 }

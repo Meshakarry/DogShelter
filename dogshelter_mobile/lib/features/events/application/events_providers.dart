@@ -1,10 +1,10 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import '../data/events_api.dart';
-import '../domain/dogadjaj.dart';
+import 'package:dogshelter_shared/dogadjaj/data/dogadjaj_api.dart';
+import 'package:dogshelter_shared/dogadjaj/domain/dogadjaj.dart';
 
-final eventsApiProvider = Provider<EventsApi>((ref) => EventsApi(ref.watch(apiClientProvider)));
+final eventsApiProvider = Provider<DogadjajApi>((ref) => DogadjajApi(ref.watch(apiClientProvider)));
 
 final eventDetailProvider = FutureProvider.family<Dogadjaj, int>((ref, id) {
   return ref.watch(eventsApiProvider).getDogadjajById(id);
@@ -58,7 +58,7 @@ class EventsListNotifier extends StateNotifier<EventsListState> {
     loadFirstPage();
   }
 
-  final EventsApi _api;
+  final DogadjajApi _api;
   static const _pageSize = 20;
 
   // Nadolazeći passes DatumOd=now (soonest-first); Prošli passes DatumDo=now

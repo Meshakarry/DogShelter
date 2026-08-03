@@ -77,7 +77,8 @@ public class VolonterService : IVolonterService
         {
             KorisnikId = request.KorisnikId,
             DatumPridruzivanja = request.DatumPridruzivanja,
-            Aktivan = true
+            Aktivan = true,
+            Napomena = request.Napomena
         };
 
         _context.Volonters.Add(entity);
@@ -102,6 +103,7 @@ public class VolonterService : IVolonterService
             ?? throw new NotFoundException($"Volonter s ID {id} nije pronađen.");
 
         entity.Aktivan = request.Aktivan;
+        entity.Napomena = request.Napomena;
         await _context.SaveChangesAsync();
 
         return await GetById(id);

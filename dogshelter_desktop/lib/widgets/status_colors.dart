@@ -49,3 +49,7 @@ const _blueGray = (background: Color(0xFFE2E8F0), foreground: Color(0xFF334155))
 }
 
 ({Color background, Color foreground}) obavijestStatusColors(bool aktivna) => aktivna ? _green : _amber;
+
+({Color background, Color foreground}) dogadjajStatusColors(bool aktivan) => aktivan ? _green : _red;
+
+({Color background, Color foreground}) volonterStatusColors(bool aktivan) => aktivan ? _green : _blueGray;

@@ -6,6 +6,8 @@ import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/auth/domain/auth_state.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/splash_screen.dart';
+import '../features/dogadjaji/presentation/dogadjaj_form_screen.dart';
+import '../features/dogadjaji/presentation/dogadjaji_screen.dart';
 import '../features/donacije/presentation/donacija_detail_screen.dart';
 import '../features/donacije/presentation/donacije_screen.dart';
 import '../features/korisnici/presentation/korisnici_screen.dart';
@@ -29,6 +31,8 @@ import '../features/root/app_shell.dart';
 import '../features/root/placeholder_screen.dart';
 import '../features/udomljavanja/presentation/udomljavanja_screen.dart';
 import '../features/udomljavanja/presentation/udomljavanje_detail_screen.dart';
+import '../features/volonteri/presentation/volonter_detail_screen.dart';
+import '../features/volonteri/presentation/volonteri_screen.dart';
 import '../features/zahtjevi/presentation/zahtjev_detail_screen.dart';
 import '../features/zahtjevi/presentation/zahtjevi_screen.dart';
 
@@ -91,14 +95,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/donacije/:id',
             builder: (context, state) => DonacijaDetailScreen(id: int.parse(state.pathParameters['id']!)),
           ),
-          GoRoute(path: '/volonteri', builder: (context, state) => const PlaceholderScreen(title: 'Volonteri')),
+          GoRoute(path: '/volonteri', builder: (context, state) => const VolonteriScreen()),
+          GoRoute(
+            path: '/volonteri/:id',
+            builder: (context, state) => VolonterDetailScreen(id: int.parse(state.pathParameters['id']!)),
+          ),
           GoRoute(path: '/obavijesti', builder: (context, state) => const ObavijestiScreen()),
           GoRoute(path: '/obavijesti/novi', builder: (context, state) => const ObavijestFormScreen()),
           GoRoute(
             path: '/obavijesti/:id',
             builder: (context, state) => ObavijestFormScreen(obavijestId: int.parse(state.pathParameters['id']!)),
           ),
-          GoRoute(path: '/dogadjaji', builder: (context, state) => const PlaceholderScreen(title: 'Događaji')),
+          GoRoute(path: '/dogadjaji', builder: (context, state) => const DogadjajiScreen()),
+          GoRoute(path: '/dogadjaji/novi', builder: (context, state) => const DogadjajFormScreen()),
+          GoRoute(
+            path: '/dogadjaji/:id',
+            builder: (context, state) => DogadjajFormScreen(dogadjajId: int.parse(state.pathParameters['id']!)),
+          ),
           GoRoute(path: '/izvjestaji', builder: (context, state) => const PlaceholderScreen(title: 'Izvještaji')),
           GoRoute(path: '/korisnici', builder: (context, state) => const KorisniciScreen()),
           GoRoute(path: '/postavke', builder: (context, state) => const PostavkeScreen()),

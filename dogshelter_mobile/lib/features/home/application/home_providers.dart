@@ -5,8 +5,8 @@ import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
 import '../../dogs/application/dogs_providers.dart';
 import '../../news/application/news_providers.dart';
 import 'package:dogshelter_shared/obavijest/domain/obavijest_list_item.dart';
+import 'package:dogshelter_shared/volonter/domain/volonter.dart';
 import '../data/home_api.dart';
-import '../domain/volonter_summary.dart';
 
 final Provider<HomeApi> homeApiProvider = Provider<HomeApi>((ref) => HomeApi(ref.watch(apiClientProvider)));
 
@@ -20,12 +20,12 @@ final recommendedDogsProvider = FutureProvider<List<PasListItem>>((ref) async {
   return result.items;
 });
 
-typedef VolonterDashboard = ({VolonterSummary? profile, int activityCount});
+typedef VolonterDashboard = ({Volonter? profile, int activityCount});
 
 final volonterDashboardProvider = FutureProvider<VolonterDashboard>((ref) async {
   final api = ref.watch(homeApiProvider);
   // Issued together via Future.wait rather than sequentially, since the two calls are
   // independent.
   final results = await Future.wait([api.getMyVolonterProfile(), api.getMyActivityCount()]);
-  return (profile: results[0] as VolonterSummary?, activityCount: results[1] as int);
+  return (profile: results[0] as Volonter?, activityCount: results[1] as int);
 });

@@ -85,6 +85,7 @@ namespace DogShelter.Services.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SlikaPutanja")
+                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -577,7 +578,7 @@ namespace DogShelter.Services.Migrations
 
                     b.HasIndex("VelicinaPsaId");
 
-                    b.ToTable("Pas", (string)null);
+                    b.ToTable("Pas");
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.Posjeta", b =>
@@ -627,7 +628,7 @@ namespace DogShelter.Services.Migrations
 
                     b.HasIndex("StatusPosjeteId");
 
-                    b.ToTable("Posjeta", (string)null);
+                    b.ToTable("Posjeta");
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.PotrebaAzila", b =>
@@ -1020,6 +1021,9 @@ namespace DogShelter.Services.Migrations
 
                     b.Property<int>("KorisnikId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Napomena")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("VolonterId");
 

@@ -8,8 +8,8 @@ import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/core/pluralize.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/dogadjaj/domain/dogadjaj.dart';
 import '../application/events_providers.dart';
-import '../domain/dogadjaj.dart';
 
 const _tabs = [(label: 'Nadolazeći', tab: EventsTab.nadolazeci), (label: 'Prošli', tab: EventsTab.prosli)];
 
