@@ -6,8 +6,12 @@ import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/auth/domain/auth_state.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/splash_screen.dart';
+import '../features/donacije/presentation/donacija_detail_screen.dart';
+import '../features/donacije/presentation/donacije_screen.dart';
 import '../features/korisnici/presentation/korisnici_screen.dart';
 import '../features/notifikacije/presentation/notifikacije_screen.dart';
+import '../features/obavijesti/presentation/obavijest_form_screen.dart';
+import '../features/obavijesti/presentation/obavijesti_screen.dart';
 import '../features/pocetna/presentation/pocetna_screen.dart';
 import '../features/postavke/domain/lookup_item.dart';
 import '../features/postavke/presentation/grad_crud_screen.dart';
@@ -82,9 +86,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/posjete/:id',
             builder: (context, state) => PosjetaDetailScreen(id: int.parse(state.pathParameters['id']!)),
           ),
-          GoRoute(path: '/donacije', builder: (context, state) => const PlaceholderScreen(title: 'Donacije')),
+          GoRoute(path: '/donacije', builder: (context, state) => const DonacijeScreen()),
+          GoRoute(
+            path: '/donacije/:id',
+            builder: (context, state) => DonacijaDetailScreen(id: int.parse(state.pathParameters['id']!)),
+          ),
           GoRoute(path: '/volonteri', builder: (context, state) => const PlaceholderScreen(title: 'Volonteri')),
-          GoRoute(path: '/obavijesti', builder: (context, state) => const PlaceholderScreen(title: 'Obavijesti')),
+          GoRoute(path: '/obavijesti', builder: (context, state) => const ObavijestiScreen()),
+          GoRoute(path: '/obavijesti/novi', builder: (context, state) => const ObavijestFormScreen()),
+          GoRoute(
+            path: '/obavijesti/:id',
+            builder: (context, state) => ObavijestFormScreen(obavijestId: int.parse(state.pathParameters['id']!)),
+          ),
           GoRoute(path: '/dogadjaji', builder: (context, state) => const PlaceholderScreen(title: 'Događaji')),
           GoRoute(path: '/izvjestaji', builder: (context, state) => const PlaceholderScreen(title: 'Izvještaji')),
           GoRoute(path: '/korisnici', builder: (context, state) => const KorisniciScreen()),

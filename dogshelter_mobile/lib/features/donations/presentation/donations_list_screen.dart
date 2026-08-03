@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/donacija/domain/donacija.dart';
 import '../application/donations_providers.dart';
-import '../domain/donacija.dart';
 import 'donation_status_style.dart';
 
 // Real StatusDonacije.Naziv values double as tab labels directly. "Svi" has no backing row

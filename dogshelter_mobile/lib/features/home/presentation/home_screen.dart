@@ -8,7 +8,7 @@ import '../../../environment.dart';
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
 import '../../dogs/presentation/dog_status_style.dart';
-import '../../news/domain/obavijest_list_item.dart';
+import 'package:dogshelter_shared/obavijest/domain/obavijest_list_item.dart';
 import '../application/home_providers.dart';
 
 class HomeScreen extends ConsumerWidget {

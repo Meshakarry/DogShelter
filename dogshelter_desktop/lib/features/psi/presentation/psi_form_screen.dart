@@ -16,6 +16,7 @@ import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/dashed_dropzone.dart';
 import '../application/psi_providers.dart';
 
 /// Edit/create screen for a single Pas - not a sidebar destination, so (like the
@@ -557,80 +558,6 @@ class _GradientButton extends StatelessWidget {
   }
 }
 
-/// Light-grey, dashed-border dropzone look (matches the upload mockup) for both the cover
-/// image picker and the gallery "add image" tile.
-class _DashedDropzone extends StatelessWidget {
-  const _DashedDropzone({
-    required this.width,
-    required this.height,
-    required this.onTap,
-    required this.child,
-    this.borderColor,
-  });
-
-  final double width;
-  final double height;
-  final VoidCallback onTap;
-  final Widget child;
-  final Color? borderColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-      child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: borderColor ?? Theme.of(context).colorScheme.outlineVariant,
-          radius: AppTheme.cardRadius,
-        ),
-        child: Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)));
-    final dashed = Path();
-    const dashWidth = 6.0;
-    const dashGap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        dashed.addPath(metric.extractPath(distance, distance + dashWidth), Offset.zero);
-        distance += dashWidth + dashGap;
-      }
-    }
-    canvas.drawPath(dashed, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
-      color != oldDelegate.color || radius != oldDelegate.radius;
-}
-
 class _CoverImagePicker extends StatelessWidget {
   const _CoverImagePicker({super.key, this.existingUrl, this.newImage, required this.onPick, this.errorText});
 
@@ -644,7 +571,7 @@ class _CoverImagePicker extends StatelessWidget {
     final hasImage = newImage != null || existingUrl != null;
     return Column(
       children: [
-        _DashedDropzone(
+        DashedDropzone(
           width: 240,
           height: 160,
           onTap: onPick,
@@ -759,7 +686,7 @@ class _GallerySection extends ConsumerWidget {
                 ),
               ],
             ),
-          _DashedDropzone(
+          DashedDropzone(
             width: 160,
             height: 120,
             onTap: () => _addImage(context, ref),
@@ -821,7 +748,7 @@ class _PendingGallerySection extends StatelessWidget {
               ),
             ],
           ),
-        _DashedDropzone(
+        DashedDropzone(
           width: 160,
           height: 120,
           onTap: onAdd,

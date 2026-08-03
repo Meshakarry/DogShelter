@@ -34,3 +34,18 @@ const _blueGray = (background: Color(0xFFE2E8F0), foreground: Color(0xFF334155))
       return _amber; // Na čekanju
   }
 }
+
+({Color background, Color foreground}) donacijaStatusColors(String naziv) {
+  switch (naziv) {
+    case 'Uspješna':
+      return _green;
+    case 'Neuspješna':
+      return _red;
+    case 'Vraćena':
+      return _blueGray;
+    default:
+      return _amber; // Na čekanju
+  }
+}
+
+({Color background, Color foreground}) obavijestStatusColors(bool aktivna) => aktivna ? _green : _amber;

@@ -7,8 +7,8 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/obavijest/domain/obavijest_list_item.dart';
 import '../application/news_providers.dart';
-import '../domain/obavijest_list_item.dart';
 
 class NewsListScreen extends ConsumerStatefulWidget {
   const NewsListScreen({super.key});
