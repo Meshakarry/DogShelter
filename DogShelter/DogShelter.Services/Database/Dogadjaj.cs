@@ -12,7 +12,7 @@ public partial class Dogadjaj
 
     public string Lokacija { get; set; } = null!;
 
-    public string? SlikaPutanja { get; set; }
+    public string SlikaPutanja { get; set; } = null!;
 
     public bool Aktivan { get; set; }
 

@@ -10,5 +10,6 @@ public class Volonter
     public string? KorisnikTelefon { get; set; }
     public DateOnly DatumPridruzivanja { get; set; }
     public bool Aktivan { get; set; }
+    public string? Napomena { get; set; }
     public decimal UkupnoSati { get; set; }
 }

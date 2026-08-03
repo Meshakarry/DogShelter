@@ -2,11 +2,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:dogshelter_shared/aktivnost_volontera/domain/aktivnost_volontera.dart';
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../application/activities_providers.dart';
-import '../domain/aktivnost_volontera.dart';
 
 class AktivnostiListScreen extends ConsumerStatefulWidget {
   const AktivnostiListScreen({super.key});

@@ -1,11 +1,12 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:dogshelter_shared/aktivnost_volontera/data/aktivnost_volontera_api.dart';
+import 'package:dogshelter_shared/aktivnost_volontera/domain/aktivnost_volontera.dart';
+import 'package:dogshelter_shared/aktivnost_volontera/domain/tip_aktivnosti.dart';
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import '../data/activities_api.dart';
-import '../domain/aktivnost_volontera.dart';
-import '../domain/tip_aktivnosti.dart';
 
-final activitiesApiProvider = Provider<ActivitiesApi>((ref) => ActivitiesApi(ref.watch(apiClientProvider)));
+final activitiesApiProvider =
+    Provider<AktivnostVolonteraApi>((ref) => AktivnostVolonteraApi(ref.watch(apiClientProvider)));
 
 final tipoviAktivnostiProvider = FutureProvider<List<TipAktivnosti>>((ref) {
   return ref.watch(activitiesApiProvider).getTipoviAktivnosti();
@@ -49,7 +50,7 @@ class AktivnostiListNotifier extends StateNotifier<AktivnostiListState> {
     loadFirstPage();
   }
 
-  final ActivitiesApi _api;
+  final AktivnostVolonteraApi _api;
   static const _pageSize = 20;
 
   Future<void> loadFirstPage() async {

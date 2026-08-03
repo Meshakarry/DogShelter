@@ -9,8 +9,8 @@ import 'package:dogshelter_shared/core/pluralize.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/dogadjaj/domain/dogadjaj.dart';
 import '../application/events_providers.dart';
-import '../domain/dogadjaj.dart';
 
 class EventDetailScreen extends ConsumerWidget {
   const EventDetailScreen({super.key, required this.dogadjajId});

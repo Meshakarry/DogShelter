@@ -28,40 +28,43 @@ public static class DatabaseSeeder
         await EnsurePrioritetiPotrebeAsync(context, logger);
         await EnsurePotrebeAzilaAsync(context, logger);
         await EnsureDonacijeAsync(context, logger);
-        await EnsureObavijestiAsync(context, logger);
+        await EnsureObavijestiAsync(context, logger, wwwrootPath);
         await EnsureTipAktivnostiAsync(context, logger);
         await EnsureVolonteriAsync(context, logger);
-        await EnsureDogadjajiAsync(context, logger);
+        await EnsureDogadjajiAsync(context, logger, wwwrootPath);
         await EnsureAktivnostiVolonteraAsync(context, logger);
         await EnsureDogadjajVolonteriAsync(context, logger);
         await EnsureNotifikacijeAsync(context, logger);
     }
 
     /// <summary>
-    /// Copies a seed image from SeedData/Images/{baseName}.jpg into wwwroot/images/psi/.
-    /// Returns the relative URL stored in DB, or null if source file not found.
+    /// Copies a seed image from SeedData/Images/{baseName}.jpg into wwwroot/images/{folder}/,
+    /// optionally under a different destination file name (defaults to baseName). Returns the
+    /// relative URL stored in DB, or null if source file not found.
     /// </summary>
-    private static string? CopySeedImage(string baseName, string wwwrootPath, ILogger logger)
+    private static string? CopySeedImage(string baseName, string wwwrootPath, ILogger logger, string folder = "psi", string? destName = null)
     {
+        destName ??= baseName;
+
         var sourceDirs = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "SeedData", "Images"),
             Path.Combine(Directory.GetCurrentDirectory(), "SeedData", "Images"),
         };
 
-        var destDir = Path.Combine(wwwrootPath, "images", "psi");
+        var destDir = Path.Combine(wwwrootPath, "images", folder);
         Directory.CreateDirectory(destDir);
 
-        var destFile = Path.Combine(destDir, baseName + ".jpg");
+        var destFile = Path.Combine(destDir, destName + ".jpg");
         if (File.Exists(destFile))
-            return $"/images/psi/{baseName}.jpg";
+            return $"/images/{folder}/{destName}.jpg";
 
         foreach (var dir in sourceDirs)
         {
             var source = Path.Combine(dir, baseName + ".jpg");
             if (!File.Exists(source)) continue;
             File.Copy(source, destFile);
-            return $"/images/psi/{baseName}.jpg";
+            return $"/images/{folder}/{destName}.jpg";
         }
 
         logger.LogWarning("Seed image not found: {BaseName}.jpg", baseName);
@@ -696,18 +699,20 @@ public static class DatabaseSeeder
     /// Reuses already-seeded dog cover photos (copied by EnsurePsiAsync) for topically
     /// relevant announcements instead of fabricating new image assets.
     /// </summary>
-    private static async Task EnsureObavijestiAsync(DogShelterContext context, ILogger logger)
+    private static async Task EnsureObavijestiAsync(DogShelterContext context, ILogger logger, string wwwrootPath)
     {
         if (await context.Obavijests.AnyAsync()) return;
 
         var admin = await context.Korisniks.OrderBy(k => k.KorisnikId).FirstOrDefaultAsync();
         if (admin == null) return;
 
-        var lola = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Lola");
-        var max = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Max");
-        var rex = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Rex");
         var bella = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Bella");
         var now = DateTime.UtcNow;
+
+        // Dedicated seed photos (not dog reuse) - obavijest1/2/3 map to the 3 published
+        // articles by recency, newest first; obavijest3.jpg (volunteers examining a dog) is a
+        // clear content match for the volunteer call-out regardless of pure date order.
+        string Img(string name) => CopySeedImage(name, wwwrootPath, logger, folder: "obavijesti") ?? string.Empty;
 
         var obavijesti = new List<Obavijest>
         {
@@ -716,7 +721,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Azil dobio novu opremu zahvaljujući donatorima",
                 Sadrzaj = "Ovih sedmica primili smo veliku donaciju hrane, deka i kaveza od naših dragih donatora. Hvala svima koji su prepoznali da se svaka pomoć broji – zahvaljujući vama naši štićenici imaju toplije zime i punije stomake.",
-                SlikaPutanja = max?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Max' nije pronađen za Obavijest sliku."),
+                SlikaPutanja = Img("obavijest2"),
                 DatumObjave = now.AddDays(-14),
                 Aktivna = true
             },
@@ -725,7 +730,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Lola pronašla svoj dom!",
                 Sadrzaj = "Sa velikim zadovoljstvom javljamo da je Lola, naša labradorica koja je čekala godinu dana, konačno udomljena. Nova porodica joj je pripremila prostrano dvorište i toplu dobrodošlicu. Hvala svima koji su navijali za nju!",
-                SlikaPutanja = lola?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Lola' nije pronađen za Obavijest sliku."),
+                SlikaPutanja = Img("obavijest1"),
                 DatumObjave = now.AddDays(-8),
                 Aktivna = true
             },
@@ -734,7 +739,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Otvoren poziv za volontere ovog vikenda",
                 Sadrzaj = "Tražimo volontere za šetnju pasa i pomoć oko čišćenja azila subotom i nedjeljom od 9 do 13 sati. Prijave su moguće putem aplikacije u sekciji Volontiranje. Svaka pomoć je dobrodošla!",
-                SlikaPutanja = rex?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Rex' nije pronađen za Obavijest sliku."),
+                SlikaPutanja = Img("obavijest3"),
                 DatumObjave = now.AddDays(-3),
                 Aktivna = true
             },
@@ -839,18 +844,26 @@ public static class DatabaseSeeder
     /// promotions, plus one cancelled (Aktivan = false) past event so the non-admin
     /// "upcoming only" visibility filter has something to hide.
     /// </summary>
-    private static async Task EnsureDogadjajiAsync(DogShelterContext context, ILogger logger)
+    private static async Task EnsureDogadjajiAsync(DogShelterContext context, ILogger logger, string wwwrootPath)
     {
         if (await context.Dogadjajs.AnyAsync()) return;
+
+        // Dedicated seed photos, matched to each event by actual content: dogadjaj3 (a dog in
+        // an "adopt me" bandana) -> the adoption promo; dogadjaj4 (large group + hosing down
+        // the yard) -> the cleaning weekend; dogadjaj1 (kennel/cleaning-supplies scene, general
+        // humanitarian-care feel) -> both "humanitarna akcija"-titled events (reused across the
+        // two, same deliberate-reuse precedent as Obavijest's seed); dogadjaj2 (puppies) -> the
+        // open house as a generic welcoming photo.
+        string Img(string name) => CopySeedImage(name, wwwrootPath, logger, folder: "dogadjaji") ?? string.Empty;
 
         var now = DateTime.UtcNow;
         var dogadjaji = new List<Dogadjaj>
         {
-            new() { Naziv = "Dan otvorenih vrata", Opis = "Posjetite azil, upoznajte pse i osoblje, i saznajte kako možete pomoći.", Datum = now.AddDays(10).Date.AddHours(10), Lokacija = "Azil za pse Bugojno", Aktivan = true },
-            new() { Naziv = "Humanitarna akcija - Sakupljanje hrane", Opis = "Akcija sakupljanja hrane i opreme za pse u centru grada.", Datum = now.AddDays(20).Date.AddHours(9), Lokacija = "Gradski trg, Bugojno", Aktivan = true },
-            new() { Naziv = "Promotivni dan udomljavanja", Opis = "Dovodimo nekoliko pasa na promociju udomljavanja u park.", Datum = now.AddDays(30).Date.AddHours(11), Lokacija = "Gradski park, Bugojno", Aktivan = true },
-            new() { Naziv = "Volonterski vikend čišćenja", Opis = "Zajedničko čišćenje i uređenje prostora azila.", Datum = now.AddDays(45).Date.AddHours(9), Lokacija = "Azil za pse Bugojno", Aktivan = true },
-            new() { Naziv = "Zimska humanitarna akcija (otkazano)", Opis = "Akcija je otkazana zbog vremenskih uslova.", Datum = now.AddDays(-15).Date.AddHours(10), Lokacija = "Azil za pse Bugojno", Aktivan = false },
+            new() { Naziv = "Dan otvorenih vrata", Opis = "Posjetite azil, upoznajte pse i osoblje, i saznajte kako možete pomoći.", Datum = now.AddDays(10).Date.AddHours(10), Lokacija = "Azil za pse Bugojno", Aktivan = true, SlikaPutanja = Img("dogadjaj2") },
+            new() { Naziv = "Humanitarna akcija - Sakupljanje hrane", Opis = "Akcija sakupljanja hrane i opreme za pse u centru grada.", Datum = now.AddDays(20).Date.AddHours(9), Lokacija = "Gradski trg, Bugojno", Aktivan = true, SlikaPutanja = Img("dogadjaj1") },
+            new() { Naziv = "Promotivni dan udomljavanja", Opis = "Dovodimo nekoliko pasa na promociju udomljavanja u park.", Datum = now.AddDays(30).Date.AddHours(11), Lokacija = "Gradski park, Bugojno", Aktivan = true, SlikaPutanja = Img("dogadjaj3") },
+            new() { Naziv = "Volonterski vikend čišćenja", Opis = "Zajedničko čišćenje i uređenje prostora azila.", Datum = now.AddDays(45).Date.AddHours(9), Lokacija = "Azil za pse Bugojno", Aktivan = true, SlikaPutanja = Img("dogadjaj4") },
+            new() { Naziv = "Zimska humanitarna akcija (otkazano)", Opis = "Akcija je otkazana zbog vremenskih uslova.", Datum = now.AddDays(-15).Date.AddHours(10), Lokacija = "Azil za pse Bugojno", Aktivan = false, SlikaPutanja = Img("dogadjaj1") },
         };
 
         context.Dogadjajs.AddRange(dogadjaji);

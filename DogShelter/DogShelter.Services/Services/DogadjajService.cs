@@ -75,10 +75,11 @@ public class DogadjajService : IDogadjajService
 
     public async Task<Model.Dogadjaj> InsertWithImage(DogadjajInsertRequest request, IFormFile? slika)
     {
-        var entity = _mapper.Map<Database.Dogadjaj>(request);
+        if (slika == null)
+            throw new ValidationException("Slika je obavezna.", "slika", "Slika je obavezna za događaj.");
 
-        if (slika != null)
-            entity.SlikaPutanja = await _fileUpload.SaveImageAsync(slika, "dogadjaji");
+        var entity = _mapper.Map<Database.Dogadjaj>(request);
+        entity.SlikaPutanja = await _fileUpload.SaveImageAsync(slika, "dogadjaji");
 
         _context.Dogadjajs.Add(entity);
         await _context.SaveChangesAsync();

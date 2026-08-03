@@ -7,7 +7,7 @@ public class Dogadjaj
     public string? Opis { get; set; }
     public DateTime Datum { get; set; }
     public string Lokacija { get; set; } = null!;
-    public string? SlikaPutanja { get; set; }
+    public string SlikaPutanja { get; set; } = null!;
     public bool Aktivan { get; set; }
     public int BrojZaduzenihVolontera { get; set; }
 }

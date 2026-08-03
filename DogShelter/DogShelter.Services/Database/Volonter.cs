@@ -10,6 +10,8 @@ public partial class Volonter
 
     public bool Aktivan { get; set; }
 
+    public string? Napomena { get; set; }
+
     public virtual ICollection<AktivnostVolontera> AktivnostVolonteras { get; set; } = new List<AktivnostVolontera>();
 
     public virtual ICollection<DogadjajVolonter> DogadjajVolonters { get; set; } = new List<DogadjajVolonter>();
