@@ -6,8 +6,8 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/obavijest/domain/obavijest.dart';
 import '../application/news_providers.dart';
-import '../domain/obavijest.dart';
 
 class NewsDetailScreen extends ConsumerWidget {
   const NewsDetailScreen({super.key, required this.obavijestId});

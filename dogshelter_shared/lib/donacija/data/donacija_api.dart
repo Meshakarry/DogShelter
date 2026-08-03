@@ -1,4 +1,4 @@
-﻿import 'package:dogshelter_shared/core/api_client.dart';
+import 'package:dogshelter_shared/core/api_client.dart';
 import 'package:dogshelter_shared/core/paged_result.dart';
 import '../domain/donacija.dart';
 import '../domain/jedinica_mjere.dart';
@@ -7,8 +7,8 @@ import '../domain/potreba_azila.dart';
 import '../domain/status_donacije.dart';
 import '../domain/tip_donacije.dart';
 
-class DonationsApi {
-  DonationsApi(this._client);
+class DonacijaApi {
+  DonacijaApi(this._client);
 
   final ApiClient _client;
 
@@ -17,12 +17,16 @@ class DonationsApi {
     int pageSize = 20,
     int? tipDonacijeId,
     int? statusDonacijeId,
+    DateTime? datumOd,
+    DateTime? datumDo,
   }) async {
     final json = await _client.get('/api/Donacija', query: {
       'page': page,
       'pageSize': pageSize,
       'tipDonacijeId': tipDonacijeId,
       'statusDonacijeId': statusDonacijeId,
+      'datumOd': datumOd?.toIso8601String(),
+      'datumDo': datumDo?.toIso8601String(),
     });
     return PagedResult.fromJson(
       json as Map<String, dynamic>,
@@ -69,6 +73,29 @@ class DonationsApi {
   Future<DonacijaPaymentResponse> retryPlacanje(int id) async {
     final json = await _client.post('/api/Donacija/$id/retry-placanje');
     return DonacijaPaymentResponse.fromJson(json as Map<String, dynamic>);
+  }
+
+  /// Admin-only: manually confirms an in-kind (Materijalna) donation still Na čekanju - the
+  /// backend rejects this for Novčana donations, which only ever resolve via Stripe.
+  Future<Donacija> potvrdi(int id) async {
+    final json = await _client.post('/api/Donacija/$id/potvrdi');
+    return Donacija.fromJson(json as Map<String, dynamic>);
+  }
+
+  /// Admin-only: rejects an in-kind donation still Na čekanju with a required reason.
+  Future<Donacija> odbij(int id, {required String razlogOdbijanja}) async {
+    final json = await _client.post('/api/Donacija/$id/odbij', body: {
+      'razlogOdbijanja': razlogOdbijanja,
+    });
+    return Donacija.fromJson(json as Map<String, dynamic>);
+  }
+
+  /// Admin-only: refunds an already-successful monetary donation with a required reason.
+  Future<Donacija> refund(int id, {required String razlogVracanja}) async {
+    final json = await _client.post('/api/Donacija/$id/refund', body: {
+      'razlogVracanja': razlogVracanja,
+    });
+    return Donacija.fromJson(json as Map<String, dynamic>);
   }
 
   // Small lookup tables, well under the server's 100-row page cap, so a single request

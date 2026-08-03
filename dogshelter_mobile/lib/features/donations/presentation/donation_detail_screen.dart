@@ -4,8 +4,8 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/donacija/domain/donacija.dart';
 import '../application/donations_providers.dart';
-import '../domain/donacija.dart';
 import 'donation_status_style.dart';
 
 class DonationDetailScreen extends ConsumerWidget {

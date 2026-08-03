@@ -26,6 +26,7 @@ class LabeledField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         required ? RequiredLabel(label) : Text(label, style: Theme.of(context).textTheme.titleMedium),

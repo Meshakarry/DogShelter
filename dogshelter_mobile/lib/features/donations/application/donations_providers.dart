@@ -1,15 +1,15 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import '../data/donations_api.dart';
-import '../domain/donacija.dart';
-import '../domain/jedinica_mjere.dart';
-import '../domain/kategorija_donacije.dart';
-import '../domain/potreba_azila.dart';
-import '../domain/status_donacije.dart';
-import '../domain/tip_donacije.dart';
+import 'package:dogshelter_shared/donacija/data/donacija_api.dart';
+import 'package:dogshelter_shared/donacija/domain/donacija.dart';
+import 'package:dogshelter_shared/donacija/domain/jedinica_mjere.dart';
+import 'package:dogshelter_shared/donacija/domain/kategorija_donacije.dart';
+import 'package:dogshelter_shared/donacija/domain/potreba_azila.dart';
+import 'package:dogshelter_shared/donacija/domain/status_donacije.dart';
+import 'package:dogshelter_shared/donacija/domain/tip_donacije.dart';
 
-final donationsApiProvider = Provider<DonationsApi>((ref) => DonationsApi(ref.watch(apiClientProvider)));
+final donationsApiProvider = Provider<DonacijaApi>((ref) => DonacijaApi(ref.watch(apiClientProvider)));
 
 final tipDonacijeLookupProvider = FutureProvider<List<TipDonacije>>((ref) {
   return ref.watch(donationsApiProvider).getTipovi();
@@ -79,7 +79,7 @@ class DonacijaListNotifier extends StateNotifier<DonacijaListState> {
     loadFirstPage();
   }
 
-  final DonationsApi _api;
+  final DonacijaApi _api;
   static const _pageSize = 20;
 
   Future<void> loadFirstPage() async {

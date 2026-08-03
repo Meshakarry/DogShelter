@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../domain/jedinica_mjere.dart';
+import 'package:dogshelter_shared/donacija/domain/jedinica_mjere.dart';
 import 'chip_button.dart';
 
 /// Shows the unit for a Materijalna donation using the least UI the category actually needs:

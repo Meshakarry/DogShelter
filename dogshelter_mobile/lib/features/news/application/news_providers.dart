@@ -1,11 +1,11 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import '../data/news_api.dart';
-import '../domain/obavijest.dart';
-import '../domain/obavijest_list_item.dart';
+import 'package:dogshelter_shared/obavijest/data/obavijest_api.dart';
+import 'package:dogshelter_shared/obavijest/domain/obavijest.dart';
+import 'package:dogshelter_shared/obavijest/domain/obavijest_list_item.dart';
 
-final newsApiProvider = Provider<NewsApi>((ref) => NewsApi(ref.watch(apiClientProvider)));
+final newsApiProvider = Provider<ObavijestApi>((ref) => ObavijestApi(ref.watch(apiClientProvider)));
 
 final obavijestDetailProvider = FutureProvider.family<Obavijest, int>((ref, id) {
   return ref.watch(newsApiProvider).getObavijestById(id);
@@ -49,7 +49,7 @@ class NewsListNotifier extends StateNotifier<NewsListState> {
     loadFirstPage();
   }
 
-  final NewsApi _api;
+  final ObavijestApi _api;
   static const _pageSize = 20;
 
   Future<void> loadFirstPage() async {
