@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +6,8 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
 import '../../../widgets/status_colors.dart';
+import '../../../widgets/udomljavanje_report_content.dart';
+import '../../izvjestaji/domain/report_models.dart';
 import '../application/pocetna_providers.dart';
 import '../domain/pocetna_dashboard_data.dart';
 
@@ -57,15 +58,14 @@ class PocetnaScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 28),
-            SizedBox(
-              height: 460,
+            IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(child: _RecentZahtjeviCard(zahtjevi: data.nedavniZahtjevi)),
                   const SizedBox(width: 20),
                   Expanded(
-                    child: _UdomljavanjeChartCard(poMjesecima: data.udomljavanjaPoMjesecima),
+                    child: _UdomljavanjeChartCard(izvjestaj: data.udomljavanjeIzvjestaj),
                   ),
                 ],
               ),
@@ -200,29 +200,14 @@ class _RecentZahtjeviCard extends StatelessWidget {
 }
 
 const _chartCardBorderColor = Color(0xFFE5E7EB);
-const _chartHeight = 250.0;
-const _chartBarWidth = 20.0;
-
-double _computeChartMaxY(int maxValue) {
-  const minimum = 20;
-
-  if (maxValue <= minimum) {
-    return minimum.toDouble();
-  }
-
-  return ((maxValue / 5).ceil() * 5).toDouble();
-}
 
 class _UdomljavanjeChartCard extends StatelessWidget {
-  const _UdomljavanjeChartCard({required this.poMjesecima});
+  const _UdomljavanjeChartCard({required this.izvjestaj});
 
-  final List<MjesecBroj> poMjesecima;
+  final UdomljavanjeIzvjestaj izvjestaj;
 
   @override
   Widget build(BuildContext context) {
-    final maxBroj = poMjesecima.fold<int>(0, (max, item) => item.broj > max ? item.broj : max);
-    final maxY = _computeChartMaxY(maxBroj);
-
     return Card(
       color: Colors.white,
       elevation: 0,
@@ -242,101 +227,11 @@ class _UdomljavanjeChartCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Udomljenja u posljednjih 7 mjeseci',
+              'Udomljenja po mjesecima i najčešće rase',
               style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
             ),
             const SizedBox(height: 20),
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  height: _chartHeight,
-                  child: poMjesecima.isEmpty
-                      ? const Center(child: Text('Nema podataka.'))
-                      : Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: BarChart(
-                            BarChartData(
-                              alignment: BarChartAlignment.spaceAround,
-                              maxY: maxY,
-                              minY: 0,
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                horizontalInterval: 5,
-                                checkToShowHorizontalLine: (value) => value % 5 == 0,
-                                getDrawingHorizontalLine: (value) {
-                                  return const FlLine(
-                                    color: Color(0xFFE5E7EB),
-                                    strokeWidth: 1,
-                                  );
-                                },
-                              ),
-                              borderData: FlBorderData(show: false),
-                              barTouchData: BarTouchData(enabled: false),
-                              titlesData: FlTitlesData(
-                                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 5,
-                                    reservedSize: 32,
-                                    getTitlesWidget: (value, meta) {
-                                      if (value % 5 != 0) {
-                                        return const SizedBox.shrink();
-                                      }
-
-                                      return Text(
-                                        value.toInt().toString(),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Color(0xFF9CA3AF),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 32,
-                                    getTitlesWidget: (value, meta) {
-                                      final index = value.toInt();
-                                      if (index < 0 || index >= poMjesecima.length) return const SizedBox.shrink();
-                                      final naziv = poMjesecima[index].mjesecNaziv;
-                                      final abbrev = naziv.length > 3 ? naziv.substring(0, 3) : naziv;
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: Text(
-                                          abbrev,
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                              barGroups: [
-                                for (var i = 0; i < poMjesecima.length; i++)
-                                  BarChartGroupData(
-                                    x: i,
-                                    barRods: [
-                                      BarChartRodData(
-                                        toY: poMjesecima[i].broj.toDouble(),
-                                        width: _chartBarWidth,
-                                        color: AppTheme.seedColor,
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-            ),
+            UdomljavanjeReportContent(data: izvjestaj),
           ],
         ),
       ),

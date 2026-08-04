@@ -10,6 +10,7 @@ import '../features/dogadjaji/presentation/dogadjaj_form_screen.dart';
 import '../features/dogadjaji/presentation/dogadjaji_screen.dart';
 import '../features/donacije/presentation/donacija_detail_screen.dart';
 import '../features/donacije/presentation/donacije_screen.dart';
+import '../features/izvjestaji/presentation/izvjestaji_screen.dart';
 import '../features/korisnici/presentation/korisnici_screen.dart';
 import '../features/notifikacije/presentation/notifikacije_screen.dart';
 import '../features/obavijesti/presentation/obavijest_form_screen.dart';
@@ -28,7 +29,6 @@ import '../features/posjete/presentation/posjete_screen.dart';
 import '../features/psi/presentation/psi_form_screen.dart';
 import '../features/psi/presentation/psi_list_screen.dart';
 import '../features/root/app_shell.dart';
-import '../features/root/placeholder_screen.dart';
 import '../features/udomljavanja/presentation/udomljavanja_screen.dart';
 import '../features/udomljavanja/presentation/udomljavanje_detail_screen.dart';
 import '../features/volonteri/presentation/volonter_detail_screen.dart';
@@ -112,7 +112,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/dogadjaji/:id',
             builder: (context, state) => DogadjajFormScreen(dogadjajId: int.parse(state.pathParameters['id']!)),
           ),
-          GoRoute(path: '/izvjestaji', builder: (context, state) => const PlaceholderScreen(title: 'Izvještaji')),
+          GoRoute(path: '/izvjestaji', builder: (context, state) => const IzvjestajiScreen()),
           GoRoute(path: '/korisnici', builder: (context, state) => const KorisniciScreen()),
           GoRoute(path: '/postavke', builder: (context, state) => const PostavkeScreen()),
           GoRoute(

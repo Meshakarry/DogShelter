@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
+import '../../izvjestaji/application/izvjestaji_providers.dart';
 import '../../postavke/data/lookup_api.dart';
 import '../../postavke/domain/lookup_item.dart';
 import '../data/pocetna_api.dart';
@@ -29,7 +30,7 @@ final pocetnaDashboardProvider = FutureProvider.autoDispose<PocetnaDashboardData
   final ukupnoPasaFuture = api.countPas();
   final danasnjePosjeteFuture = api.countPosjeteToday();
   final nedavniZahtjeviFuture = api.recentZahtjevi();
-  final reportFuture = api.udomljavanjeReport();
+  final reportFuture = ref.watch(reportsApiProvider).getUdomljavanjeReport();
 
   const missing = LookupItem(id: 0, naziv: '');
   final statusPsaList = (await statusPsaFuture).items;
@@ -47,6 +48,6 @@ final pocetnaDashboardProvider = FutureProvider.autoDispose<PocetnaDashboardData
     zahtjevaNaCekanju: await zahtjevaNaCekanjuFuture,
     danasnjePosjete: await danasnjePosjeteFuture,
     nedavniZahtjevi: await nedavniZahtjeviFuture,
-    udomljavanjaPoMjesecima: await reportFuture,
+    udomljavanjeIzvjestaj: await reportFuture,
   );
 });

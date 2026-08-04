@@ -1,3 +1,5 @@
+import '../../izvjestaji/domain/report_models.dart';
+
 class ZahtjevSummary {
   const ZahtjevSummary({
     required this.id,
@@ -27,24 +29,6 @@ class ZahtjevSummary {
   }
 }
 
-class MjesecBroj {
-  const MjesecBroj({required this.godina, required this.mjesec, required this.mjesecNaziv, required this.broj});
-
-  final int godina;
-  final int mjesec;
-  final String mjesecNaziv;
-  final int broj;
-
-  factory MjesecBroj.fromJson(Map<String, dynamic> json) {
-    return MjesecBroj(
-      godina: json['godina'] as int,
-      mjesec: json['mjesec'] as int,
-      mjesecNaziv: json['mjesecNaziv'] as String,
-      broj: json['broj'] as int,
-    );
-  }
-}
-
 class PocetnaDashboardData {
   const PocetnaDashboardData({
     required this.ukupnoPasa,
@@ -52,7 +36,7 @@ class PocetnaDashboardData {
     required this.zahtjevaNaCekanju,
     required this.danasnjePosjete,
     required this.nedavniZahtjevi,
-    required this.udomljavanjaPoMjesecima,
+    required this.udomljavanjeIzvjestaj,
   });
 
   final int ukupnoPasa;
@@ -60,5 +44,5 @@ class PocetnaDashboardData {
   final int zahtjevaNaCekanju;
   final int danasnjePosjete;
   final List<ZahtjevSummary> nedavniZahtjevi;
-  final List<MjesecBroj> udomljavanjaPoMjesecima;
+  final UdomljavanjeIzvjestaj udomljavanjeIzvjestaj;
 }
