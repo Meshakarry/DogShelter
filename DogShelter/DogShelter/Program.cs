@@ -153,6 +153,7 @@ builder.Services.AddScoped<IDogadjajService, DogadjajService>();
 builder.Services.AddScoped<IAktivnostVolonteraService, AktivnostVolonteraService>();
 builder.Services.AddScoped<IDogadjajVolonterService, DogadjajVolonterService>();
 builder.Services.AddScoped<INotifikacijaService, NotifikacijaService>();
+builder.Services.AddScoped<IPreporukaService, PreporukaService>();
 builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
 builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();

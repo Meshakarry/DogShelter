@@ -1,8 +1,6 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
-import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
-import '../../dogs/application/dogs_providers.dart';
 import '../../news/application/news_providers.dart';
 import 'package:dogshelter_shared/obavijest/domain/obavijest_list_item.dart';
 import 'package:dogshelter_shared/volonter/domain/volonter.dart';
@@ -12,11 +10,6 @@ final Provider<HomeApi> homeApiProvider = Provider<HomeApi>((ref) => HomeApi(ref
 
 final latestObavijestiProvider = FutureProvider<List<ObavijestListItem>>((ref) async {
   final result = await ref.watch(newsApiProvider).getObavijesti(page: 1, pageSize: 3);
-  return result.items;
-});
-
-final recommendedDogsProvider = FutureProvider<List<PasListItem>>((ref) async {
-  final result = await ref.watch(dogsApiProvider).getDogs(page: 1, pageSize: 3);
   return result.items;
 });
 

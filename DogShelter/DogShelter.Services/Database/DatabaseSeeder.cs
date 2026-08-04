@@ -20,6 +20,7 @@ public static class DatabaseSeeder
         await EnsurePsiAsync(context, logger, wwwrootPath);
         await EnsureZahtjeviAsync(context, logger);
         await EnsurePosjeteAsync(context, logger);
+        await EnsurePregledPsaAsync(context, logger);
         await EnsureStatusDonacijeAsync(context, logger);
         await EnsureTipDonacijeAsync(context, logger);
         await EnsureKategorijeDonacijeAsync(context, logger);
@@ -441,6 +442,54 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded {Count} posjeta.", posjete.Count);
+    }
+
+    /// <summary>
+    /// Seeds PregledPsa (dog-detail-view log) rows for the "korisnik" and "volonter" test
+    /// accounts so the Phase 14 recommender has a real browsing-history signal from first
+    /// login, rather than only ever populating this table via live GetById calls. Inserted
+    /// directly via context (bypassing PregledPsaService.LogPregled), same as other
+    /// no-side-effect seed rows elsewhere in this file.
+    /// </summary>
+    private static async Task EnsurePregledPsaAsync(DogShelterContext context, ILogger logger)
+    {
+        if (await context.PregledPsas.AnyAsync()) return;
+
+        var korisnik = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "korisnik");
+        var volonter = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "volonter");
+        if (korisnik == null || volonter == null) return;
+
+        var vuk = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Vuk");
+        var zara = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Zara");
+        var djuro = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Đuro");
+        var bella = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Bella");
+        var pahulja = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Pahulja");
+
+        var now = DateTime.UtcNow;
+
+        var pregledi = new List<PregledPsa>();
+
+        // "korisnik" also has Zahtjev/Posjeta/Udomljavanje history (see EnsureZahtjeviAsync/
+        // EnsurePosjeteAsync) — these views add the weakest signal layer on top, partly
+        // reinforcing large-breed interest (Vuk, Zara) and partly showing variety (Đuro).
+        foreach (var (pas, daysAgo) in new[] { (vuk, 6), (vuk, 1), (zara, 4), (djuro, 9) })
+        {
+            if (pas == null) continue;
+            pregledi.Add(new PregledPsa { KorisnikId = korisnik.KorisnikId, PasId = pas.PasId, DatumPregleda = now.AddDays(-daysAgo) });
+        }
+
+        // "volonter" has no Zahtjev/Posjeta history at all, so this is their only signal —
+        // concentrated on small/medium mixed-breed dogs to show a distinct profile from korisnik.
+        foreach (var (pas, daysAgo) in new[] { (bella, 5), (djuro, 3), (pahulja, 2) })
+        {
+            if (pas == null) continue;
+            pregledi.Add(new PregledPsa { KorisnikId = volonter.KorisnikId, PasId = pas.PasId, DatumPregleda = now.AddDays(-daysAgo) });
+        }
+
+        context.PregledPsas.AddRange(pregledi);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Seeded {Count} pregleda psa.", pregledi.Count);
     }
 
     private static async Task EnsureStatusDonacijeAsync(DogShelterContext context, ILogger logger)
