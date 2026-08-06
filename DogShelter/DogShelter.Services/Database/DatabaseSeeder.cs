@@ -266,8 +266,6 @@ public static class DatabaseSeeder
     /// <summary>
     /// Seeds pending/rejected/approved ZahtjevZaUdomljavanje records and backfills Udomljavanje
     /// for dogs already marked Udomljen (Max, Lola, Nera) so they have an adoption audit trail.
-    /// Uses the admin account as requester/processor since no dedicated Korisnik test account
-    /// exists.
     /// </summary>
     private static async Task EnsureZahtjeviAsync(DogShelterContext context, ILogger logger)
     {
@@ -745,8 +743,6 @@ public static class DatabaseSeeder
     /// <summary>
     /// Seeds a handful of Obavijest (announcement) records, covering both published
     /// (Aktivna = true) and draft (Aktivna = false) status, with and without a cover image.
-    /// Reuses already-seeded dog cover photos (copied by EnsurePsiAsync) for topically
-    /// relevant announcements instead of fabricating new image assets.
     /// </summary>
     private static async Task EnsureObavijestiAsync(DogShelterContext context, ILogger logger, string wwwrootPath)
     {

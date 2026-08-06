@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/donacija/domain/donacija.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
+import '../../../widgets/detail_row.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/donacije_providers.dart';
@@ -14,10 +15,6 @@ import '../application/donacije_providers.dart';
 const _naCekanju = 'Na čekanju';
 const _uspjesna = 'Uspješna';
 
-
-/// Dedicated /donacije/:id page - same visual shape as ZahtjevDetailScreen/PosjetaDetailScreen
-/// (Card, icon+name header, status pill, label/value rows, errorContainer callout for a
-/// rejection/refund reason), plus in-kind pickup details when present.
 class DonacijaDetailScreen extends ConsumerWidget {
   const DonacijaDetailScreen({super.key, required this.id});
 
@@ -165,25 +162,25 @@ class DonacijaDetailScreen extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 24),
-                            _DetailRow(label: 'Datum donacije', value: formatDate(donacija.datumDonacije)),
+                            DetailRow(label: 'Datum donacije', value: formatDate(donacija.datumDonacije)),
                             if (isNovcana)
-                              _DetailRow(label: 'Iznos', value: '${donacija.iznos?.toStringAsFixed(2) ?? '-'} BAM')
+                              DetailRow(label: 'Iznos', value: '${donacija.iznos?.toStringAsFixed(2) ?? '-'} BAM')
                             else ...[
-                              _DetailRow(label: 'Stavka', value: donacija.prikazNazivStavke ?? '-'),
-                              _DetailRow(
+                              DetailRow(label: 'Stavka', value: donacija.prikazNazivStavke ?? '-'),
+                              DetailRow(
                                 label: 'Količina',
                                 value: donacija.kolicina == null
                                     ? '-'
                                     : '${donacija.kolicina} ${donacija.jedinicaMjereNaziv ?? ''}'.trim(),
                               ),
-                              _DetailRow(
+                              DetailRow(
                                 label: 'Preuzimanje',
                                 value: donacija.trebaPreuzimanje ? 'Potrebno preuzimanje' : 'Donator dostavlja sam',
                               ),
                               if (donacija.trebaPreuzimanje) ...[
-                                _DetailRow(label: 'Adresa preuzimanja', value: donacija.adresaPreuzimanja ?? '-'),
-                                _DetailRow(label: 'Telefon', value: donacija.telefonPreuzimanja ?? '-'),
-                                _DetailRow(
+                                DetailRow(label: 'Adresa preuzimanja', value: donacija.adresaPreuzimanja ?? '-'),
+                                DetailRow(label: 'Telefon', value: donacija.telefonPreuzimanja ?? '-'),
+                                DetailRow(
                                   label: 'Željeni datum',
                                   value: donacija.zeljeniDatumDostave == null
                                       ? '-'
@@ -191,13 +188,13 @@ class DonacijaDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ],
-                            _DetailRow(label: 'Napomena', value: donacija.napomena ?? '-'),
+                            DetailRow(label: 'Napomena', value: donacija.napomena ?? '-'),
                             if (donacija.datumObrade != null) ...[
                               const SizedBox(height: 12),
                               const Divider(),
                               const SizedBox(height: 12),
-                              _DetailRow(label: 'Obrađeno', value: formatDate(donacija.datumObrade!)),
-                              _DetailRow(
+                              DetailRow(label: 'Obrađeno', value: formatDate(donacija.datumObrade!)),
+                              DetailRow(
                                 label: 'Obradio',
                                 value:
                                     '${donacija.obradioKorisnikIme ?? ''} ${donacija.obradioKorisnikPrezime ?? ''}'
@@ -302,28 +299,3 @@ class _ReasonCallout extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

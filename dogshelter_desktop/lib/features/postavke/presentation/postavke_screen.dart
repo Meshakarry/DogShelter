@@ -11,8 +11,7 @@ class _PostavkeEntry {
   final String label;
 }
 
-/// Hub for every reference/lookup table's CRUD screens, regardless of whether
-/// it was named in the original proposal.
+/// Hub for every reference/lookup table's CRUD screens.
 class PostavkeScreen extends StatelessWidget {
   const PostavkeScreen({super.key});
 

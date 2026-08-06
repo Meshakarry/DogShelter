@@ -18,35 +18,28 @@ final posjetaPasApiProvider = Provider<PasApi>((ref) => PasApi(ref.watch(apiClie
 final posjetaKorisnikApiProvider =
     Provider<KorisnikAdminApi>((ref) => KorisnikAdminApi(ref.watch(apiClientProvider)));
 
-/// Reuses the desktop's generic LookupApi (same as Postavke/Psi/Zahtjevi) instead of the
-/// shared API class's own getStatusi(), which exists only for mobile's continued use.
 final statusPosjeteOptionsProvider = FutureProvider.autoDispose<List<LookupItem>>((ref) async {
   final api = LookupApi(ref.watch(apiClientProvider), statusPosjeteConfig);
   return (await api.search()).items;
 });
 
-/// Backs the walk-in booking dialog's Korisnik dropdown - a single pageSize=100 request,
-/// same simplification as every other "small enough to list in full" picker in this app.
-/// Filtered to aktivan-only (the backend's soft-delete/anonymize path always sets Aktivan=false
-/// alongside scrambling the name/username - there's no separate "anonymized" flag, so this one
-/// check excludes both plain-deactivated and anonymized accounts in one shot) and excludes the
-/// Admin role - a walk-in visit is booked on behalf of a visiting member of the public, never
-/// the shelter's own admin account.
+/// Backs the walk-in booking dialog's Korisnik dropdown. Filtered to aktivan-only (the backend's
+/// soft-delete/anonymize path always sets Aktivan=false, so this also excludes anonymized
+/// accounts) and excludes the Admin role, since a walk-in visit is booked on behalf of a visitor.
 final posjetaKorisnikOptionsProvider = FutureProvider.autoDispose<List<Korisnik>>((ref) async {
   final result = await ref.watch(posjetaKorisnikApiProvider).search(page: 1, pageSize: 100);
   return result.items.where((k) => k.aktivan && !k.hasRole('Admin')).toList();
 });
 
-/// Backs the walk-in booking dialog's optional Pas dropdown - mirrors mobile's own
-/// dogPickerOptionsProvider (page=1, pageSize=100, no status filter).
+/// Backs the walk-in booking dialog's optional Pas dropdown.
 final posjetaDogOptionsProvider = FutureProvider.autoDispose<List<PasListItem>>((ref) async {
   final result = await ref.watch(posjetaPasApiProvider).getDogs(page: 1, pageSize: 100);
   return result.items;
 });
 
 /// Exact taken DatumVrijeme values for a given day - backs the walk-in booking dialog's time
-/// slot grid, same as mobile's zauzetiTerminiProvider. autoDispose so re-opening the dialog on a
-/// previously-picked date always re-checks fresh instead of reusing a stale answer.
+/// slot grid. autoDispose so re-opening the dialog on a previously-picked date always re-checks
+/// fresh instead of reusing a stale answer.
 final posjetaZauzetiTerminiProvider = FutureProvider.autoDispose.family<List<DateTime>, DateTime>((ref, datum) {
   return ref.watch(posjetaApiProvider).getZauzetiTermini(datum);
 });

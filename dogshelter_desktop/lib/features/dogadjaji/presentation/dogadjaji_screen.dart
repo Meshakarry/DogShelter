@@ -10,6 +10,7 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/date_input_field.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/status_colors.dart';
@@ -120,7 +121,7 @@ class _DogadjajiScreenState extends ConsumerState<DogadjajiScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _DateInputField(
+                  child: DateInputField(
                     value: notifier.datumOd,
                     hintText: 'Datum od',
                     onTap: _pickDatumOd,
@@ -129,7 +130,7 @@ class _DogadjajiScreenState extends ConsumerState<DogadjajiScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _DateInputField(
+                  child: DateInputField(
                     value: notifier.datumDo,
                     hintText: 'Datum do',
                     onTap: _pickDatumDo,
@@ -228,37 +229,6 @@ class _DogadjajiScreenState extends ConsumerState<DogadjajiScreen> {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// A date picker that reads like a normal text input, matching Posjete's own filter row
-/// styling, with a trailing calendar icon and an optional clear button.
-class _DateInputField extends StatelessWidget {
-  const _DateInputField({required this.value, required this.hintText, required this.onTap, this.onClear});
-
-  final DateTime? value;
-  final String hintText;
-  final VoidCallback onTap;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          isDense: true,
-          suffixIcon: onClear != null
-              ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: onClear)
-              : const Icon(Icons.calendar_today_outlined, size: 18),
-        ),
-        child: Text(
-          value == null ? hintText : formatDate(value!),
-          style: value == null ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant) : null,
-        ),
       ),
     );
   }

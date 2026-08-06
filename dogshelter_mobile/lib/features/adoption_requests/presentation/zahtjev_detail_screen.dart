@@ -8,7 +8,8 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
-import 'package:dogshelter_shared/widgets/labeled_field.dart';
+import '../../../widgets/cancel_reason_dialog.dart';
+import '../../../widgets/detail_row.dart';
 import '../application/adoption_requests_providers.dart';
 import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/zahtjev_za_udomljavanje.dart';
 import 'zahtjev_status_style.dart';
@@ -50,7 +51,7 @@ class _ZahtjevDetailBodyState extends ConsumerState<_ZahtjevDetailBody> {
   Future<void> _cancel() async {
     final reason = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => const _CancelReasonDialog(),
+      builder: (dialogContext) => const CancelReasonDialog(title: 'Otkaži zahtjev'),
     );
     if (reason == null || !mounted) return;
 
@@ -128,9 +129,9 @@ class _ZahtjevDetailBodyState extends ConsumerState<_ZahtjevDetailBody> {
             ],
           ),
           const SizedBox(height: 16),
-          _DetailRow(label: 'Datum podnošenja', value: formatDate(zahtjev.datumPodnosenja)),
+          DetailRow(label: 'Datum podnošenja', value: formatDate(zahtjev.datumPodnosenja)),
           if (zahtjev.datumObrade != null)
-            _DetailRow(label: 'Datum obrade', value: formatDate(zahtjev.datumObrade!)),
+            DetailRow(label: 'Datum obrade', value: formatDate(zahtjev.datumObrade!)),
           if (zahtjev.napomena != null && zahtjev.napomena!.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text('Napomena', style: Theme.of(context).textTheme.titleMedium),
@@ -183,87 +184,3 @@ class _ZahtjevDetailBodyState extends ConsumerState<_ZahtjevDetailBody> {
   }
 }
 
-/// Confirmation dialog for withdrawing a pending Zahtjev - the reason is required, so unlike a
-/// plain AlertDialog this validates before closing and shows the error below the field, only
-/// popping with the trimmed reason once it's non-empty. Mirrors visits' _CancelReasonDialog.
-class _CancelReasonDialog extends StatefulWidget {
-  const _CancelReasonDialog();
-
-  @override
-  State<_CancelReasonDialog> createState() => _CancelReasonDialogState();
-}
-
-class _CancelReasonDialogState extends State<_CancelReasonDialog> {
-  final _reasonController = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _reasonController.dispose();
-    super.dispose();
-  }
-
-  void _confirm() {
-    final reason = _reasonController.text.trim();
-    if (reason.isEmpty) {
-      setState(() => _error = 'Razlog otkazivanja je obavezan.');
-      return;
-    }
-    Navigator.of(context).pop(reason);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      title: const Text('Otkaži zahtjev'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: SingleChildScrollView(
-          child: LabeledField(
-            label: 'Razlog otkazivanja',
-            child: TextField(
-              controller: _reasonController,
-              onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
-              },
-              maxLines: 3,
-              maxLength: 1000,
-              decoration: InputDecoration(
-                hintText: 'Unesite razlog otkazivanja',
-                border: const OutlineInputBorder(),
-                errorText: _error,
-              ),
-            ),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Odustani')),
-        FilledButton(onPressed: _confirm, child: const Text('Otkaži zahtjev')),
-      ],
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-}

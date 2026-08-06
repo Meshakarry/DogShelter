@@ -11,6 +11,7 @@ import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../adoption_requests/application/adoption_requests_providers.dart';
 import '../../visits/presentation/book_visit_screen.dart';
 import 'package:dogshelter_shared/pas/domain/pas.dart';
+import '../../../widgets/detail_row.dart';
 import '../application/dogs_providers.dart';
 import 'dog_status_style.dart';
 
@@ -138,11 +139,11 @@ class _DogDetailBodyState extends State<_DogDetailBody> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _DetailRow(label: 'Starost', value: dog.ageLabel ?? 'Nepoznato'),
-                  _DetailRow(label: 'Veličina', value: dog.velicinaNaziv ?? 'Nepoznato'),
-                  if (dog.tezina != null) _DetailRow(label: 'Težina', value: '${dog.tezina} kg'),
-                  _DetailRow(label: 'Vakcinisan', value: dog.vakcinisan ? 'Da' : 'Ne'),
-                  _DetailRow(label: 'Sterilizovan', value: dog.sterilizovan ? 'Da' : 'Ne'),
+                  DetailRow(label: 'Starost', value: dog.ageLabel ?? 'Nepoznato', labelWidth: 120),
+                  DetailRow(label: 'Veličina', value: dog.velicinaNaziv ?? 'Nepoznato', labelWidth: 120),
+                  if (dog.tezina != null) DetailRow(label: 'Težina', value: '${dog.tezina} kg', labelWidth: 120),
+                  DetailRow(label: 'Vakcinisan', value: dog.vakcinisan ? 'Da' : 'Ne', labelWidth: 120),
+                  DetailRow(label: 'Sterilizovan', value: dog.sterilizovan ? 'Da' : 'Ne', labelWidth: 120),
                   if (dog.opis != null && dog.opis!.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text('Opis', style: Theme.of(context).textTheme.titleMedium),
@@ -398,28 +399,6 @@ class _SubmitRequestSheetState extends ConsumerState<_SubmitRequestSheet> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(width: 120, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          ),
-        ],
       ),
     );
   }

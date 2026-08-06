@@ -64,7 +64,7 @@ class ObavijestApi {
     return Obavijest.fromJson(json as Map<String, dynamic>);
   }
 
-  /// Admin-only: omitting [slika] preserves the existing image server-side.
+  /// Admin-only
   Future<Obavijest> update(int id, ObavijestFormData data, {File? slika}) async {
     final files = <http.MultipartFile>[
       if (slika != null) await http.MultipartFile.fromPath('slika', slika.path),

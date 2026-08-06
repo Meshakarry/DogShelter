@@ -9,6 +9,7 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/zahtjev_za_udomljavanje.dart';
 import '../../../environment.dart';
+import '../../../widgets/detail_row.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/zahtjevi_providers.dart';
@@ -16,11 +17,8 @@ import '../application/zahtjevi_providers.dart';
 const _naCekanju = 'Na čekanju';
 
 
-/// Dedicated /zahtjevi/:id page - richer visual layout than the old AlertDialog-based
-/// "Detalji" popup, matching mobile's zahtjev_detail_screen.dart section rhythm (image+name
-/// header, status pill, label/value rows, errorContainer callout for a rejection reason) but
-/// wrapped in a Card + desktop's own back-button+title header (no Scaffold/AppBar), per
-/// psi_form_screen.dart's standalone-route convention.
+/// Dedicated /zahtjevi/:id page - image+name header, status pill, label/value rows, and an
+/// errorContainer callout showing the rejection reason when applicable.
 class ZahtjevDetailScreen extends ConsumerWidget {
   const ZahtjevDetailScreen({super.key, required this.id});
 
@@ -167,14 +165,14 @@ class ZahtjevDetailScreen extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 24),
-                            _DetailRow(label: 'Podneseno', value: formatDate(zahtjev.datumPodnosenja)),
-                            _DetailRow(label: 'Napomena', value: zahtjev.napomena ?? '-'),
+                            DetailRow(label: 'Podneseno', value: formatDate(zahtjev.datumPodnosenja)),
+                            DetailRow(label: 'Napomena', value: zahtjev.napomena ?? '-'),
                             if (zahtjev.datumObrade != null) ...[
                               const SizedBox(height: 12),
                               const Divider(),
                               const SizedBox(height: 12),
-                              _DetailRow(label: 'Obrađeno', value: formatDate(zahtjev.datumObrade!)),
-                              _DetailRow(
+                              DetailRow(label: 'Obrađeno', value: formatDate(zahtjev.datumObrade!)),
+                              DetailRow(
                                 label: 'Obradio',
                                 value:
                                     '${zahtjev.obradioKorisnikIme ?? ''} ${zahtjev.obradioKorisnikPrezime ?? ''}'
@@ -258,28 +256,3 @@ class ZahtjevDetailScreen extends ConsumerWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

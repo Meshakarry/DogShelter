@@ -12,8 +12,6 @@ class AppTheme {
 
   static const toolbarActionHeight = 40.0;
 
-  /// Rectangular (not pill-shaped) button matching the height of an adjacent
-  /// dense OutlineInputBorder text field - used for list-toolbar actions like "Dodaj".
   static final ButtonStyle toolbarActionButtonStyle = FilledButton.styleFrom(
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
     padding: const EdgeInsets.symmetric(horizontal: 16),

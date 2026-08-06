@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 
-/// Light-grey, dashed-border dropzone look (matches the upload mockup) - used for every
-/// image picker in this app (Psi's cover/gallery images, Obavijesti's cover image).
+/// Light-grey, dashed-border dropzone used for every image picker in this app.
 class DashedDropzone extends StatelessWidget {
   const DashedDropzone({
     super.key,

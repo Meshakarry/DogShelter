@@ -19,8 +19,6 @@ final pasApiProvider = Provider<PasApi>((ref) => PasApi(ref.watch(apiClientProvi
 
 typedef PsiFormLookups = ({List<Rasa> rase, List<StatusPsa> statusi, List<VelicinaPsa> velicine});
 
-/// Reuses the desktop's generic LookupApi (same as Postavke/Pocetna) instead of PasApi's
-/// own typed getRase/getStatusi/getVelicine, which exist only for mobile's continued use.
 final psiFormLookupsProvider = FutureProvider.autoDispose<PsiFormLookups>((ref) async {
   final client = ref.watch(apiClientProvider);
   final rasaFuture = LookupApi(client, rasaConfig).search();

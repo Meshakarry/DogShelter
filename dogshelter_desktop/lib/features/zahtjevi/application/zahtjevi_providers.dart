@@ -14,8 +14,6 @@ const statusZahtjevaConfig =
 final zahtjevZaUdomljavanjeApiProvider =
     Provider<ZahtjevZaUdomljavanjeApi>((ref) => ZahtjevZaUdomljavanjeApi(ref.watch(apiClientProvider)));
 
-/// Reuses the desktop's generic LookupApi (same as Postavke/Psi) instead of the shared
-/// API class's own getStatusi(), which exists only for mobile's continued use.
 final statusZahtjevaOptionsProvider = FutureProvider.autoDispose<List<LookupItem>>((ref) async {
   final api = LookupApi(ref.watch(apiClientProvider), statusZahtjevaConfig);
   return (await api.search()).items;
