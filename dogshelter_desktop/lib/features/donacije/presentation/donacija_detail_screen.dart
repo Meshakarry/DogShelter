@@ -14,7 +14,6 @@ import '../application/donacije_providers.dart';
 const _naCekanju = 'Na čekanju';
 const _uspjesna = 'Uspješna';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 /// Dedicated /donacije/:id page - same visual shape as ZahtjevDetailScreen/PosjetaDetailScreen
 /// (Card, icon+name header, status pill, label/value rows, errorContainer callout for a
@@ -49,7 +48,7 @@ class DonacijaDetailScreen extends ConsumerWidget {
       ref.invalidate(donacijaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Donacija je potvrđena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -65,7 +64,7 @@ class DonacijaDetailScreen extends ConsumerWidget {
       ref.invalidate(donacijaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Donacija je odbijena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -81,7 +80,7 @@ class DonacijaDetailScreen extends ConsumerWidget {
       ref.invalidate(donacijaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Donacija je vraćena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 

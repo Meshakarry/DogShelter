@@ -15,7 +15,6 @@ import '../application/donacije_providers.dart';
 const _naCekanju = 'Na čekanju';
 const _uspjesna = 'Uspješna';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class DonacijeScreen extends ConsumerStatefulWidget {
   const DonacijeScreen({super.key});
@@ -49,7 +48,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
       await ref.read(donacijaListProvider.notifier).potvrdi(donacija.donacijaId);
       if (mounted) _showMessage('Donacija je potvrđena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -64,7 +63,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
       await ref.read(donacijaListProvider.notifier).odbij(donacija.donacijaId, razlog);
       if (mounted) _showMessage('Donacija je odbijena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -79,7 +78,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
       await ref.read(donacijaListProvider.notifier).refund(donacija.donacijaId, razlog);
       if (mounted) _showMessage('Donacija je vraćena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -192,7 +191,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
             child: state.isLoading && state.items.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : state.error != null && state.items.isEmpty
-                    ? Center(child: Text(_describeError(state.error!)))
+                    ? Center(child: Text(describeApiError(state.error!)))
                     : state.items.isEmpty
                         ? const Center(child: Text('Nema donacija koje odgovaraju filterima.'))
                         : Card(

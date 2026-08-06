@@ -16,7 +16,6 @@ import '../application/zahtjevi_providers.dart';
 
 const _naCekanju = 'Na čekanju';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class ZahtjeviScreen extends ConsumerWidget {
   const ZahtjeviScreen({super.key});
@@ -47,7 +46,7 @@ class ZahtjeviScreen extends ConsumerWidget {
       await ref.read(zahtjevListProvider.notifier).odobri(zahtjev.zahtjevZaUdomljavanjeId);
       if (context.mounted) _showMessage(context, 'Zahtjev je odobren.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -62,7 +61,7 @@ class ZahtjeviScreen extends ConsumerWidget {
       await ref.read(zahtjevListProvider.notifier).odbij(zahtjev.zahtjevZaUdomljavanjeId, razlog);
       if (context.mounted) _showMessage(context, 'Zahtjev je odbijen.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -106,7 +105,7 @@ class ZahtjeviScreen extends ConsumerWidget {
           Expanded(
             child: itemsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text(_describeError(error))),
+              error: (error, _) => Center(child: Text(describeApiError(error))),
               data: (result) {
                 final items = result.items;
                 if (items.isEmpty) return const Center(child: Text('Nema zahtjeva za udomljavanje.'));

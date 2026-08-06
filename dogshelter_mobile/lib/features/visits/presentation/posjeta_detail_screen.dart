@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:dogshelter_shared/core/api_exception.dart';
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
@@ -66,7 +67,9 @@ class _PosjetaDetailBodyState extends ConsumerState<_PosjetaDetailBody> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(describeApiError(e)), backgroundColor: Theme.of(context).colorScheme.error),
+        );
       }
     } finally {
       if (mounted) setState(() => _isCancelling = false);

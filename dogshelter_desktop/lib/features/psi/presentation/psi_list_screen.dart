@@ -13,7 +13,6 @@ import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../application/psi_providers.dart';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class PsiListScreen extends ConsumerStatefulWidget {
   const PsiListScreen({super.key});
@@ -75,7 +74,7 @@ class _PsiListScreenState extends ConsumerState<PsiListScreen> {
       await ref.read(psiListProvider.notifier).remove(item.pasId);
       _showMessage('Pas je obrisan.');
     } catch (e) {
-      _showMessage(_describeError(e), isError: true);
+      _showMessage(describeApiError(e), isError: true);
     }
   }
 

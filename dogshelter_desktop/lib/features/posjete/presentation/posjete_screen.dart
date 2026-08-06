@@ -24,7 +24,6 @@ const _potvrdjena = 'Potvrđena';
 const _zavrsena = 'Završena';
 const _otkazana = 'Otkazana';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class PosjeteScreen extends ConsumerStatefulWidget {
   const PosjeteScreen({super.key});
@@ -58,7 +57,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
       await ref.read(posjetaListProvider.notifier).potvrdi(posjeta.posjetaId);
       if (mounted) _showMessage('Posjeta je potvrđena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -80,7 +79,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
       await ref.read(posjetaListProvider.notifier).zavrsi(posjeta.posjetaId);
       if (mounted) _showMessage('Posjeta je označena kao završena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -95,7 +94,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
       await ref.read(posjetaListProvider.notifier).otkazi(posjeta.posjetaId, razlog);
       if (mounted) _showMessage('Posjeta je otkazana.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -212,7 +211,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
             child: state.isLoading && state.items.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : state.error != null && state.items.isEmpty
-                    ? Center(child: Text(_describeError(state.error!)))
+                    ? Center(child: Text(describeApiError(state.error!)))
                     : state.items.isEmpty
                         ? const Center(child: Text('Nema posjeta koje odgovaraju filterima.'))
                         : Card(

@@ -446,8 +446,8 @@ public static class DatabaseSeeder
 
     /// <summary>
     /// Seeds PregledPsa (dog-detail-view log) rows for the "korisnik" and "volonter" test
-    /// accounts so the Phase 14 recommender has a real browsing-history signal from first
-    /// login, rather than only ever populating this table via live GetById calls. Inserted
+    /// accounts so the recommender has a real browsing-history signal from first login,
+    /// rather than only ever populating this table via live GetById calls. Inserted
     /// directly via context (bypassing PregledPsaService.LogPregled), same as other
     /// no-side-effect seed rows elsewhere in this file.
     /// </summary>

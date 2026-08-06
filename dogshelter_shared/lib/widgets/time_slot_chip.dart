@@ -12,12 +12,6 @@ DateTime firstBookableVisitDate() {
   return DateTime(now.year, now.month, now.day);
 }
 
-/// Filters [shelterVisitTimeSlots] down to only the slots still bookable for [selectedDate] -
-/// none for a past date (the calendar's `firstDate` should already prevent one being selected at
-/// all, via [firstBookableVisitDate], but this stays defensive), every slot for a future date,
-/// and only slots later than the current time for today. Used by both mobile's self-service
-/// booking sheet and desktop's admin walk-in booking dialog so neither can create a Posjeta for a
-/// moment that has already passed.
 List<String> availableTimeSlots(DateTime? selectedDate) {
   if (selectedDate == null) return shelterVisitTimeSlots;
   final now = DateTime.now();

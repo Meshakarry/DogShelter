@@ -10,7 +10,6 @@ import '../domain/lookup_item.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 /// Reusable CRUD screen for any lookup table shaped as `{id, naziv}` - covers every
 /// Postavke table whose backend controller uses the generic LookupSearchRequest/
@@ -49,7 +48,7 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
         _showMessage('Stavka je uspješno izmijenjena.');
       }
     } catch (e) {
-      _showMessage(_describeError(e), isError: true);
+      _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -71,7 +70,7 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
       await ref.read(lookupListProvider(widget.config).notifier).remove(item.id);
       _showMessage('Stavka je obrisana.');
     } catch (e) {
-      _showMessage(_describeError(e), isError: true);
+      _showMessage(describeApiError(e), isError: true);
     }
   }
 

@@ -27,3 +27,8 @@ class ApiException implements Exception {
   @override
   String toString() => message;
 }
+
+/// Forwards the backend's actual validation/error messages verbatim, never a generic
+/// "something went wrong" — joins every field error when there is more than one.
+String describeApiError(Object error) =>
+    error is ApiException ? error.allMessages.join('\n') : error.toString();

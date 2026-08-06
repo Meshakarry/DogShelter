@@ -137,11 +137,11 @@ namespace DogShelter.Controllers
                 return Unauthorized(new { message = "Neispravno korisničko ime ili lozinka." });
             }
 
-            var token = _tokenGenerator.GenerateToken(user);
+            var (token, expiresUtc) = _tokenGenerator.GenerateToken(user);
             var response = new TokenResponse
             {
                 Token = token,
-                ExpiresUtc = _tokenGenerator.GetExpiration(),
+                ExpiresUtc = expiresUtc,
                 Korisnik = user
             };
             return Ok(response);

@@ -16,7 +16,6 @@ import '../application/posjete_providers.dart';
 const _naCekanju = 'Na čekanju';
 const _potvrdjena = 'Potvrđena';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 /// Dedicated /posjete/:id page - same visual shape as ZahtjevDetailScreen (Card, image+name
 /// header, status pill, label/value rows, errorContainer callout for a cancellation reason),
@@ -51,7 +50,7 @@ class PosjetaDetailScreen extends ConsumerWidget {
       ref.invalidate(posjetaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Posjeta je potvrđena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -74,7 +73,7 @@ class PosjetaDetailScreen extends ConsumerWidget {
       ref.invalidate(posjetaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Posjeta je označena kao završena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -90,7 +89,7 @@ class PosjetaDetailScreen extends ConsumerWidget {
       ref.invalidate(posjetaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Posjeta je otkazana.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 

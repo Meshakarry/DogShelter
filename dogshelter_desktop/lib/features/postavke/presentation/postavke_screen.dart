@@ -11,8 +11,8 @@ class _PostavkeEntry {
   final String label;
 }
 
-/// Hub for every reference/lookup table the faculty requires CRUD screens for,
-/// regardless of whether it was named in the proposal (see faculty-requirements memory).
+/// Hub for every reference/lookup table's CRUD screens, regardless of whether
+/// it was named in the original proposal.
 class PostavkeScreen extends StatelessWidget {
   const PostavkeScreen({super.key});
 

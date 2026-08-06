@@ -15,7 +15,6 @@ import '../application/zahtjevi_providers.dart';
 
 const _naCekanju = 'Na čekanju';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 /// Dedicated /zahtjevi/:id page - richer visual layout than the old AlertDialog-based
 /// "Detalji" popup, matching mobile's zahtjev_detail_screen.dart section rhythm (image+name
@@ -54,7 +53,7 @@ class ZahtjevDetailScreen extends ConsumerWidget {
       ref.invalidate(zahtjevDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Zahtjev je odobren.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -70,7 +69,7 @@ class ZahtjevDetailScreen extends ConsumerWidget {
       ref.invalidate(zahtjevDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Zahtjev je odbijen.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 

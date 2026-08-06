@@ -18,8 +18,7 @@ class PdfReportSection {
 
 /// Builds admin-report PDFs with a bundled Noto Sans font, so Bosnian diacritics
 /// (č/ć/š/ž/đ) render correctly instead of being ASCII-folded away by the default
-/// Helvetica font (the workaround the CSBWebshop reference repo uses, deliberately not
-/// copied here - see project notes on the Phase 9 QuestPDF font bug this fix mirrors).
+/// Helvetica font.
 abstract final class IzvjestajPdfBuilder {
   static pw.Font? _regular;
   static pw.Font? _bold;

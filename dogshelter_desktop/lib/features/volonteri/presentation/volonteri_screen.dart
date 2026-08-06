@@ -15,7 +15,6 @@ import '../../../widgets/status_colors.dart';
 import '../../korisnici/data/korisnik_admin_api.dart';
 import '../application/volonteri_providers.dart';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class VolonteriScreen extends ConsumerStatefulWidget {
   const VolonteriScreen({super.key});
@@ -55,7 +54,7 @@ class _VolonteriScreenState extends ConsumerState<VolonteriScreen> {
           );
       _showMessage('Volonter je uspješno dodan.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -72,7 +71,7 @@ class _VolonteriScreenState extends ConsumerState<VolonteriScreen> {
           .update(volonter.volonterId, aktivan: result.aktivan, napomena: result.napomena);
       _showMessage('Volonter je uspješno izmijenjen.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 

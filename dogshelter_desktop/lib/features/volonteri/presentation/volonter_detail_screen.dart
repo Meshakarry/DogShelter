@@ -13,7 +13,6 @@ import '../../../widgets/page_footer.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/volonteri_providers.dart';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 /// Dedicated /volonteri/:id page - profile header, activity logging + list, and a read-only
 /// roster of assigned events (assignment itself only happens from the Događaji side).
@@ -45,7 +44,7 @@ class VolonterDetailScreen extends ConsumerWidget {
       ref.invalidate(volonterDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Aktivnost je zabilježena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -68,7 +67,7 @@ class VolonterDetailScreen extends ConsumerWidget {
       ref.invalidate(volonterDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Aktivnost je obrisana.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 

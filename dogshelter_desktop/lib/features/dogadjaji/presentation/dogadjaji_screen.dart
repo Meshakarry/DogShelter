@@ -15,7 +15,6 @@ import '../../../widgets/page_footer.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/dogadjaji_providers.dart';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class DogadjajiScreen extends ConsumerStatefulWidget {
   const DogadjajiScreen({super.key});
@@ -57,7 +56,7 @@ class _DogadjajiScreenState extends ConsumerState<DogadjajiScreen> {
       await ref.read(dogadjajListProvider.notifier).otkazi(dogadjaj.dogadjajId);
       if (mounted) _showMessage('Događaj je otkazan.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
