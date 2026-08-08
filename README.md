@@ -92,15 +92,6 @@ flutter run
 
 Bez `--dart-define`, mobilna aplikacija se po defaultu povezuje na `http://10.0.2.2:5265` (Android emulator loopback ka hostu).
 
-### Release build (za predaju)
-
-```bash
-cd dogshelter_mobile && flutter build apk --release
-cd dogshelter_desktop && flutter build windows --release
-```
-
-Build fajlovi se ne commit-uju u repozitorij — prilažu se kao ZIP arhiva kroz GitHub Releases.
-
 ## Login podaci (seed)
 
 Svi nalozi se seeduju automatski pri prvom pokretanju backenda.
