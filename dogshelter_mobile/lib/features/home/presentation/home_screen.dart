@@ -217,8 +217,6 @@ class _SectionTitle extends StatelessWidget {
 }
 
 /// Horizontally scrollable recommendation carousel with prev/next arrows on the header row.
-/// Uses a plain scrollable Row (not ListView) so each card can size to its own content height -
-/// the razlog explanation is shown in full, never truncated, so card heights naturally vary.
 class _RecommendedCarousel extends StatefulWidget {
   const _RecommendedCarousel({required this.dogs});
 

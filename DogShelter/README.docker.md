@@ -2,7 +2,7 @@
 
 ## Priprema
 
-1. Raspakiraj `.env-tajne.zip` (lozinka: dostavljena posebno). Ako Windows Explorer javi grešku, koristi 7-Zip.
+1. Raspakiraj `.env-tajne.zip` (lozinka: `fit`). Ako Windows Explorer javi grešku, koristi 7-Zip.
 2. Postavi `.env` u ovaj folder (gdje je `docker-compose.yml`).
 
 ## Pokretanje

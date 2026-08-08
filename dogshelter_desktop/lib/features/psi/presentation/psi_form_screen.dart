@@ -16,11 +16,13 @@ import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/cover_image_picker.dart';
 import '../../../widgets/dashed_dropzone.dart';
+import '../../../widgets/date_input_field.dart';
+import '../../../widgets/gradient_button.dart';
 import '../application/psi_providers.dart';
 
-/// Edit/create screen for a single Pas - not a sidebar destination, so (like the
-/// Postavke sub-routes) it renders its own back-button + title header.
+/// Edit/create screen for a single Pas.
 class PsiFormScreen extends ConsumerWidget {
   const PsiFormScreen({super.key, this.pasId});
 
@@ -238,7 +240,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _CoverImagePicker(
+                  CoverImagePicker(
                     key: keyFor('coverImage'),
                     existingUrl: resolveImageUrl(widget.initial?.slikaNaslovna, Environment.apiBaseUrl),
                     newImage: _newCoverImage,
@@ -391,10 +393,9 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
                     child: LabeledField(
                       label: 'Datum rođenja',
                       required: false,
-                      child: _DateInputField(
+                      child: DateInputField(
                         value: _datumRodjenja,
                         hintText: 'Odaberite datum',
-                        formatDate: _formatDate,
                         onTap: () => _pickDate(isDatumRodjenja: true),
                       ),
                     ),
@@ -405,10 +406,9 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
                       key: keyFor('datumPrijema'),
                       label: 'Datum prijema',
                       errorText: fieldErrors['datumPrijema'],
-                      child: _DateInputField(
+                      child: DateInputField(
                         value: _datumPrijema,
                         hintText: 'Odaberite datum',
-                        formatDate: _formatDate,
                         onTap: () => _pickDate(isDatumRodjenja: false),
                       ),
                     ),
@@ -469,7 +469,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
               const SizedBox(height: 24),
               Align(
                 alignment: Alignment.centerRight,
-                child: _GradientButton(
+                child: GradientButton(
                   onPressed: _isSaving ? null : _submit,
                   child: _isSaving
                       ? const SizedBox(
@@ -484,128 +484,6 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
           ),
         ),
       ),
-    );
-  }
-
-  String _formatDate(DateTime date) =>
-      '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}.';
-}
-
-/// A date picker that reads like a normal text input (matching the surrounding form fields)
-/// instead of a standalone button, with a trailing calendar icon as the visual affordance.
-class _DateInputField extends StatelessWidget {
-  const _DateInputField({required this.value, required this.hintText, required this.formatDate, required this.onTap});
-
-  final DateTime? value;
-  final String hintText;
-  final String Function(DateTime) formatDate;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
-        ),
-        child: Text(
-          value == null ? hintText : formatDate(value!),
-          style: value == null ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant) : null,
-        ),
-      ),
-    );
-  }
-}
-
-/// Rectangular (no rounding) filled button with a radial gradient, used for the form's
-/// primary "Sačuvaj" action per the design mockup.
-class _GradientButton extends StatelessWidget {
-  const _GradientButton({required this.onPressed, required this.child});
-
-  final VoidCallback? onPressed;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final disabled = onPressed == null;
-    return Opacity(
-      opacity: disabled ? 0.6 : 1,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(-0.6, -0.6),
-            radius: 1.3,
-            colors: [Color(0xFF3D9270), AppTheme.seedColor],
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              child: DefaultTextStyle.merge(
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                child: IconTheme.merge(data: const IconThemeData(color: Colors.white), child: child),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CoverImagePicker extends StatelessWidget {
-  const _CoverImagePicker({super.key, this.existingUrl, this.newImage, required this.onPick, this.errorText});
-
-  final String? existingUrl;
-  final File? newImage;
-  final VoidCallback onPick;
-  final String? errorText;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasImage = newImage != null || existingUrl != null;
-    return Column(
-      children: [
-        DashedDropzone(
-          width: 240,
-          height: 160,
-          onTap: onPick,
-          borderColor: errorText != null ? Theme.of(context).colorScheme.error : null,
-          child: newImage != null
-              ? Image.file(newImage!, fit: BoxFit.cover, width: 240, height: 160)
-              : existingUrl != null
-                  ? Image.network(existingUrl!, fit: BoxFit.cover, width: 240, height: 160)
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_photo_alternate_outlined, size: 32, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        const SizedBox(height: 8),
-                        Text(
-                          '+ Dodaj fotografiju',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-        ),
-        if (hasImage) ...[
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: onPick,
-            icon: const Icon(Icons.upload_outlined, size: 18),
-            label: const Text('Zamijeni sliku'),
-          ),
-        ],
-        if (errorText != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(errorText!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13)),
-          ),
-      ],
     );
   }
 }
@@ -623,9 +501,7 @@ class _GallerySection extends ConsumerWidget {
       await ref.read(psiGalleryProvider(pasId).notifier).add(File(path));
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e is ApiException ? e.allMessages.join('\n') : e.toString())),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(describeApiError(e))));
       }
     }
   }

@@ -14,6 +14,7 @@ import 'package:dogshelter_shared/widgets/status_pill.dart';
 import 'package:dogshelter_shared/widgets/time_slot_chip.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/date_input_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
@@ -24,7 +25,6 @@ const _potvrdjena = 'Potvrđena';
 const _zavrsena = 'Završena';
 const _otkazana = 'Otkazana';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class PosjeteScreen extends ConsumerStatefulWidget {
   const PosjeteScreen({super.key});
@@ -58,7 +58,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
       await ref.read(posjetaListProvider.notifier).potvrdi(posjeta.posjetaId);
       if (mounted) _showMessage('Posjeta je potvrđena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -80,7 +80,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
       await ref.read(posjetaListProvider.notifier).zavrsi(posjeta.posjetaId);
       if (mounted) _showMessage('Posjeta je označena kao završena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -95,7 +95,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
       await ref.read(posjetaListProvider.notifier).otkazi(posjeta.posjetaId, razlog);
       if (mounted) _showMessage('Posjeta je otkazana.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -157,7 +157,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _DateInputField(
+                  child: DateInputField(
                     value: state.filters.datumOd,
                     hintText: 'Datum od',
                     onTap: () async {
@@ -178,7 +178,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _DateInputField(
+                  child: DateInputField(
                     value: state.filters.datumDo,
                     hintText: 'Datum do',
                     onTap: () async {
@@ -212,7 +212,7 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
             child: state.isLoading && state.items.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : state.error != null && state.items.isEmpty
-                    ? Center(child: Text(_describeError(state.error!)))
+                    ? Center(child: Text(describeApiError(state.error!)))
                     : state.items.isEmpty
                         ? const Center(child: Text('Nema posjeta koje odgovaraju filterima.'))
                         : Card(
@@ -346,37 +346,6 @@ class _StatusLegend extends StatelessWidget {
             ],
           ),
       ],
-    );
-  }
-}
-
-/// A date picker that reads like a normal text input (matching Psi's form field styling)
-/// instead of a standalone button, with a trailing calendar icon and an optional clear button.
-class _DateInputField extends StatelessWidget {
-  const _DateInputField({required this.value, required this.hintText, required this.onTap, this.onClear});
-
-  final DateTime? value;
-  final String hintText;
-  final VoidCallback onTap;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          isDense: true,
-          suffixIcon: onClear != null
-              ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: onClear)
-              : const Icon(Icons.calendar_today_outlined, size: 18),
-        ),
-        child: Text(
-          value == null ? hintText : formatDate(value!),
-          style: value == null ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant) : null,
-        ),
-      ),
     );
   }
 }

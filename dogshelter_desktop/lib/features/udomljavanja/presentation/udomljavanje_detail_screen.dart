@@ -6,11 +6,11 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../../../environment.dart';
+import '../../../widgets/detail_row.dart';
 import '../application/udomljavanja_providers.dart';
 
-/// Dedicated /udomljavanja/:id page - same visual shape as ZahtjevDetailScreen (Card, image+name
-/// header, label/value rows) but read-only: no actions, since Udomljavanje has no write endpoints
-/// by design (it only ever comes into being as a side effect of Zahtjev.Odobri).
+/// Dedicated /udomljavanja/:id page - read-only: Udomljavanje has no write endpoints, since it
+/// only ever comes into being as a side effect of Zahtjev.Odobri.
 class UdomljavanjeDetailScreen extends ConsumerWidget {
   const UdomljavanjeDetailScreen({super.key, required this.id});
 
@@ -101,8 +101,8 @@ class UdomljavanjeDetailScreen extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 24),
-                            _DetailRow(label: 'Datum udomljenja', value: formatDate(udomljavanje.datumUdomljavanja)),
-                            _DetailRow(label: 'Napomena', value: udomljavanje.napomena ?? '-'),
+                            DetailRow(label: 'Datum udomljenja', value: formatDate(udomljavanje.datumUdomljavanja)),
+                            DetailRow(label: 'Napomena', value: udomljavanje.napomena ?? '-'),
                           ],
                         ),
                       ),
@@ -118,28 +118,3 @@ class UdomljavanjeDetailScreen extends ConsumerWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

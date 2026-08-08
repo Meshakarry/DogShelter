@@ -28,7 +28,6 @@ final ulogaOptionsProvider = FutureProvider.autoDispose<List<LookupItem>>((ref) 
   return (await api.search()).items;
 });
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class KorisniciScreen extends ConsumerStatefulWidget {
   const KorisniciScreen({super.key});
@@ -53,8 +52,9 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
   }
 
   Future<void> _openForm({Korisnik? existing}) async {
-    final gradOptions = await ref.read(gradOptionsProvider.future);
-    final roleOptions = await ref.read(ulogaOptionsProvider.future);
+    final results = await Future.wait([ref.read(gradOptionsProvider.future), ref.read(ulogaOptionsProvider.future)]);
+    final gradOptions = results[0];
+    final roleOptions = results[1];
     if (!mounted) return;
 
     final result = await showDialog<KorisnikFormData>(
@@ -77,7 +77,7 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
         _showMessage('Korisnik je uspješno izmijenjen.');
       }
     } catch (e) {
-      _showMessage(_describeError(e), isError: true);
+      _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -106,7 +106,7 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
       await ref.read(korisnikListProvider.notifier).remove(korisnik.korisnikId);
       _showMessage('Korisnik je obrisan.');
     } catch (e) {
-      _showMessage(_describeError(e), isError: true);
+      _showMessage(describeApiError(e), isError: true);
     }
   }
 

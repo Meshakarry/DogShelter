@@ -21,9 +21,6 @@ class RequiredLabel extends StatelessWidget {
   }
 }
 
-/// Validation messages render clearly below their control, never inside the input or as a
-/// dialog - this is that inline message, used under every field that can fail client-side
-/// validation.
 class FieldError extends StatelessWidget {
   const FieldError(this.message, {super.key});
 

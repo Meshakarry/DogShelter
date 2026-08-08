@@ -6,6 +6,7 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import '../../../environment.dart';
+import '../../../widgets/date_input_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../application/udomljavanja_providers.dart';
 
@@ -27,7 +28,7 @@ class UdomljavanjaScreen extends ConsumerWidget {
             children: [
               SizedBox(
                 width: 200,
-                child: _DateInputField(
+                child: DateInputField(
                   value: notifier.datumOd,
                   hintText: 'Datum od',
                   onTap: () async {
@@ -49,7 +50,7 @@ class UdomljavanjaScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               SizedBox(
                 width: 200,
-                child: _DateInputField(
+                child: DateInputField(
                   value: notifier.datumDo,
                   hintText: 'Datum do',
                   onTap: () async {
@@ -137,35 +138,6 @@ class UdomljavanjaScreen extends ConsumerWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _DateInputField extends StatelessWidget {
-  const _DateInputField({required this.value, required this.hintText, required this.onTap, this.onClear});
-
-  final DateTime? value;
-  final String hintText;
-  final VoidCallback onTap;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          isDense: true,
-          suffixIcon: onClear != null
-              ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: onClear)
-              : const Icon(Icons.calendar_today_outlined, size: 18),
-        ),
-        child: Text(
-          value == null ? hintText : formatDate(value!),
-          style: value == null ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant) : null,
-        ),
       ),
     );
   }

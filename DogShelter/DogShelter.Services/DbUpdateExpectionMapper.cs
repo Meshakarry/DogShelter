@@ -18,7 +18,7 @@ namespace DogShelter.Services
             if (ex is DbUpdateException dbEx && IsReferenceConstraintViolation(dbEx))
             {
                 throw new ConflictException(
-                    conflictMessage ?? "Nije moguće obrisati jer se stavka još koristi (npr. u narudžbi, favoritima ili recenzijama).");
+                    conflictMessage ?? "Nije moguće obrisati jer se stavka još uvijek koristi u drugim povezanim podacima.");
             }
 
             throw ex;

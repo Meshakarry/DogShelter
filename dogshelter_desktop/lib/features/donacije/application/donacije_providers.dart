@@ -12,8 +12,6 @@ const statusDonacijeConfig =
 
 final donacijaApiProvider = Provider<DonacijaApi>((ref) => DonacijaApi(ref.watch(apiClientProvider)));
 
-/// Reuses the desktop's generic LookupApi (same as Postavke/Psi/Zahtjevi/Posjete) instead of the
-/// shared API class's own getTipovi()/getStatusi(), which exist only for mobile's continued use.
 final tipDonacijeOptionsProvider = FutureProvider.autoDispose<List<LookupItem>>((ref) async {
   final api = LookupApi(ref.watch(apiClientProvider), tipDonacijeConfig);
   return (await api.search()).items;

@@ -5,6 +5,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/donacija/domain/donacija.dart';
+import '../../../widgets/detail_row.dart';
 import '../application/donations_providers.dart';
 import 'donation_status_style.dart';
 
@@ -110,29 +111,29 @@ class _DonationDetailBodyState extends ConsumerState<_DonationDetailBody> {
             ],
           ),
           const SizedBox(height: 16),
-          if (donacija.iznos != null) _DetailRow(label: 'Iznos', value: '${donacija.iznos!.toStringAsFixed(2)} KM'),
-          if (donacija.prikazNazivStavke != null) _DetailRow(label: 'Kategorija', value: donacija.prikazNazivStavke!),
+          if (donacija.iznos != null) DetailRow(label: 'Iznos', value: '${donacija.iznos!.toStringAsFixed(2)} KM'),
+          if (donacija.prikazNazivStavke != null) DetailRow(label: 'Kategorija', value: donacija.prikazNazivStavke!),
           if (donacija.kolicina != null)
-            _DetailRow(
+            DetailRow(
               label: 'Količina',
               value: '${donacija.kolicina!.toStringAsFixed(donacija.kolicina! % 1 == 0 ? 0 : 2)} ${donacija.jedinicaMjereNaziv ?? ''}',
             ),
           if (!donacija.isNovcana)
-            _DetailRow(
+            DetailRow(
               label: 'Dostava',
               value: donacija.trebaPreuzimanje ? 'Azil preuzima donaciju' : 'Donator dostavlja lično',
             ),
           if (donacija.trebaPreuzimanje && donacija.adresaPreuzimanja != null)
-            _DetailRow(label: 'Adresa preuzimanja', value: donacija.adresaPreuzimanja!),
+            DetailRow(label: 'Adresa preuzimanja', value: donacija.adresaPreuzimanja!),
           if (donacija.trebaPreuzimanje && donacija.telefonPreuzimanja != null)
-            _DetailRow(label: 'Telefon', value: donacija.telefonPreuzimanja!),
+            DetailRow(label: 'Telefon', value: donacija.telefonPreuzimanja!),
           if (donacija.datumPreuzimanja != null)
-            _DetailRow(label: 'Termin preuzimanja', value: formatDateTime(donacija.datumPreuzimanja!)),
+            DetailRow(label: 'Termin preuzimanja', value: formatDateTime(donacija.datumPreuzimanja!)),
           if (donacija.zeljeniDatumDostave != null)
-            _DetailRow(label: 'Željeni datum dostave', value: formatDate(donacija.zeljeniDatumDostave!)),
-          _DetailRow(label: 'Datum donacije', value: formatDateTime(donacija.datumDonacije)),
+            DetailRow(label: 'Željeni datum dostave', value: formatDate(donacija.zeljeniDatumDostave!)),
+          DetailRow(label: 'Datum donacije', value: formatDateTime(donacija.datumDonacije)),
           if (donacija.datumObrade != null)
-            _DetailRow(label: 'Datum obrade', value: formatDateTime(donacija.datumObrade!)),
+            DetailRow(label: 'Datum obrade', value: formatDateTime(donacija.datumObrade!)),
           if (donacija.napomena != null && donacija.napomena!.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text('Napomena', style: Theme.of(context).textTheme.titleMedium),
@@ -189,28 +190,6 @@ class _ReasonBox extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          ),
         ],
       ),
     );

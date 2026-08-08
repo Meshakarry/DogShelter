@@ -11,13 +11,12 @@ import 'package:dogshelter_shared/obavijest/domain/obavijest.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
-import '../../../core/app_theme.dart';
 import '../../../environment.dart';
-import '../../../widgets/dashed_dropzone.dart';
+import '../../../widgets/cover_image_picker.dart';
+import '../../../widgets/gradient_button.dart';
 import '../application/obavijesti_providers.dart';
 
-/// Edit/create screen for a single Obavijest - not a sidebar destination, so (like Psi's form)
-/// it renders its own back-button + title header instead of a Scaffold/AppBar.
+/// Edit/create screen for a single Obavijest.
 class ObavijestFormScreen extends ConsumerWidget {
   const ObavijestFormScreen({super.key, this.obavijestId});
 
@@ -165,7 +164,7 @@ class _ObavijestFormBodyState extends ConsumerState<_ObavijestFormBody> with For
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _CoverImagePicker(
+                  CoverImagePicker(
                     key: keyFor('slika'),
                     existingUrl: resolveImageUrl(widget.initial?.slikaPutanja, Environment.apiBaseUrl),
                     newImage: _newSlika,
@@ -215,7 +214,7 @@ class _ObavijestFormBodyState extends ConsumerState<_ObavijestFormBody> with For
               const SizedBox(height: 24),
               Align(
                 alignment: Alignment.centerRight,
-                child: _GradientButton(
+                child: GradientButton(
                   onPressed: _isSaving ? null : _submit,
                   child: _isSaving
                       ? const SizedBox(
@@ -234,94 +233,3 @@ class _ObavijestFormBodyState extends ConsumerState<_ObavijestFormBody> with For
   }
 }
 
-/// Rectangular (no rounding) filled button with a radial gradient, matching Psi's form's
-/// primary "Sačuvaj" action per the design mockup.
-class _GradientButton extends StatelessWidget {
-  const _GradientButton({required this.onPressed, required this.child});
-
-  final VoidCallback? onPressed;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final disabled = onPressed == null;
-    return Opacity(
-      opacity: disabled ? 0.6 : 1,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(-0.6, -0.6),
-            radius: 1.3,
-            colors: [Color(0xFF3D9270), AppTheme.seedColor],
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              child: DefaultTextStyle.merge(
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                child: IconTheme.merge(data: const IconThemeData(color: Colors.white), child: child),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CoverImagePicker extends StatelessWidget {
-  const _CoverImagePicker({super.key, this.existingUrl, this.newImage, required this.onPick, this.errorText});
-
-  final String? existingUrl;
-  final File? newImage;
-  final VoidCallback onPick;
-  final String? errorText;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasImage = newImage != null || existingUrl != null;
-    return Column(
-      children: [
-        DashedDropzone(
-          width: 240,
-          height: 160,
-          onTap: onPick,
-          borderColor: errorText != null ? Theme.of(context).colorScheme.error : null,
-          child: newImage != null
-              ? Image.file(newImage!, fit: BoxFit.cover, width: 240, height: 160)
-              : existingUrl != null
-                  ? Image.network(existingUrl!, fit: BoxFit.cover, width: 240, height: 160)
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_photo_alternate_outlined,
-                            size: 32, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        const SizedBox(height: 8),
-                        Text(
-                          '+ Dodaj fotografiju',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-        ),
-        if (hasImage) ...[
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: onPick,
-            icon: const Icon(Icons.upload_outlined, size: 18),
-            label: const Text('Zamijeni sliku'),
-          ),
-        ],
-        if (errorText != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(errorText!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13)),
-          ),
-      ],
-    );
-  }
-}

@@ -9,11 +9,11 @@ import 'package:dogshelter_shared/volonter/domain/volonter.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
+import '../../../widgets/detail_row.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/volonteri_providers.dart';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 /// Dedicated /volonteri/:id page - profile header, activity logging + list, and a read-only
 /// roster of assigned events (assignment itself only happens from the Događaji side).
@@ -45,7 +45,7 @@ class VolonterDetailScreen extends ConsumerWidget {
       ref.invalidate(volonterDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Aktivnost je zabilježena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -68,7 +68,7 @@ class VolonterDetailScreen extends ConsumerWidget {
       ref.invalidate(volonterDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Aktivnost je obrisana.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -169,12 +169,12 @@ class _ProfileCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _DetailRow(label: 'Email', value: volonter.korisnikEmail ?? '-'),
-            _DetailRow(label: 'Telefon', value: volonter.korisnikTelefon ?? '-'),
-            _DetailRow(label: 'Datum pridruživanja', value: formatDate(volonter.datumPridruzivanja)),
-            _DetailRow(label: 'Ukupno sati', value: volonter.ukupnoSati.toStringAsFixed(1)),
+            DetailRow(label: 'Email', value: volonter.korisnikEmail ?? '-', labelWidth: 170),
+            DetailRow(label: 'Telefon', value: volonter.korisnikTelefon ?? '-', labelWidth: 170),
+            DetailRow(label: 'Datum pridruživanja', value: formatDate(volonter.datumPridruzivanja), labelWidth: 170),
+            DetailRow(label: 'Ukupno sati', value: volonter.ukupnoSati.toStringAsFixed(1), labelWidth: 170),
             if (volonter.napomena != null && volonter.napomena!.isNotEmpty)
-              _DetailRow(label: 'Napomena', value: volonter.napomena!),
+              DetailRow(label: 'Napomena', value: volonter.napomena!, labelWidth: 170),
           ],
         ),
       ),
@@ -182,28 +182,6 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 170, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _AktivnostiSection extends ConsumerWidget {
   const _AktivnostiSection({required this.volonterId, required this.onRemove});

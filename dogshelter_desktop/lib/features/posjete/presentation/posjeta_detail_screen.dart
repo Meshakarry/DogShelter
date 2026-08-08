@@ -9,6 +9,7 @@ import 'package:dogshelter_shared/posjeta/domain/posjeta.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../environment.dart';
+import '../../../widgets/detail_row.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/posjete_providers.dart';
@@ -16,11 +17,9 @@ import '../application/posjete_providers.dart';
 const _naCekanju = 'Na čekanju';
 const _potvrdjena = 'Potvrđena';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
-/// Dedicated /posjete/:id page - same visual shape as ZahtjevDetailScreen (Card, image+name
-/// header, status pill, label/value rows, errorContainer callout for a cancellation reason),
-/// with potvrdi/otkazi/zavrsi actions matching the row-level actions on the list screen.
+/// Dedicated /posjete/:id page - image+name header, status pill, label/value rows, an
+/// errorContainer callout for the cancellation reason, and potvrdi/otkazi/zavrsi actions.
 class PosjetaDetailScreen extends ConsumerWidget {
   const PosjetaDetailScreen({super.key, required this.id});
 
@@ -51,7 +50,7 @@ class PosjetaDetailScreen extends ConsumerWidget {
       ref.invalidate(posjetaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Posjeta je potvrđena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -74,7 +73,7 @@ class PosjetaDetailScreen extends ConsumerWidget {
       ref.invalidate(posjetaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Posjeta je označena kao završena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -90,7 +89,7 @@ class PosjetaDetailScreen extends ConsumerWidget {
       ref.invalidate(posjetaDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Posjeta je otkazana.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, _describeError(e), isError: true);
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
   }
 
@@ -191,15 +190,15 @@ class PosjetaDetailScreen extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 24),
-                            _DetailRow(label: 'Termin', value: formatDateTime(posjeta.datumVrijeme)),
-                            _DetailRow(label: 'Kreirano', value: formatDateTime(posjeta.datumKreiranja)),
-                            _DetailRow(label: 'Napomena', value: posjeta.napomena ?? '-'),
+                            DetailRow(label: 'Termin', value: formatDateTime(posjeta.datumVrijeme)),
+                            DetailRow(label: 'Kreirano', value: formatDateTime(posjeta.datumKreiranja)),
+                            DetailRow(label: 'Napomena', value: posjeta.napomena ?? '-'),
                             if (posjeta.datumObrade != null) ...[
                               const SizedBox(height: 12),
                               const Divider(),
                               const SizedBox(height: 12),
-                              _DetailRow(label: 'Obrađeno', value: formatDateTime(posjeta.datumObrade!)),
-                              _DetailRow(
+                              DetailRow(label: 'Obrađeno', value: formatDateTime(posjeta.datumObrade!)),
+                              DetailRow(
                                 label: 'Obradio',
                                 value:
                                     '${posjeta.obradioKorisnikIme ?? ''} ${posjeta.obradioKorisnikPrezime ?? ''}'
@@ -291,28 +290,3 @@ class PosjetaDetailScreen extends ConsumerWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 150, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

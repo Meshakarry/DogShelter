@@ -8,22 +8,19 @@ namespace DogShelter.Security
 {
     public interface IJwtTokenGenerator
     {
-        string GenerateToken(Korisnik user);
-        DateTime GetExpiration();
+        (string Token, DateTime ExpiresUtc) GenerateToken(Korisnik user);
     }
 
     public class JwtTokenGenerator : IJwtTokenGenerator
     {
         private readonly IConfiguration _configuration;
-        private DateTime _lastExpirationUtc;
 
         public JwtTokenGenerator(IConfiguration configuration)
         {
             _configuration = configuration;
-            _lastExpirationUtc = DateTime.UtcNow;
         }
 
-        public string GenerateToken(Korisnik user)
+        public (string Token, DateTime ExpiresUtc) GenerateToken(Korisnik user)
         {
             var jwtSettings = _configuration.GetSection("JWTSettings");
             var key = jwtSettings["Key"] ?? string.Empty;
@@ -53,7 +50,6 @@ namespace DogShelter.Security
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var expires = DateTime.UtcNow.AddMinutes(durationMinutes);
-            _lastExpirationUtc = expires;
 
             var tokenDescriptor = new JwtSecurityToken(
                 issuer: issuer,
@@ -63,12 +59,8 @@ namespace DogShelter.Security
                 signingCredentials: credentials
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
-        }
-
-        public DateTime GetExpiration()
-        {
-            return _lastExpirationUtc;
+            var token = new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+            return (token, expires);
         }
     }
 }

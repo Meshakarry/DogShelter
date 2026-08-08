@@ -10,6 +10,7 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/dogadjaj/domain/dogadjaj.dart';
+import '../../../widgets/detail_row.dart';
 import '../application/events_providers.dart';
 
 class EventDetailScreen extends ConsumerWidget {
@@ -89,8 +90,8 @@ class _EventDetailBody extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _DetailRow(icon: Icons.calendar_today, label: 'Termin', value: formatDateTime(dogadjaj.datum)),
-                _DetailRow(icon: Icons.location_on_outlined, label: 'Lokacija', value: dogadjaj.lokacija),
+                DetailRow(icon: Icons.calendar_today, label: 'Termin', value: formatDateTime(dogadjaj.datum), labelWidth: 96),
+                DetailRow(icon: Icons.location_on_outlined, label: 'Lokacija', value: dogadjaj.lokacija, labelWidth: 96),
                 if (dogadjaj.opis != null && dogadjaj.opis!.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Text('Opis', style: Theme.of(context).textTheme.titleMedium),
@@ -99,31 +100,6 @@ class _EventDetailBody extends ConsumerWidget {
                 ],
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label, required this.value});
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF6B7280)),
-          const SizedBox(width: 8),
-          SizedBox(width: 96, child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
           ),
         ],
       ),

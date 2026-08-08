@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/donacija/domain/donacija.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
+import '../../../widgets/date_input_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
@@ -15,7 +16,6 @@ import '../application/donacije_providers.dart';
 const _naCekanju = 'Na čekanju';
 const _uspjesna = 'Uspješna';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class DonacijeScreen extends ConsumerStatefulWidget {
   const DonacijeScreen({super.key});
@@ -49,7 +49,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
       await ref.read(donacijaListProvider.notifier).potvrdi(donacija.donacijaId);
       if (mounted) _showMessage('Donacija je potvrđena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -64,7 +64,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
       await ref.read(donacijaListProvider.notifier).odbij(donacija.donacijaId, razlog);
       if (mounted) _showMessage('Donacija je odbijena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -79,7 +79,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
       await ref.read(donacijaListProvider.notifier).refund(donacija.donacijaId, razlog);
       if (mounted) _showMessage('Donacija je vraćena.');
     } catch (e) {
-      if (mounted) _showMessage(_describeError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
     }
   }
 
@@ -144,7 +144,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _DateInputField(
+                  child: DateInputField(
                     value: state.filters.datumOd,
                     hintText: 'Datum od',
                     onTap: () async {
@@ -165,7 +165,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _DateInputField(
+                  child: DateInputField(
                     value: state.filters.datumDo,
                     hintText: 'Datum do',
                     onTap: () async {
@@ -192,7 +192,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
             child: state.isLoading && state.items.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : state.error != null && state.items.isEmpty
-                    ? Center(child: Text(_describeError(state.error!)))
+                    ? Center(child: Text(describeApiError(state.error!)))
                     : state.items.isEmpty
                         ? const Center(child: Text('Nema donacija koje odgovaraju filterima.'))
                         : Card(
@@ -277,37 +277,6 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// A date picker that reads like a normal text input (matching Posjete's filter row styling)
-/// instead of a standalone button, with a trailing calendar icon and an optional clear button.
-class _DateInputField extends StatelessWidget {
-  const _DateInputField({required this.value, required this.hintText, required this.onTap, this.onClear});
-
-  final DateTime? value;
-  final String hintText;
-  final VoidCallback onTap;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          isDense: true,
-          suffixIcon: onClear != null
-              ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: onClear)
-              : const Icon(Icons.calendar_today_outlined, size: 18),
-        ),
-        child: Text(
-          value == null ? hintText : formatDate(value!),
-          style: value == null ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant) : null,
-        ),
       ),
     );
   }

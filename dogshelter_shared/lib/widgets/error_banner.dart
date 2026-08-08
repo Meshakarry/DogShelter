@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../core/api_exception.dart';
 
-/// Forwards the backend's actual validation/error messages verbatim, never a generic
-/// "something went wrong".
 class ErrorBanner extends StatelessWidget {
   const ErrorBanner({super.key, required this.error});
 
@@ -13,7 +11,7 @@ class ErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     if (error == null) return const SizedBox.shrink();
 
-    final messages = error is ApiException ? (error as ApiException).allMessages : [error.toString()];
+    final messages = error is ApiException ? (error as ApiException).allMessages : [describeApiError(error!)];
 
     return Container(
       width: double.infinity,

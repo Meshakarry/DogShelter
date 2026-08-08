@@ -57,8 +57,6 @@ final volonterListProvider = StateNotifierProvider<VolonterListNotifier, AsyncVa
   return VolonterListNotifier(ref.watch(volonterApiProvider));
 });
 
-/// Backs the "Dodaj volontera" dialog's underlying Korisnik creation - reuses the existing
-/// admin Korisnik API as-is (no new backend call needed).
 final volonterFormApiProvider = Provider<KorisnikAdminApi>((ref) => ref.watch(volonterKorisnikApiProvider));
 
 /// autoDispose so navigating back to a volunteer's profile after an edit always shows the
@@ -104,9 +102,8 @@ final volonterAktivnostiProvider = StateNotifierProvider.autoDispose
   return VolonterAktivnostiNotifier(ref.watch(aktivnostVolonteraApiProvider), volonterId);
 });
 
-/// Read-only "Dodijeljeni događaji" section on the volunteer profile - a single pageSize=100
-/// request, same "small enough to list in full" simplification as other admin option pickers
-/// in this app. Assignment itself only happens from the Događaji side.
+/// Read-only "Dodijeljeni događaji" section on the volunteer profile. Assignment itself only
+/// happens from the Događaji side.
 final volonterDodijeljeniDogadjajiProvider =
     FutureProvider.autoDispose.family<List<DogadjajVolonter>, int>((ref, volonterId) async {
   final result = await ref.watch(dogadjajVolonterApiProvider).search(volonterId: volonterId);

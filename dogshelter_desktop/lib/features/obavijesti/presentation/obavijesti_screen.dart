@@ -14,7 +14,6 @@ import '../../../widgets/page_footer.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/obavijesti_providers.dart';
 
-String _describeError(Object error) => error is ApiException ? error.allMessages.join('\n') : error.toString();
 
 class ObavijestiScreen extends ConsumerStatefulWidget {
   const ObavijestiScreen({super.key});
@@ -60,7 +59,7 @@ class _ObavijestiScreenState extends ConsumerState<ObavijestiScreen> {
       await ref.read(obavijestListProvider.notifier).remove(id);
       _showMessage('Obavijest je obrisana.');
     } catch (e) {
-      _showMessage(_describeError(e), isError: true);
+      _showMessage(describeApiError(e), isError: true);
     }
   }
 

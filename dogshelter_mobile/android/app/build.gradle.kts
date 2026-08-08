@@ -30,7 +30,15 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+    }
+
+    lint {
+        // stripe_android's own release-lint classpath depends on an unpublished Google Play
+        // Services artifact (play-services-tapandpay, used only by its unused push-provisioning
+        // module) and fails to resolve it, unrelated to this app's own code quality.
+        checkReleaseBuilds = false
     }
 }
 
