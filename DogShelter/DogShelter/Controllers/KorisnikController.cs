@@ -57,6 +57,17 @@ namespace DogShelter.Controllers
             return user;
         }
 
+        [HttpDelete("{ID:int}")]
+        [Authorize(Roles = RoleNames.Admin)]
+        public override async Task<bool> Delete(int ID)
+        {
+            var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(idClaim) && int.TryParse(idClaim, out var callerId) && callerId == ID)
+                throw new BusinessException("Ne možete obrisati vlastiti nalog.");
+
+            return await _service.Delete(ID);
+        }
+
         [HttpPost("Authenticate")]
         [AllowAnonymous]
         public async Task<ActionResult<Korisnik>> Authenticate(AuthenticationRequest request)

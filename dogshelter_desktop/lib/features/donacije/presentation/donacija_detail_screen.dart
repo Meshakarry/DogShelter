@@ -181,12 +181,16 @@ class DonacijaDetailScreen extends ConsumerWidget {
                                 DetailRow(label: 'Adresa preuzimanja', value: donacija.adresaPreuzimanja ?? '-'),
                                 DetailRow(label: 'Telefon', value: donacija.telefonPreuzimanja ?? '-'),
                                 DetailRow(
-                                  label: 'Željeni datum',
-                                  value: donacija.zeljeniDatumDostave == null
+                                  label: 'Datum preuzimanja',
+                                  value: donacija.datumPreuzimanja == null
                                       ? '-'
-                                      : formatDate(donacija.zeljeniDatumDostave!),
+                                      : formatDateTime(donacija.datumPreuzimanja!),
                                 ),
-                              ],
+                              ] else if (donacija.zeljeniDatumDostave != null)
+                                DetailRow(
+                                  label: 'Željeni datum dostave',
+                                  value: formatDate(donacija.zeljeniDatumDostave!),
+                                ),
                             ],
                             DetailRow(label: 'Napomena', value: donacija.napomena ?? '-'),
                             if (donacija.datumObrade != null) ...[

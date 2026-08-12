@@ -15,6 +15,7 @@ import '../../../widgets/status_colors.dart';
 import '../../../widgets/udomljavanje_report_content.dart';
 import '../application/izvjestaji_providers.dart';
 import '../data/izvjestaj_pdf_builder.dart';
+import '../domain/report_models.dart';
 
 const _cardBorderColor = Color(0xFFE5E7EB);
 
@@ -361,9 +362,14 @@ class _DonacijaReportCard extends ConsumerWidget {
             ],
           ),
           PdfReportSection(
-            heading: 'Po statusu',
+            heading: 'Novčane donacije po statusu',
             columnHeaders: const ['Status', 'Broj'],
-            rows: [for (final s in data.poStatusu) [s.status, '${s.broj}']],
+            rows: [for (final s in data.novcanoPoStatusu) [s.status, '${s.broj}']],
+          ),
+          PdfReportSection(
+            heading: 'Materijalne donacije po statusu',
+            columnHeaders: const ['Status', 'Broj'],
+            rows: [for (final s in data.materijalnoPoStatusu) [s.status, '${s.broj}']],
           ),
         ],
         summaryLine: () =>
@@ -375,29 +381,17 @@ class _DonacijaReportCard extends ConsumerWidget {
               labels: [for (final m in data.novcanePoMjesecima) mjesecLabel(m.mjesecNaziv)],
               values: [for (final m in data.novcanePoMjesecima) m.iznos],
               color: const Color(0xFF2E7D5B),
+              emptyMessage: 'Nema uspješnih novčanih donacija za odabrani period '
+                  '(donacija na čekanju: potvrđuju se automatski putem Stripe plaćanja).',
             ),
             const SizedBox(height: 16),
-            Text('Po statusu', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+            Text('Novčane po statusu', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            if (data.poStatusu.isEmpty)
-              const Text('Nema podataka.')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final s in data.poStatusu)
-                    Builder(builder: (context) {
-                      final colors = donacijaStatusColors(s.status);
-                      return StatusPill(
-                        label: '${s.status} (${s.broj})',
-                        color: colors.background,
-                        foregroundColor: colors.foreground,
-                        borderRadius: statusPillRadius,
-                      );
-                    }),
-                ],
-              ),
+            _StatusPillRow(items: data.novcanoPoStatusu),
+            const SizedBox(height: 16),
+            Text('Materijalne po statusu', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            _StatusPillRow(items: data.materijalnoPoStatusu),
             const SizedBox(height: 12),
             Text(
               'Ukupan iznos: ${data.ukupanIznos.toStringAsFixed(2)} BAM · Ukupno svih donacija: ${data.ukupnoSvih}',
@@ -406,6 +400,33 @@ class _DonacijaReportCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatusPillRow extends StatelessWidget {
+  const _StatusPillRow({required this.items});
+
+  final List<StatusBroj> items;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const Text('Nema podataka.');
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final s in items)
+          Builder(builder: (context) {
+            final colors = donacijaStatusColors(s.status);
+            return StatusPill(
+              label: '${s.status} (${s.broj})',
+              color: colors.background,
+              foregroundColor: colors.foreground,
+              borderRadius: statusPillRadius,
+            );
+          }),
+      ],
     );
   }
 }

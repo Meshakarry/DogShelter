@@ -44,7 +44,12 @@ class _NewsListScreenState extends ConsumerState<NewsListScreen> {
     final state = ref.watch(newsListProvider);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Text('Obavijesti', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        ),
         if (state.error != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

@@ -317,10 +317,11 @@ using (var scope = app.Services.CreateScope())
             await context.SaveChangesAsync();
         }
 
-        await EnsureTestUserAsync(context, "korisnik", "Test", "Korisnik", "korisnik@dogshelter.ba", "Korisnik");
+        var env = services.GetRequiredService<IWebHostEnvironment>();
+
+        await EnsureTestUserAsync(context, "korisnik", "Test", "Korisnik", "korisnik@dogshelter.ba", "Korisnik", env.ContentRootPath, "avatar-korisnik");
         await EnsureTestUserAsync(context, "volonter", "Test", "Volonter", "volonter@dogshelter.ba", "Volonter");
 
-        var env = services.GetRequiredService<IWebHostEnvironment>();
         await DatabaseSeeder.SeedAllAsync(context, logger, env.WebRootPath);
     }
     catch (Exception ex)
@@ -329,7 +330,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-static async Task EnsureTestUserAsync(DogShelterContext context, string userName, string ime, string prezime, string email, string roleName)
+static async Task EnsureTestUserAsync(
+    DogShelterContext context, string userName, string ime, string prezime, string email, string roleName,
+    string? contentRootPath = null, string? avatarSeedImage = null)
 {
     var user = await context.Korisniks.FirstOrDefaultAsync(u => u.KorisnickoIme == userName);
     if (user == null)
@@ -342,7 +345,10 @@ static async Task EnsureTestUserAsync(DogShelterContext context, string userName
             KorisnickoIme = userName,
             LozinkaHash = KorisnikService.HashPassword("test"),
             LozinkaSalt = string.Empty,
-            Aktivan = true
+            Aktivan = true,
+            SlikaPutanja = avatarSeedImage != null && contentRootPath != null
+                ? CopySeedAvatar(avatarSeedImage, contentRootPath)
+                : null
         };
         context.Korisniks.Add(user);
         await context.SaveChangesAsync();
@@ -361,6 +367,33 @@ static async Task EnsureTestUserAsync(DogShelterContext context, string userName
         });
         await context.SaveChangesAsync();
     }
+}
+
+static string? CopySeedAvatar(string baseName, string contentRootPath)
+{
+    var sourceDirs = new[]
+    {
+        Path.Combine(AppContext.BaseDirectory, "SeedData", "Images"),
+        Path.Combine(Directory.GetCurrentDirectory(), "SeedData", "Images"),
+    };
+
+    var destDir = Path.Combine(contentRootPath, "PrivateFiles", "korisnici");
+    Directory.CreateDirectory(destDir);
+
+    var destFile = Path.Combine(destDir, baseName + ".jpg");
+    if (System.IO.File.Exists(destFile))
+        return $"korisnici/{baseName}.jpg";
+
+    foreach (var dir in sourceDirs)
+    {
+        var source = Path.Combine(dir, baseName + ".jpg");
+        if (!System.IO.File.Exists(source)) continue;
+
+        System.IO.File.Copy(source, destFile);
+        return $"korisnici/{baseName}.jpg";
+    }
+
+    return null;
 }
 
 app.Run();

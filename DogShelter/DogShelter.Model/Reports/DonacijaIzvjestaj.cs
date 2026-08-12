@@ -7,7 +7,8 @@ public class DonacijaIzvjestaj
     public List<MjesecDonacijaStavka> NovcanePoMjesecima { get; set; } = [];
     public int UkupnoBrojNovcanih { get; set; }
     public decimal UkupanIznos { get; set; }
-    public List<StatusBrojStavka> PoStatusu { get; set; } = [];
+    public List<StatusBrojStavka> NovcanoPoStatusu { get; set; } = [];
+    public List<StatusBrojStavka> MaterijalnoPoStatusu { get; set; } = [];
     public int UkupnoSvih { get; set; }
 }
 

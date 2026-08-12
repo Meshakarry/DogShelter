@@ -34,7 +34,7 @@ public class VolonterService : IVolonterService
         if (!string.IsNullOrWhiteSpace(search.Ime))
             query = query.Where(v => v.Korisnik.Ime.Contains(search.Ime) || v.Korisnik.Prezime.Contains(search.Ime));
 
-        query = query.OrderBy(v => v.Korisnik.Prezime).ThenBy(v => v.Korisnik.Ime);
+        query = query.OrderByDescending(v => v.VolonterId);
 
         var result = await PagedQueryHelper.ToPagedResultAsync<Database.Volonter, Model.Volonter>(query, search, _mapper);
 

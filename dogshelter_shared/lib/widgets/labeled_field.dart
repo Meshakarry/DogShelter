@@ -20,13 +20,23 @@ class LabeledField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null && errorText!.isNotEmpty;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         required ? RequiredLabel(label) : Text(label, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        child,
+        hasError
+            ? DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Theme.of(context).colorScheme.error, width: 1.5),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: child,
+              )
+            : child,
         FieldError(errorText),
       ],
     );

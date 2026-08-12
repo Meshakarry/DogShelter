@@ -67,10 +67,11 @@ class AppDrawer extends ConsumerWidget {
                   _DrawerItem(icon: Icons.pets_outlined, label: 'Psi', route: '/dogs'),
                   _DrawerItem(
                       icon: Icons.assignment_outlined, label: 'Moji zahtjevi', route: '/zahtjevi'),
-                  _DrawerItem(
-                      icon: Icons.event_available_outlined,
-                      label: 'Moje posjete',
-                      route: '/posjete'),
+                  if (!isVolonter)
+                    _DrawerItem(
+                        icon: Icons.event_available_outlined,
+                        label: 'Moje posjete',
+                        route: '/posjete'),
                   _DrawerItem(
                       icon: Icons.volunteer_activism_outlined,
                       label: 'Donacije',

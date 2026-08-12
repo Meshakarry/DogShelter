@@ -22,13 +22,14 @@ class HomeScreen extends ConsumerWidget {
     final shortcuts = [
       (icon: Icons.pets, label: 'Pregled pasa', route: '/dogs', color: const Color(0xFF008554)),
       (icon: Icons.assignment, label: 'Moji zahtjevi', route: '/zahtjevi', color: const Color(0xFF2563EB)),
-      (icon: Icons.event_available, label: 'Moje posjete', route: '/posjete', color: const Color(0xFF9333EA)),
       (icon: Icons.volunteer_activism, label: 'Donacije', route: '/donacije', color: const Color(0xFFDB2777)),
       (icon: Icons.campaign, label: 'Obavijesti', route: '/obavijesti', color: const Color(0xFFD97706)),
       (icon: Icons.notifications, label: 'Notifikacije', route: '/notifikacije', color: const Color(0xFF0891B2)),
       (icon: Icons.event, label: 'Događaji', route: '/dogadjaji', color: const Color(0xFF65A30D)),
       if (isVolonter)
-        (icon: Icons.timer, label: 'Moje aktivnosti', route: '/aktivnosti', color: const Color(0xFF7C3AED)),
+        (icon: Icons.timer, label: 'Moje aktivnosti', route: '/aktivnosti', color: const Color(0xFF7C3AED))
+      else
+        (icon: Icons.event_available, label: 'Moje posjete', route: '/posjete', color: const Color(0xFF9333EA)),
     ];
 
     return SingleChildScrollView(

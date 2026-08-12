@@ -5,7 +5,9 @@ import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/auth/domain/korisnik.dart';
 import 'package:dogshelter_shared/core/api_exception.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
+import 'package:dogshelter_shared/widgets/required_label.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
 import '../../../widgets/debounced_search_field.dart';
@@ -115,6 +117,7 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
     final itemsAsync = ref.watch(korisnikListProvider);
     final ulogaOptionsAsync = ref.watch(ulogaOptionsProvider);
     final notifier = ref.read(korisnikListProvider.notifier);
+    final currentKorisnikId = ref.watch(authNotifierProvider).korisnik?.korisnikId;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -221,8 +224,12 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
-                              tooltip: 'Obriši',
-                              onPressed: () => _confirmDelete(korisnik),
+                              tooltip: korisnik.korisnikId == currentKorisnikId
+                                  ? 'Ne možete obrisati vlastiti nalog'
+                                  : 'Obriši',
+                              onPressed: korisnik.korisnikId == currentKorisnikId
+                                  ? null
+                                  : () => _confirmDelete(korisnik),
                             ),
                           ],
                         ),
@@ -259,7 +266,7 @@ class _KorisnikFormDialog extends StatefulWidget {
   State<_KorisnikFormDialog> createState() => _KorisnikFormDialogState();
 }
 
-class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
+class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormErrorScroller<_KorisnikFormDialog> {
   late final _imeController = TextEditingController(text: widget.existing?.ime ?? '');
   late final _prezimeController = TextEditingController(text: widget.existing?.prezime ?? '');
   late final _emailController = TextEditingController(text: widget.existing?.email ?? '');
@@ -272,7 +279,13 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
   int? _gradId;
   late bool _aktivan;
   late Set<String> _selectedRoles;
-  final Map<String, String> _errors = {};
+
+  @override
+  final errorScrollController = ScrollController();
+
+  @override
+  List<String> get fieldOrder =>
+      const ['ime', 'prezime', 'email', 'korisnickoIme', 'lozinka', 'lozinkaPotvrda', 'uloge'];
 
   bool get _isEdit => widget.existing != null;
 
@@ -291,6 +304,7 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
     _emailController.dispose();
     _telefonController.dispose();
     _adresaController.dispose();
+    errorScrollController.dispose();
     _korisnickoImeController.dispose();
     _lozinkaController.dispose();
     _lozinkaPotvrdaController.dispose();
@@ -314,12 +328,12 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
     if (lozinka.isNotEmpty && lozinka != lozinkaPotvrda) {
       errors['lozinkaPotvrda'] = 'Lozinke se ne podudaraju.';
     }
+    if (_selectedRoles.isEmpty) errors['uloge'] = 'Odaberite barem jednu ulogu.';
     if (errors.isNotEmpty) {
-      setState(() => _errors
-        ..clear()
-        ..addAll(errors));
+      applyValidationErrors(errors);
       return;
     }
+    clearAllFieldErrors();
 
     final currentRoles = widget.existing?.roles.toSet() ?? {};
     final added = _selectedRoles.difference(currentRoles).toList();
@@ -354,19 +368,23 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
+          controller: errorScrollController,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: LabeledField(
+                      key: keyFor('ime'),
                       label: 'Ime',
-                      errorText: _errors['ime'],
+                      errorText: fieldErrors['ime'],
                       child: TextField(
                         controller: _imeController,
                         autofocus: true,
+                        onChanged: (_) => clearFieldError('ime'),
                         decoration: const InputDecoration(border: OutlineInputBorder()),
                       ),
                     ),
@@ -374,10 +392,12 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: LabeledField(
+                      key: keyFor('prezime'),
                       label: 'Prezime',
-                      errorText: _errors['prezime'],
+                      errorText: fieldErrors['prezime'],
                       child: TextField(
                         controller: _prezimeController,
+                        onChanged: (_) => clearFieldError('prezime'),
                         decoration: const InputDecoration(border: OutlineInputBorder()),
                       ),
                     ),
@@ -386,19 +406,23 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
               ),
               const SizedBox(height: 12),
               LabeledField(
+                key: keyFor('email'),
                 label: 'Email',
-                errorText: _errors['email'],
+                errorText: fieldErrors['email'],
                 child: TextField(
                   controller: _emailController,
+                  onChanged: (_) => clearFieldError('email'),
                   decoration: const InputDecoration(border: OutlineInputBorder()),
                 ),
               ),
               const SizedBox(height: 12),
               LabeledField(
+                key: keyFor('korisnickoIme'),
                 label: 'Korisničko ime',
-                errorText: _errors['korisnickoIme'],
+                errorText: fieldErrors['korisnickoIme'],
                 child: TextField(
                   controller: _korisnickoImeController,
+                  onChanged: (_) => clearFieldError('korisnickoIme'),
                   decoration: const InputDecoration(border: OutlineInputBorder()),
                 ),
               ),
@@ -445,15 +469,18 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
               ),
               const SizedBox(height: 12),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: LabeledField(
+                      key: keyFor('lozinka'),
                       label: isEdit ? 'Nova lozinka' : 'Lozinka',
                       required: !isEdit,
-                      errorText: _errors['lozinka'],
+                      errorText: fieldErrors['lozinka'],
                       child: TextField(
                         controller: _lozinkaController,
                         obscureText: true,
+                        onChanged: (_) => clearFieldError('lozinka'),
                         decoration: InputDecoration(
                           border: const OutlineInputBorder(),
                           hintText: isEdit ? 'Ostavite prazno da ostane nepromijenjena' : null,
@@ -464,12 +491,14 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: LabeledField(
+                      key: keyFor('lozinkaPotvrda'),
                       label: 'Potvrda lozinke',
                       required: !isEdit,
-                      errorText: _errors['lozinkaPotvrda'],
+                      errorText: fieldErrors['lozinkaPotvrda'],
                       child: TextField(
                         controller: _lozinkaPotvrdaController,
                         obscureText: true,
+                        onChanged: (_) => clearFieldError('lozinkaPotvrda'),
                         decoration: const InputDecoration(border: OutlineInputBorder()),
                       ),
                     ),
@@ -477,7 +506,7 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text('Uloge', style: Theme.of(context).textTheme.bodyMedium),
+              RequiredLabel('Uloge', key: keyFor('uloge'), style: Theme.of(context).textTheme.bodyMedium),
               Wrap(
                 spacing: 8,
                 children: [
@@ -491,10 +520,19 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> {
                         } else {
                           _selectedRoles.remove(role);
                         }
+                        clearFieldError('uloge');
                       }),
                     ),
                 ],
               ),
+              if (fieldErrors['uloge'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Text(
+                    fieldErrors['uloge']!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+                  ),
+                ),
               if (isEdit) ...[
                 const SizedBox(height: 8),
                 CheckboxListTile(

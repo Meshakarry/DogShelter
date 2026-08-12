@@ -281,6 +281,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
               ),
               const SizedBox(height: 12),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: LabeledField(
@@ -343,6 +344,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
               ),
               const SizedBox(height: 12),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: LabeledField(
@@ -388,6 +390,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
               ),
               const SizedBox(height: 12),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: LabeledField(

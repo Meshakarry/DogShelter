@@ -6,6 +6,7 @@ import 'package:dogshelter_shared/core/api_exception.dart';
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/volonter/domain/volonter.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
@@ -206,7 +207,7 @@ class _VolonterFormDialog extends StatefulWidget {
   State<_VolonterFormDialog> createState() => _VolonterFormDialogState();
 }
 
-class _VolonterFormDialogState extends State<_VolonterFormDialog> {
+class _VolonterFormDialogState extends State<_VolonterFormDialog> with FormErrorScroller<_VolonterFormDialog> {
   late final _imeController = TextEditingController();
   late final _prezimeController = TextEditingController();
   late final _emailController = TextEditingController();
@@ -218,7 +219,12 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
 
   late DateTime _datumPridruzivanja;
   late bool _aktivan;
-  final Map<String, String> _errors = {};
+
+  @override
+  final errorScrollController = ScrollController();
+
+  @override
+  List<String> get fieldOrder => const ['ime', 'prezime', 'email', 'korisnickoIme', 'lozinka', 'lozinkaPotvrda'];
 
   bool get _isEdit => widget.existing != null;
 
@@ -239,6 +245,7 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
     _lozinkaController.dispose();
     _lozinkaPotvrdaController.dispose();
     _napomenaController.dispose();
+    errorScrollController.dispose();
     super.dispose();
   }
 
@@ -280,11 +287,10 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
       errors['lozinkaPotvrda'] = 'Lozinke se ne podudaraju.';
     }
     if (errors.isNotEmpty) {
-      setState(() => _errors
-        ..clear()
-        ..addAll(errors));
+      applyValidationErrors(errors);
       return;
     }
+    clearAllFieldErrors();
 
     Navigator.of(context).pop(_VolonterFormResult(
       korisnik: KorisnikFormData(
@@ -316,20 +322,24 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
+          controller: errorScrollController,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!isEdit) ...[
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: LabeledField(
+                        key: keyFor('ime'),
                         label: 'Ime',
-                        errorText: _errors['ime'],
+                        errorText: fieldErrors['ime'],
                         child: TextField(
                           controller: _imeController,
                           autofocus: true,
+                          onChanged: (_) => clearFieldError('ime'),
                           decoration: const InputDecoration(border: OutlineInputBorder()),
                         ),
                       ),
@@ -337,10 +347,12 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: LabeledField(
+                        key: keyFor('prezime'),
                         label: 'Prezime',
-                        errorText: _errors['prezime'],
+                        errorText: fieldErrors['prezime'],
                         child: TextField(
                           controller: _prezimeController,
+                          onChanged: (_) => clearFieldError('prezime'),
                           decoration: const InputDecoration(border: OutlineInputBorder()),
                         ),
                       ),
@@ -349,10 +361,12 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
                 ),
                 const SizedBox(height: 12),
                 LabeledField(
+                  key: keyFor('email'),
                   label: 'Email',
-                  errorText: _errors['email'],
+                  errorText: fieldErrors['email'],
                   child: TextField(
                     controller: _emailController,
+                    onChanged: (_) => clearFieldError('email'),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
                   ),
                 ),
@@ -367,23 +381,28 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
                 ),
                 const SizedBox(height: 12),
                 LabeledField(
+                  key: keyFor('korisnickoIme'),
                   label: 'Korisničko ime',
-                  errorText: _errors['korisnickoIme'],
+                  errorText: fieldErrors['korisnickoIme'],
                   child: TextField(
                     controller: _korisnickoImeController,
+                    onChanged: (_) => clearFieldError('korisnickoIme'),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: LabeledField(
+                        key: keyFor('lozinka'),
                         label: 'Lozinka',
-                        errorText: _errors['lozinka'],
+                        errorText: fieldErrors['lozinka'],
                         child: TextField(
                           controller: _lozinkaController,
                           obscureText: true,
+                          onChanged: (_) => clearFieldError('lozinka'),
                           decoration: const InputDecoration(border: OutlineInputBorder()),
                         ),
                       ),
@@ -391,11 +410,13 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: LabeledField(
+                        key: keyFor('lozinkaPotvrda'),
                         label: 'Potvrda lozinke',
-                        errorText: _errors['lozinkaPotvrda'],
+                        errorText: fieldErrors['lozinkaPotvrda'],
                         child: TextField(
                           controller: _lozinkaPotvrdaController,
                           obscureText: true,
+                          onChanged: (_) => clearFieldError('lozinkaPotvrda'),
                           decoration: const InputDecoration(border: OutlineInputBorder()),
                         ),
                       ),

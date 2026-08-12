@@ -108,8 +108,16 @@ public class PosjetaService : IPosjetaService
 
     public async Task<Model.Posjeta> InsertAdmin(PosjetaAdminInsertRequest request, int adminKorisnikId)
     {
-        if (!await _context.Korisniks.AnyAsync(k => k.KorisnikId == request.KorisnikId))
+        var korisnikAktivan = await _context.Korisniks
+            .Where(k => k.KorisnikId == request.KorisnikId)
+            .Select(k => (bool?)k.Aktivan)
+            .FirstOrDefaultAsync();
+
+        if (korisnikAktivan is null)
             throw new ValidationException("Odabrani korisnik ne postoji.", nameof(request.KorisnikId), "Korisnik ne postoji.");
+
+        if (korisnikAktivan == false)
+            throw new ValidationException("Odabrani korisnik nije aktivan.", nameof(request.KorisnikId), "Korisnik nije aktivan.");
 
         if (request.PasId.HasValue)
             await EnsurePasAvailableForVisitAsync(request.PasId.Value);

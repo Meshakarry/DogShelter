@@ -147,14 +147,16 @@ class DonacijaIzvjestaj {
     required this.novcanePoMjesecima,
     required this.ukupnoBrojNovcanih,
     required this.ukupanIznos,
-    required this.poStatusu,
+    required this.novcanoPoStatusu,
+    required this.materijalnoPoStatusu,
     required this.ukupnoSvih,
   });
 
   final List<MjesecDonacija> novcanePoMjesecima;
   final int ukupnoBrojNovcanih;
   final double ukupanIznos;
-  final List<StatusBroj> poStatusu;
+  final List<StatusBroj> novcanoPoStatusu;
+  final List<StatusBroj> materijalnoPoStatusu;
   final int ukupnoSvih;
 
   factory DonacijaIzvjestaj.fromJson(Map<String, dynamic> json) {
@@ -164,7 +166,10 @@ class DonacijaIzvjestaj {
           .toList(),
       ukupnoBrojNovcanih: json['ukupnoBrojNovcanih'] as int,
       ukupanIznos: (json['ukupanIznos'] as num).toDouble(),
-      poStatusu: (json['poStatusu'] as List<dynamic>? ?? [])
+      novcanoPoStatusu: (json['novcanoPoStatusu'] as List<dynamic>? ?? [])
+          .map((e) => StatusBroj.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      materijalnoPoStatusu: (json['materijalnoPoStatusu'] as List<dynamic>? ?? [])
           .map((e) => StatusBroj.fromJson(e as Map<String, dynamic>))
           .toList(),
       ukupnoSvih: json['ukupnoSvih'] as int,

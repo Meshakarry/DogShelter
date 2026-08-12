@@ -8,6 +8,7 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/core/image_url.dart';
 import 'package:dogshelter_shared/pas/domain/pas_list_item.dart';
 import 'package:dogshelter_shared/posjeta/domain/posjeta.dart';
+import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/inline_calendar.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
@@ -360,7 +361,7 @@ class _BookingDialog extends ConsumerStatefulWidget {
   ConsumerState<_BookingDialog> createState() => _BookingDialogState();
 }
 
-class _BookingDialogState extends ConsumerState<_BookingDialog> {
+class _BookingDialogState extends ConsumerState<_BookingDialog> with FormErrorScroller<_BookingDialog> {
   final _napomenaController = TextEditingController();
   late final DateTime _firstDate;
   late final DateTime _lastDate;
@@ -368,8 +369,14 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
   int? _pasId;
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
-  final Map<String, String> _errors = {};
+  String? _submitError;
   bool _isSubmitting = false;
+
+  @override
+  final errorScrollController = ScrollController();
+
+  @override
+  List<String> get fieldOrder => const ['korisnikId', 'datum', 'vrijeme'];
 
   @override
   void initState() {
@@ -385,6 +392,7 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
   @override
   void dispose() {
     _napomenaController.dispose();
+    errorScrollController.dispose();
     super.dispose();
   }
 
@@ -402,13 +410,15 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
     if (_selectedDate == null) errors['datum'] = 'Odaberite datum posjete.';
     if (_selectedTimeSlot == null) errors['vrijeme'] = 'Odaberite vrijeme posjete.';
     if (errors.isNotEmpty) {
-      setState(() => _errors
-        ..clear()
-        ..addAll(errors));
+      applyValidationErrors(errors);
       return;
     }
+    clearAllFieldErrors();
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
     try {
       await ref.read(posjetaListProvider.notifier).bookWalkIn(
             korisnikId: _korisnikId!,
@@ -421,8 +431,9 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          _errors['form'] = e is ApiException ? e.allMessages.join('\n') : e.toString();
+          _submitError = e is ApiException ? e.allMessages.join('\n') : e.toString();
         });
+        scrollToTop();
       }
     }
   }
@@ -445,17 +456,19 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
       content: SizedBox(
         width: 440,
         child: SingleChildScrollView(
+          controller: errorScrollController,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_errors['form'] != null) ...[
-                Text(_errors['form']!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              if (_submitError != null) ...[
+                Text(_submitError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 const SizedBox(height: 12),
               ],
               LabeledField(
                 label: 'Korisnik',
-                errorText: _errors['korisnikId'],
+                key: keyFor('korisnikId'),
+                errorText: fieldErrors['korisnikId'],
                 child: DropdownButtonFormField<int>(
                   initialValue: _korisnikId,
                   isExpanded: true,
@@ -469,7 +482,7 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
                   ],
                   onChanged: (value) => setState(() {
                     _korisnikId = value;
-                    _errors.remove('korisnikId');
+                    clearFieldError('korisnikId');
                   }),
                 ),
               ),
@@ -492,13 +505,14 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
               const SizedBox(height: 12),
               LabeledField(
                 label: 'Odaberite datum',
-                errorText: _errors['datum'],
+                key: keyFor('datum'),
+                errorText: fieldErrors['datum'],
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: _errors['datum'] != null ? Theme.of(context).colorScheme.error : const Color(0xFFE5E7EB),
+                      color: fieldErrors['datum'] != null ? Theme.of(context).colorScheme.error : const Color(0xFFE5E7EB),
                     ),
                   ),
                   child: InlineCalendar(
@@ -508,7 +522,7 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
                     onDateSelected: (date) => setState(() {
                       _selectedDate = date;
                       _selectedTimeSlot = null;
-                      _errors.remove('datum');
+                      clearFieldError('datum');
                     }),
                   ),
                 ),
@@ -516,7 +530,8 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
               const SizedBox(height: 12),
               LabeledField(
                 label: 'Odaberite vrijeme',
-                errorText: _errors['vrijeme'],
+                key: keyFor('vrijeme'),
+                errorText: fieldErrors['vrijeme'],
                 child: selectedDate == null
                     ? Text(
                         'Prvo odaberite datum.',
@@ -533,7 +548,7 @@ class _BookingDialogState extends ConsumerState<_BookingDialog> {
                               taken: takenTimes.contains(slot),
                               onTap: () => setState(() {
                                 _selectedTimeSlot = slot;
-                                _errors.remove('vrijeme');
+                                clearFieldError('vrijeme');
                               }),
                             ),
                         ],

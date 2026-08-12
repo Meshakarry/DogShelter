@@ -25,10 +25,14 @@ final statusPosjeteOptionsProvider = FutureProvider.autoDispose<List<LookupItem>
 
 /// Backs the walk-in booking dialog's Korisnik dropdown. Filtered to aktivan-only (the backend's
 /// soft-delete/anonymize path always sets Aktivan=false, so this also excludes anonymized
-/// accounts) and excludes the Admin role, since a walk-in visit is booked on behalf of a visitor.
+/// accounts) and excludes Admin and Volonter roles, since a walk-in visit is booked on behalf of
+/// a visitor — volunteers already have shelter access via their zaduženje, mirroring how mobile
+/// hides visit booking from the Volonter role entirely.
 final posjetaKorisnikOptionsProvider = FutureProvider.autoDispose<List<Korisnik>>((ref) async {
   final result = await ref.watch(posjetaKorisnikApiProvider).search(page: 1, pageSize: 100);
-  return result.items.where((k) => k.aktivan && !k.hasRole('Admin')).toList();
+  return result.items
+      .where((k) => k.aktivan && !k.hasRole('Admin') && !k.hasRole('Volonter'))
+      .toList();
 });
 
 /// Backs the walk-in booking dialog's optional Pas dropdown.

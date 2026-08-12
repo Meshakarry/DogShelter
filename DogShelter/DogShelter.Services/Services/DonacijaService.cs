@@ -426,11 +426,15 @@ public class DonacijaService : IDonacijaService
             .OrderBy(x => x.Godina).ThenBy(x => x.Mjesec)
             .ToList();
 
-        var poStatusu = podaci
+        List<StatusBrojStavka> PoStatusuZaTip(string tipNaziv) => podaci
+            .Where(d => d.TipNaziv == tipNaziv)
             .GroupBy(d => d.StatusNaziv)
             .Select(g => new StatusBrojStavka { Status = g.Key, Broj = g.Count() })
             .OrderByDescending(x => x.Broj)
             .ToList();
+
+        var novcanoPoStatusu = PoStatusuZaTip(TipDonacijeNazivi.Novcana);
+        var materijalnoPoStatusu = PoStatusuZaTip(TipDonacijeNazivi.Materijalna);
 
         return new DonacijaIzvjestaj
         {
@@ -439,7 +443,8 @@ public class DonacijaService : IDonacijaService
             NovcanePoMjesecima = poMjesecu,
             UkupnoBrojNovcanih = uspjesneNovcane.Count,
             UkupanIznos = uspjesneNovcane.Sum(d => d.Iznos ?? 0),
-            PoStatusu = poStatusu,
+            NovcanoPoStatusu = novcanoPoStatusu,
+            MaterijalnoPoStatusu = materijalnoPoStatusu,
             UkupnoSvih = podaci.Count
         };
     }

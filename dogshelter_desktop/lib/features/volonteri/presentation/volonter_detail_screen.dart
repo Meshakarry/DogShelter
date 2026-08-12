@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/core/api_exception.dart';
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/volonter/domain/volonter.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
+import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../widgets/detail_row.dart';
@@ -309,17 +310,23 @@ class _LogAktivnostDialog extends ConsumerStatefulWidget {
   ConsumerState<_LogAktivnostDialog> createState() => _LogAktivnostDialogState();
 }
 
-class _LogAktivnostDialogState extends ConsumerState<_LogAktivnostDialog> {
+class _LogAktivnostDialogState extends ConsumerState<_LogAktivnostDialog> with FormErrorScroller<_LogAktivnostDialog> {
   final _satiController = TextEditingController();
   final _opisController = TextEditingController();
   int? _tipAktivnostiId;
   DateTime _datumAktivnosti = DateTime.now();
-  final Map<String, String> _errors = {};
+
+  @override
+  final errorScrollController = ScrollController();
+
+  @override
+  List<String> get fieldOrder => const ['tip', 'sati'];
 
   @override
   void dispose() {
     _satiController.dispose();
     _opisController.dispose();
+    errorScrollController.dispose();
     super.dispose();
   }
 
@@ -340,9 +347,7 @@ class _LogAktivnostDialogState extends ConsumerState<_LogAktivnostDialog> {
     if (sati == null || sati < 0.1 || sati > 24) errors['sati'] = 'Unesite broj sati između 0.1 i 24.';
 
     if (errors.isNotEmpty) {
-      setState(() => _errors
-        ..clear()
-        ..addAll(errors));
+      applyValidationErrors(errors);
       return;
     }
 
@@ -368,13 +373,15 @@ class _LogAktivnostDialogState extends ConsumerState<_LogAktivnostDialog> {
       content: SizedBox(
         width: 440,
         child: SingleChildScrollView(
+          controller: errorScrollController,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               LabeledField(
                 label: 'Tip aktivnosti',
-                errorText: _errors['tip'],
+                key: keyFor('tip'),
+                errorText: fieldErrors['tip'],
                 child: tipoviAsync.when(
                   loading: () => const LinearProgressIndicator(),
                   error: (e, _) => ErrorBanner(error: e),
@@ -385,7 +392,10 @@ class _LogAktivnostDialogState extends ConsumerState<_LogAktivnostDialog> {
                     items: [
                       for (final tip in tipovi) DropdownMenuItem(value: tip.tipAktivnostiId, child: Text(tip.naziv)),
                     ],
-                    onChanged: (value) => setState(() => _tipAktivnostiId = value),
+                    onChanged: (value) => setState(() {
+                      _tipAktivnostiId = value;
+                      clearFieldError('tip');
+                    }),
                   ),
                 ),
               ),
@@ -406,11 +416,13 @@ class _LogAktivnostDialogState extends ConsumerState<_LogAktivnostDialog> {
               const SizedBox(height: 12),
               LabeledField(
                 label: 'Broj sati',
-                errorText: _errors['sati'],
+                key: keyFor('sati'),
+                errorText: fieldErrors['sati'],
                 child: TextField(
                   controller: _satiController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'npr. 2.5'),
+                  onChanged: (_) => clearFieldError('sati'),
                 ),
               ),
               const SizedBox(height: 12),

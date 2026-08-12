@@ -14,16 +14,23 @@ String mjesecLabel(String naziv) => naziv.length > 3 ? naziv.substring(0, 3) : n
 /// Bar chart shared by every "count/amount per month" report visualization in this app
 /// (Početna's dashboard, all 3 Izvještaji report cards) - one implementation, one look.
 class MonthlyBarChart extends StatelessWidget {
-  const MonthlyBarChart({super.key, required this.labels, required this.values, required this.color});
+  const MonthlyBarChart({
+    super.key,
+    required this.labels,
+    required this.values,
+    required this.color,
+    this.emptyMessage = 'Nema podataka za odabrani period.',
+  });
 
   final List<String> labels;
   final List<double> values;
   final Color color;
+  final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
     if (labels.isEmpty) {
-      return const SizedBox(height: 220, child: Center(child: Text('Nema podataka za odabrani period.')));
+      return SizedBox(height: 220, child: Center(child: Text(emptyMessage)));
     }
     final maxValue = values.fold<double>(0, (max, v) => v > max ? v : max);
     final maxY = computeChartMaxY(maxValue);

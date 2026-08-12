@@ -683,6 +683,11 @@ public static class DatabaseSeeder
         var sUspjesna = await context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Uspjesna);
         var sNeuspjesna = await context.StatusDonacijes.FirstAsync(s => s.Naziv == StatusDonacijeNazivi.Neuspjesna);
 
+        var kategorije = await context.KategorijaDonacijes.ToListAsync();
+        var jedinice = await context.JedinicaMjeres.ToListAsync();
+        int Kat(string naziv) => kategorije.First(k => k.Naziv == naziv).KategorijaDonacijeId;
+        int Jed(string naziv) => jedinice.First(j => j.Naziv == naziv).JedinicaMjereId;
+
         var now = DateTime.UtcNow;
 
         var donacije = new List<Donacija>
@@ -692,6 +697,9 @@ public static class DatabaseSeeder
                 KorisnikId = korisnik.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sNaCekanju.StatusDonacijeId,
+                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.HranaZaPse),
+                Kolicina = 20,
+                JedinicaMjereId = Jed("kg"),
                 DatumDonacije = now.AddDays(-1),
                 Napomena = "20kg hrane za pse i dvije deke, dostava dogovorena za vikend."
             },
@@ -700,6 +708,9 @@ public static class DatabaseSeeder
                 KorisnikId = korisnik.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sUspjesna.StatusDonacijeId,
+                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.HranaZaPse),
+                Kolicina = 10,
+                JedinicaMjereId = Jed("vreće"),
                 DatumDonacije = now.AddDays(-10),
                 Napomena = "Deset vreća hrane i ogrlice.",
                 ObradioKorisnikId = admin.KorisnikId,
@@ -710,6 +721,9 @@ public static class DatabaseSeeder
                 KorisnikId = volonter.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sNeuspjesna.StatusDonacijeId,
+                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.Ostalo),
+                Kolicina = 2,
+                JedinicaMjereId = Jed("kom"),
                 DatumDonacije = now.AddDays(-6),
                 Napomena = "Ponuđena stara kavezna oprema.",
                 ObradioKorisnikId = admin.KorisnikId,
@@ -731,6 +745,52 @@ public static class DatabaseSeeder
                 StatusDonacijeId = sNaCekanju.StatusDonacijeId,
                 Iznos = 50.00m,
                 DatumDonacije = now.AddHours(-1)
+            },
+            new()
+            {
+                KorisnikId = volonter.KorisnikId,
+                TipDonacijeId = tipMaterijalna.TipDonacijeId,
+                StatusDonacijeId = sUspjesna.StatusDonacijeId,
+                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.Igracke),
+                Kolicina = 15,
+                JedinicaMjereId = Jed("kom"),
+                DatumDonacije = now.AddDays(-45),
+                Napomena = "Petnaest igračaka za pse, razne veličine.",
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-44)
+            },
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                TipDonacijeId = tipMaterijalna.TipDonacijeId,
+                StatusDonacijeId = sNaCekanju.StatusDonacijeId,
+                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.DekeIPosteljina),
+                Kolicina = 5,
+                JedinicaMjereId = Jed("kom"),
+                DatumDonacije = now.AddDays(-35),
+                Napomena = "Pet deka za zimu."
+            },
+            new()
+            {
+                KorisnikId = korisnik.KorisnikId,
+                TipDonacijeId = tipMaterijalna.TipDonacijeId,
+                StatusDonacijeId = sNeuspjesna.StatusDonacijeId,
+                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.Lijekovi),
+                Kolicina = 8,
+                JedinicaMjereId = Jed("kutije"),
+                DatumDonacije = now.AddDays(-70),
+                Napomena = "Osam kutija lijekova kojima je istekao rok.",
+                ObradioKorisnikId = admin.KorisnikId,
+                DatumObrade = now.AddDays(-69),
+                RazlogOdbijanja = "Lijekovima je istekao rok trajanja."
+            },
+            new()
+            {
+                KorisnikId = volonter.KorisnikId,
+                TipDonacijeId = tipNovcana.TipDonacijeId,
+                StatusDonacijeId = sNaCekanju.StatusDonacijeId,
+                Iznos = 100.00m,
+                DatumDonacije = now.AddDays(-50)
             }
         };
 
