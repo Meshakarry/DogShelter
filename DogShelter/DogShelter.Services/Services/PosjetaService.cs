@@ -269,9 +269,6 @@ public class PosjetaService : IPosjetaService
 
         try
         {
-            // The check itself (not just the insert) must be inside the try — under Serializable
-            // isolation, a losing race can surface as a raw SqlException as early as this SELECT's
-            // own range-lock acquisition, not only from the later insert's SaveChangesAsync.
             await EnsureSlotAvailableAsync(datumVrijeme);
             await insertAndSave();
             await tx.CommitAsync();

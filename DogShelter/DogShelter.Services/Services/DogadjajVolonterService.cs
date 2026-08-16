@@ -94,9 +94,6 @@ public class DogadjajVolonterService : IDogadjajVolonterService
         }
         catch (DbUpdateException)
         {
-            // Two concurrent requests both passed the AnyAsync check above; the UQ_DogadjajVolonter
-            // unique index caught the duplicate at the DB level. Confirm that's really what happened
-            // before reporting it as such, so an unrelated DB failure isn't misreported.
             var isDuplicate = await _context.DogadjajVolonters.AnyAsync(dv => dv.DogadjajId == request.DogadjajId && dv.VolonterId == request.VolonterId);
             if (isDuplicate)
                 throw new BusinessException("Volonter je već zadužen za ovaj događaj.");
