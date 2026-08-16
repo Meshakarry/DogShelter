@@ -16,4 +16,7 @@ public static class NotifikacijaTipovi
     public const string DonacijaPotvrdjena = "DonacijaPotvrdjena";
     public const string DonacijaOdbijena = "DonacijaOdbijena";
     public const string DogadjajZaduzenje = "DogadjajZaduzenje";
+    public const string DogadjajUklanjanje = "DogadjajUklanjanje";
+    public const string DogadjajOtkazan = "DogadjajOtkazan";
+    public const string ObavijestObjavljena = "ObavijestObjavljena";
 }

@@ -33,9 +33,14 @@ public class StripePaymentService : IStripePaymentService
             }
         };
 
+        // A fresh key per call means a transport-level retry of this exact HTTP request (Stripe's
+        // SDK/network layer, not our own RetryPlacanje flow — that's a deliberate new attempt)
+        // can never create two PaymentIntents for one logical creation.
+        var requestOptions = new RequestOptions { IdempotencyKey = Guid.NewGuid().ToString() };
+
         try
         {
-            var paymentIntent = await _paymentIntentService.CreateAsync(options);
+            var paymentIntent = await _paymentIntentService.CreateAsync(options, requestOptions);
             return (paymentIntent.Id, paymentIntent.ClientSecret);
         }
         catch (StripeException ex)

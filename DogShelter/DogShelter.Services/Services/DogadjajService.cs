@@ -1,6 +1,7 @@
 using AutoMapper;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -14,12 +15,14 @@ public class DogadjajService : IDogadjajService
     private readonly DogShelterContext _context;
     private readonly IMapper _mapper;
     private readonly IFileUploadService _fileUpload;
+    private readonly INotifikacijaService _notifikacijaService;
 
-    public DogadjajService(DogShelterContext context, IMapper mapper, IFileUploadService fileUpload)
+    public DogadjajService(DogShelterContext context, IMapper mapper, IFileUploadService fileUpload, INotifikacijaService notifikacijaService)
     {
         _context = context;
         _mapper = mapper;
         _fileUpload = fileUpload;
+        _notifikacijaService = notifikacijaService;
     }
 
     public async Task<PagedResult<Model.Dogadjaj>> Get(DogadjajSearchRequest search, bool isAdmin)
@@ -119,6 +122,20 @@ public class DogadjajService : IDogadjajService
             throw new BusinessException("Događaj je već otkazan.");
 
         entity.Aktivan = false;
+
+        var zaduzeniVolonteri = await _context.DogadjajVolonters
+            .Where(dv => dv.DogadjajId == id)
+            .Include(dv => dv.Volonter)
+            .ToListAsync();
+
+        foreach (var dv in zaduzeniVolonteri)
+            _notifikacijaService.StageCreate(
+                dv.Volonter.KorisnikId,
+                NotifikacijaTipovi.DogadjajOtkazan,
+                "Događaj otkazan",
+                $"Događaj \"{entity.Naziv}\" zakazan za {entity.Datum:dd.MM.yyyy HH:mm} je otkazan.",
+                entity.DogadjajId);
+
         await _context.SaveChangesAsync();
 
         return true;

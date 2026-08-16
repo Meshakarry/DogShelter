@@ -47,6 +47,10 @@ public partial class Donacija
 
     public DateTime? ZeljeniDatumDostave { get; set; }
 
+    // Guards against two near-simultaneous Stripe webhook deliveries for the same event both
+    // reading "Na čekanju" before either commits — see HandlePaymentSucceededAsync/HandlePaymentFailedAsync.
+    public byte[] RowVersion { get; set; } = null!;
+
     public virtual Korisnik Korisnik { get; set; } = null!;
 
     public virtual Korisnik? ObradioKorisnik { get; set; }

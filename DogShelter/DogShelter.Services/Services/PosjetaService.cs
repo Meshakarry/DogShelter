@@ -1,3 +1,4 @@
+using System.Data;
 using AutoMapper;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
@@ -5,6 +6,7 @@ using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace DogShelter.Services.Services;
@@ -71,8 +73,6 @@ public class PosjetaService : IPosjetaService
         if (request.PasId.HasValue)
             await EnsurePasAvailableForVisitAsync(request.PasId.Value);
 
-        await EnsureSlotAvailableAsync(request.DatumVrijeme);
-
         var statusNaCekanju = await _context.StatusPosjetes.FirstOrDefaultAsync(s => s.Naziv == StatusPosjeteNazivi.NaCekanju)
             ?? throw new BusinessException("Status 'Na čekanju' nije podešen u sistemu.");
 
@@ -86,22 +86,25 @@ public class PosjetaService : IPosjetaService
             DatumKreiranja = DateTime.UtcNow
         };
 
-        _context.Posjeta.Add(entity);
+        await ExecuteConcurrencySafeBookingAsync(request.DatumVrijeme, async () =>
+        {
+            _context.Posjeta.Add(entity);
 
-        _notifikacijaService.StageCreate(
-            korisnikId,
-            NotifikacijaTipovi.PosjetaZakazana,
-            "Posjeta zakazana",
-            $"Vaša posjeta za {request.DatumVrijeme:dd.MM.yyyy. HH:mm} je zaprimljena i čeka potvrdu.",
-            entity.PosjetaId);
-        await _notifikacijaService.StageCreateForRoleAsync(
-            RoleNames.Admin,
-            NotifikacijaTipovi.PosjetaZakazana,
-            "Nova posjeta zakazana",
-            $"Korisnik je zakazao posjetu za {request.DatumVrijeme:dd.MM.yyyy. HH:mm}.",
-            entity.PosjetaId);
+            _notifikacijaService.StageCreate(
+                korisnikId,
+                NotifikacijaTipovi.PosjetaZakazana,
+                "Posjeta zakazana",
+                $"Vaša posjeta za {request.DatumVrijeme:dd.MM.yyyy. HH:mm} je zaprimljena i čeka potvrdu.",
+                entity.PosjetaId);
+            await _notifikacijaService.StageCreateForRoleAsync(
+                RoleNames.Admin,
+                NotifikacijaTipovi.PosjetaZakazana,
+                "Nova posjeta zakazana",
+                $"Korisnik je zakazao posjetu za {request.DatumVrijeme:dd.MM.yyyy. HH:mm}.",
+                entity.PosjetaId);
 
-        await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
+        });
 
         return await GetById(entity.PosjetaId);
     }
@@ -122,8 +125,6 @@ public class PosjetaService : IPosjetaService
         if (request.PasId.HasValue)
             await EnsurePasAvailableForVisitAsync(request.PasId.Value);
 
-        await EnsureSlotAvailableAsync(request.DatumVrijeme);
-
         var statusPotvrdjena = await _context.StatusPosjetes.FirstOrDefaultAsync(s => s.Naziv == StatusPosjeteNazivi.Potvrdjena)
             ?? throw new BusinessException("Status 'Potvrđena' nije podešen u sistemu.");
 
@@ -139,8 +140,11 @@ public class PosjetaService : IPosjetaService
             DatumObrade = DateTime.UtcNow
         };
 
-        _context.Posjeta.Add(entity);
-        await _context.SaveChangesAsync();
+        await ExecuteConcurrencySafeBookingAsync(request.DatumVrijeme, async () =>
+        {
+            _context.Posjeta.Add(entity);
+            await _context.SaveChangesAsync();
+        });
 
         return await GetById(entity.PosjetaId);
     }
@@ -251,6 +255,46 @@ public class PosjetaService : IPosjetaService
 
         if (zauzeto)
             throw new BusinessException("Odabrani termin je već zauzet. Molimo odaberite drugi termin.");
+    }
+
+    // EnsureSlotAvailableAsync alone is a plain check-then-insert (TOCTOU): two concurrent
+    // requests for the same slot can both pass the check before either commits. Serializable
+    // isolation closes that window — SQL Server takes a range lock on the check's predicate, so
+    // a genuinely concurrent insert for the same DatumVrijeme conflicts at the DB level instead
+    // of silently succeeding twice, surfacing here as a DbUpdateException/SqlException that gets
+    // translated into the same friendly message the happy-path check already uses.
+    private async Task ExecuteConcurrencySafeBookingAsync(DateTime datumVrijeme, Func<Task> insertAndSave)
+    {
+        await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        try
+        {
+            // The check itself (not just the insert) must be inside the try — under Serializable
+            // isolation, a losing race can surface as a raw SqlException as early as this SELECT's
+            // own range-lock acquisition, not only from the later insert's SaveChangesAsync.
+            await EnsureSlotAvailableAsync(datumVrijeme);
+            await insertAndSave();
+            await tx.CommitAsync();
+        }
+        catch (Exception ex) when (IsConcurrencyConflict(ex))
+        {
+            throw new BusinessException("Odabrani termin je već zauzet. Molimo odaberite drugi termin.");
+        }
+    }
+
+    // A losing race under Serializable isolation is a SQL Server deadlock (error 1205) — EF Core's
+    // default execution strategy wraps that SqlException in a DbUpdateException, then wraps THAT in
+    // an InvalidOperationException (its "this looks transient, consider EnableRetryOnFailure"
+    // diagnostic), so the type we actually catch is neither DbUpdateException nor SqlException
+    // directly. Walk the whole InnerException chain instead of matching the outermost type.
+    private static bool IsConcurrencyConflict(Exception ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            if (e is DbUpdateException or SqlException)
+                return true;
+        }
+        return false;
     }
 
     public async Task<List<DateTime>> GetZauzetiTermini(DateTime datum)

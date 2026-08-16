@@ -35,6 +35,15 @@ public class DonacijaService : IDonacijaService
             .Include(d => d.JedinicaMjere)
             .AsNoTracking();
 
+    // Shared by RetryPlacanje/Potvrdi/Odbij/Refund — each needs TipDonacije+StatusDonacije
+    // loaded (for their own guard checks) on a *tracked* entity, unlike BaseQuery's read-only projection.
+    private async Task<Database.Donacija> LoadForActionAsync(int id) =>
+        await _context.Donacijas
+            .Include(d => d.TipDonacije)
+            .Include(d => d.StatusDonacije)
+            .FirstOrDefaultAsync(d => d.DonacijaId == id)
+            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+
     public async Task<PagedResult<Model.Donacija>> Get(DonacijaSearchRequest search, int currentKorisnikId, bool isAdmin)
     {
         var query = BaseQuery();
@@ -185,11 +194,7 @@ public class DonacijaService : IDonacijaService
 
     public async Task<DonacijaPaymentResponse> RetryPlacanje(int id, int callerKorisnikId, bool isAdmin)
     {
-        var entity = await _context.Donacijas
-            .Include(d => d.TipDonacije)
-            .Include(d => d.StatusDonacije)
-            .FirstOrDefaultAsync(d => d.DonacijaId == id)
-            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+        var entity = await LoadForActionAsync(id);
 
         if (!isAdmin && entity.KorisnikId != callerKorisnikId)
             throw new ForbiddenException("Nemate pristup ovoj donaciji.");
@@ -210,8 +215,17 @@ public class DonacijaService : IDonacijaService
             {
                 if (remote.Status == "succeeded")
                 {
+                    // The reconciliation below already updates the DB row to Uspješna — treating
+                    // this as a thrown error (as before) left the client showing a stale "Na čekanju"
+                    // donation until a manual refresh, since a caught exception never carries the
+                    // fresh entity back. Returning success instead lets the caller update its state
+                    // from the response body immediately, same as any other successful action.
                     await HandlePaymentSucceededAsync(entity.StripePaymentIntentId);
-                    throw new BusinessException("Donacija je već uspješno plaćena.");
+                    return new DonacijaPaymentResponse
+                    {
+                        Donacija = await GetById(entity.DonacijaId),
+                        ClientSecret = null
+                    };
                 }
 
                 await _stripePaymentService.TryCancelPaymentIntentAsync(entity.StripePaymentIntentId);
@@ -234,11 +248,7 @@ public class DonacijaService : IDonacijaService
 
     public async Task<Model.Donacija> Potvrdi(int id, int adminKorisnikId)
     {
-        var entity = await _context.Donacijas
-            .Include(d => d.TipDonacije)
-            .Include(d => d.StatusDonacije)
-            .FirstOrDefaultAsync(d => d.DonacijaId == id)
-            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+        var entity = await LoadForActionAsync(id);
 
         if (entity.TipDonacije.Naziv != TipDonacijeNazivi.Materijalna)
             throw new BusinessException("Samo materijalna donacija se potvrđuje ručno.");
@@ -265,11 +275,7 @@ public class DonacijaService : IDonacijaService
 
     public async Task<Model.Donacija> Odbij(int id, DonacijaOdbijRequest request, int adminKorisnikId)
     {
-        var entity = await _context.Donacijas
-            .Include(d => d.TipDonacije)
-            .Include(d => d.StatusDonacije)
-            .FirstOrDefaultAsync(d => d.DonacijaId == id)
-            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+        var entity = await LoadForActionAsync(id);
 
         if (entity.TipDonacije.Naziv != TipDonacijeNazivi.Materijalna)
             throw new BusinessException("Samo materijalna donacija se odbija ručno.");
@@ -297,11 +303,7 @@ public class DonacijaService : IDonacijaService
 
     public async Task<Model.Donacija> Refund(int id, DonacijaRefundRequest request, int adminKorisnikId)
     {
-        var entity = await _context.Donacijas
-            .Include(d => d.TipDonacije)
-            .Include(d => d.StatusDonacije)
-            .FirstOrDefaultAsync(d => d.DonacijaId == id)
-            ?? throw new NotFoundException($"Donacija s ID {id} nije pronađena.");
+        var entity = await LoadForActionAsync(id);
 
         if (entity.TipDonacije.Naziv != TipDonacijeNazivi.Novcana)
             throw new BusinessException("Vraćanje sredstava je moguće samo za novčane donacije.");
@@ -363,7 +365,16 @@ public class DonacijaService : IDonacijaService
             "Vaše plaćanje je uspješno obrađeno. Hvala Vam na donaciji!",
             entity.DonacijaId);
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // RowVersion changed between the read above and this save — a concurrent webhook
+            // delivery or admin action already processed this donation. Same "already handled,
+            // nothing left to do" outcome as the status-guard at the top of this method.
+        }
     }
 
     public async Task HandlePaymentFailedAsync(string paymentIntentId, string? reason)
@@ -388,7 +399,14 @@ public class DonacijaService : IDonacijaService
             "Vaše plaćanje nije uspjelo. Pokušajte ponovo ili kontaktirajte azil.",
             entity.DonacijaId);
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // See HandlePaymentSucceededAsync — a concurrent write already resolved this donation.
+        }
     }
 
     public async Task<DonacijaIzvjestaj> GenerirajIzvjestaj(DateTime? datumOd, DateTime? datumDo)

@@ -144,6 +144,7 @@ public partial class DogShelterContext : DbContext
             entity.Property(e => e.TrebaPreuzimanje).HasDefaultValue(false);
             entity.Property(e => e.AdresaPreuzimanja).HasMaxLength(255);
             entity.Property(e => e.TelefonPreuzimanja).HasMaxLength(30);
+            entity.Property(e => e.RowVersion).IsRowVersion();
 
             entity.HasOne(d => d.Korisnik).WithMany(p => p.DonacijaKorisniks)
                 .HasForeignKey(d => d.KorisnikId)
@@ -333,6 +334,13 @@ public partial class DogShelterContext : DbContext
 
             entity.Property(e => e.Napomena).HasMaxLength(1000);
             entity.Property(e => e.RazlogOtkazivanja).HasMaxLength(1000);
+
+            // Not unique (cancelled/completed visits may legitimately share a slot with a later
+            // active one) — but without any index here, the Serializable-isolation slot check in
+            // PosjetaService scans the whole table, so its range lock covers every row instead of
+            // just the requested DatumVrijeme, causing unrelated bookings for different times to
+            // deadlock against each other. An index scopes that lock down to the actual predicate.
+            entity.HasIndex(e => e.DatumVrijeme);
 
             entity.HasOne(d => d.Korisnik).WithMany(p => p.PosjetaKorisniks)
                 .HasForeignKey(d => d.KorisnikId)

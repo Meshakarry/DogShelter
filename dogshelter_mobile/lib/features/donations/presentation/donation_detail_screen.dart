@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
@@ -54,7 +56,11 @@ class _DonationDetailBodyState extends ConsumerState<_DonationDetailBody> {
     });
     try {
       final response = await ref.read(donationsApiProvider).retryPlacanje(widget.donacija.donacijaId);
-      if (response.clientSecret != null) {
+      // A null clientSecret means the backend found the payment already succeeded remotely and
+      // reconciled the donation to Uspješna itself - there's nothing left to pay, so opening a
+      // payment sheet here would either crash (null secret) or be redundant.
+      final alreadyPaid = response.clientSecret == null;
+      if (!alreadyPaid) {
         await Stripe.instance.initPaymentSheet(
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: response.clientSecret!,
@@ -64,9 +70,13 @@ class _DonationDetailBodyState extends ConsumerState<_DonationDetailBody> {
         await Stripe.instance.presentPaymentSheet();
       }
       ref.invalidate(donacijaDetailProvider(widget.donacija.donacijaId));
+      // Refresh the list too so navigating back doesn't show the pre-retry "Na čekanju" status.
+      unawaited(ref.read(donacijaListProvider.notifier).loadFirstPage());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Plaćanje se obrađuje.')),
+          SnackBar(
+            content: Text(alreadyPaid ? 'Donacija je već uspješno plaćena.' : 'Plaćanje se obrađuje.'),
+          ),
         );
       }
     } on StripeException catch (e) {

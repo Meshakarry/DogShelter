@@ -22,6 +22,8 @@ public class PreporukaService : IPreporukaService
     private const double ViewPopularityMultiplier = 0.2;
     private const double ZahtjevPopularityMultiplier = 0.5;
 
+    public const int DefaultBrojPreporuka = 5;
+
     private readonly DogShelterContext _context;
 
     public PreporukaService(DogShelterContext context)
@@ -31,7 +33,7 @@ public class PreporukaService : IPreporukaService
 
     public async Task<List<Model.PreporuceniPas>> PreporuceniPsi(int korisnikId, int take)
     {
-        var howMany = take > 0 ? take : 5;
+        var howMany = take > 0 ? take : DefaultBrojPreporuka;
 
         var pregledi = await _context.PregledPsas
             .Where(p => p.KorisnikId == korisnikId)

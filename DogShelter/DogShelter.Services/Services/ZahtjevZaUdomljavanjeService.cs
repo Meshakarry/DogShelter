@@ -113,11 +113,21 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
             throw new BusinessException("Zahtjev je već obrađen i ne može se ponovo odobriti.");
 
         var statusOdobren = await _context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Odobren);
+        var statusOdbijen = await _context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Odbijen);
         var statusUdomljen = await _context.StatusPsas.FirstOrDefaultAsync(s => s.Naziv == StatusPsaNazivi.Udomljen)
             ?? throw new BusinessException("Status 'Udomljen' nije podešen u sistemu.");
 
         var pas = await _context.Pas.FindAsync(entity.PasId)
             ?? throw new NotFoundException("Pas povezan sa zahtjevom nije pronađen.");
+
+        // Other users may have a still-pending request for the same dog — approving this one
+        // means the dog is no longer available, so those are auto-rejected in the same
+        // transaction instead of being silently left "Na čekanju" for a dog that's already gone.
+        var ostaliNaCekanju = await _context.ZahtjevZaUdomljavanjes
+            .Where(z => z.PasId == entity.PasId
+                && z.ZahtjevZaUdomljavanjeId != entity.ZahtjevZaUdomljavanjeId
+                && z.StatusZahtjevaId == statusNaCekanju.StatusZahtjevaId)
+            .ToListAsync();
 
         await using var tx = await _context.Database.BeginTransactionAsync();
         try
@@ -140,6 +150,21 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
                 "Zahtjev za udomljavanje odobren",
                 $"Vaš zahtjev za udomljavanje psa \"{pas.Naziv}\" je odobren.",
                 entity.ZahtjevZaUdomljavanjeId);
+
+            foreach (var ostali in ostaliNaCekanju)
+            {
+                ostali.StatusZahtjevaId = statusOdbijen.StatusZahtjevaId;
+                ostali.ObradioKorisnikId = adminKorisnikId;
+                ostali.DatumObrade = DateTime.UtcNow;
+                ostali.RazlogOdbijanja = "Zahtjev je automatski odbijen jer je pas udomljen od strane drugog korisnika.";
+
+                _notifikacijaService.StageCreate(
+                    ostali.KorisnikId,
+                    NotifikacijaTipovi.ZahtjevOdbijen,
+                    "Zahtjev za udomljavanje odbijen",
+                    $"Vaš zahtjev za udomljavanje psa \"{pas.Naziv}\" je automatski odbijen jer je pas u međuvremenu udomljen od strane drugog korisnika.",
+                    ostali.ZahtjevZaUdomljavanjeId);
+            }
 
             await _context.SaveChangesAsync();
             await tx.CommitAsync();

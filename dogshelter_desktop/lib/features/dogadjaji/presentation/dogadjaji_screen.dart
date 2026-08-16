@@ -204,12 +204,14 @@ class _DogadjajiScreenState extends ConsumerState<DogadjajiScreen> {
                               tooltip: 'Uredi',
                               onPressed: () => context.go('/dogadjaji/${dogadjaj.dogadjajId}'),
                             ),
-                            if (dogadjaj.aktivan)
-                              IconButton(
-                                icon: const Icon(Icons.cancel_outlined),
-                                tooltip: 'Otkaži',
-                                onPressed: () => _otkazi(dogadjaj),
+                            IconButton(
+                              icon: Icon(
+                                Icons.cancel_outlined,
+                                color: dogadjaj.aktivan ? dogadjajStatusColors(false).foreground : null,
                               ),
+                              tooltip: dogadjaj.aktivan ? 'Otkaži' : 'Događaj je već otkazan.',
+                              onPressed: dogadjaj.aktivan ? () => _otkazi(dogadjaj) : null,
+                            ),
                           ],
                         ),
                       );

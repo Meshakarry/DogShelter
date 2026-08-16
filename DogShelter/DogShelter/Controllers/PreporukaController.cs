@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
+using DogShelter.Services.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ public class PreporukaController : ControllerBase
     [HttpGet("psi")]
     [Authorize]
     public async Task<List<Model.PreporuceniPas>> Psi([FromQuery] int? take)
-        => await _service.PreporuceniPsi(GetCurrentKorisnikId(), take ?? 5);
+        => await _service.PreporuceniPsi(GetCurrentKorisnikId(), take ?? PreporukaService.DefaultBrojPreporuka);
 
     private int GetCurrentKorisnikId()
     {

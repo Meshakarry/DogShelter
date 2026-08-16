@@ -1,6 +1,7 @@
 using AutoMapper;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -14,12 +15,14 @@ public class ObavijestService : IObavijestService
     private readonly DogShelterContext _context;
     private readonly IMapper _mapper;
     private readonly IFileUploadService _fileUpload;
+    private readonly INotifikacijaService _notifikacijaService;
 
-    public ObavijestService(DogShelterContext context, IMapper mapper, IFileUploadService fileUpload)
+    public ObavijestService(DogShelterContext context, IMapper mapper, IFileUploadService fileUpload, INotifikacijaService notifikacijaService)
     {
         _context = context;
         _mapper = mapper;
         _fileUpload = fileUpload;
+        _notifikacijaService = notifikacijaService;
     }
 
     public async Task<PagedResult<Model.ObavijestListItem>> Get(ObavijestSearchRequest search, bool isAdmin)
@@ -81,8 +84,20 @@ public class ObavijestService : IObavijestService
         entity.DatumObjave = DateTime.UtcNow;
         entity.SlikaPutanja = await _fileUpload.SaveImageAsync(slika, "obavijesti");
 
+        // Notifying requires ObavijestId, which EF only assigns after the insert commits —
+        // wrapped in a transaction since this is genuinely two SaveChangesAsync calls.
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
         _context.Obavijests.Add(entity);
         await _context.SaveChangesAsync();
+
+        if (entity.Aktivna)
+        {
+            await StageObavijestObjavljenaNotifikacijeAsync(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        await transaction.CommitAsync();
 
         return await GetById(entity.ObavijestId, isAdmin: true);
     }
@@ -100,7 +115,10 @@ public class ObavijestService : IObavijestService
         // Publishing a draft stamps the publish date; editing an already-published
         // announcement must not bump it.
         if (!wasPublished && request.Aktivna)
+        {
             entity.DatumObjave = DateTime.UtcNow;
+            await StageObavijestObjavljenaNotifikacijeAsync(entity);
+        }
 
         if (slika != null)
         {
@@ -126,5 +144,13 @@ public class ObavijestService : IObavijestService
         _context.Obavijests.Remove(entity);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    private async Task StageObavijestObjavljenaNotifikacijeAsync(Database.Obavijest entity)
+    {
+        var tekst = $"Objavljena je nova obavijest: \"{entity.Naslov}\".";
+
+        await _notifikacijaService.StageCreateForRoleAsync(RoleNames.Korisnik, NotifikacijaTipovi.ObavijestObjavljena, "Nova obavijest", tekst, entity.ObavijestId);
+        await _notifikacijaService.StageCreateForRoleAsync(RoleNames.Volonter, NotifikacijaTipovi.ObavijestObjavljena, "Nova obavijest", tekst, entity.ObavijestId);
     }
 }

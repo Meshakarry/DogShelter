@@ -88,7 +88,20 @@ public class DogadjajVolonterService : IDogadjajVolonterService
             dogadjaj.DogadjajId);
 
         _context.DogadjajVolonters.Add(entity);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Two concurrent requests both passed the AnyAsync check above; the UQ_DogadjajVolonter
+            // unique index caught the duplicate at the DB level. Confirm that's really what happened
+            // before reporting it as such, so an unrelated DB failure isn't misreported.
+            var isDuplicate = await _context.DogadjajVolonters.AnyAsync(dv => dv.DogadjajId == request.DogadjajId && dv.VolonterId == request.VolonterId);
+            if (isDuplicate)
+                throw new BusinessException("Volonter je već zadužen za ovaj događaj.");
+            throw;
+        }
 
         await SendZaduzenjeEmailAsync(volonter, dogadjaj);
 
@@ -98,11 +111,23 @@ public class DogadjajVolonterService : IDogadjajVolonterService
 
     public async Task<bool> Ukloni(int id)
     {
-        var entity = await _context.DogadjajVolonters.FindAsync(id)
+        var entity = await _context.DogadjajVolonters
+            .Include(dv => dv.Dogadjaj)
+            .Include(dv => dv.Volonter).ThenInclude(v => v.Korisnik)
+            .FirstOrDefaultAsync(dv => dv.DogadjajVolonterId == id)
             ?? throw new NotFoundException($"Zaduženje s ID {id} nije pronađeno.");
+
+        _notifikacijaService.StageCreate(
+            entity.Volonter.KorisnikId,
+            NotifikacijaTipovi.DogadjajUklanjanje,
+            "Uklonjeni ste sa događaja",
+            $"Uklonjeni ste sa zaduženja za događaj \"{entity.Dogadjaj.Naziv}\" koji se održava {entity.Dogadjaj.Datum:dd.MM.yyyy HH:mm}.",
+            entity.Dogadjaj.DogadjajId);
 
         _context.DogadjajVolonters.Remove(entity);
         await _context.SaveChangesAsync();
+
+        await SendUklanjanjeEmailAsync(entity.Volonter, entity.Dogadjaj);
 
         return true;
     }
@@ -121,6 +146,23 @@ public class DogadjajVolonterService : IDogadjajVolonterService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send zaduženje email to {Email}.", volonter.Korisnik.Email);
+        }
+    }
+
+    private async Task SendUklanjanjeEmailAsync(Database.Volonter volonter, Database.Dogadjaj dogadjaj)
+    {
+        try
+        {
+            var subject = $"Uklonjeni ste sa događaja: {dogadjaj.Naziv}";
+            var body = $"Poštovani/a {volonter.Korisnik.Ime},\n\n" +
+                       $"Uklonjeni ste sa zaduženja za događaj \"{dogadjaj.Naziv}\" koji se održava {dogadjaj.Datum:dd.MM.yyyy HH:mm}.\n\n" +
+                       "Azil za pse Bugojno";
+
+            await _emailSender.SendAsync(volonter.Korisnik.Email, subject, body);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send uklanjanje email to {Email}.", volonter.Korisnik.Email);
         }
     }
 }
