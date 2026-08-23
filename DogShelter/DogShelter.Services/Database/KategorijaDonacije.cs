@@ -10,7 +10,7 @@ public partial class KategorijaDonacije
 
     public int? PodrazumijevanaJedinicaMjereId { get; set; }
 
-    public virtual ICollection<Donacija> Donacijas { get; set; } = new List<Donacija>();
+    public virtual ICollection<DonacijaStavka> DonacijaStavke { get; set; } = new List<DonacijaStavka>();
 
     public virtual JedinicaMjere? PodrazumijevanaJedinicaMjere { get; set; }
 

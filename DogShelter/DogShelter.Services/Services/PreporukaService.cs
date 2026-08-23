@@ -5,9 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DogShelter.Services.Services;
 
-// Content-based dog recommender: scoring weights/multipliers below and the algorithm they
-// implement are documented in full (with a worked example) in recommender-dokumentacija.md
-// at the repo root. Keep the two in sync if these constants change.
 public class PreporukaService : IPreporukaService
 {
     private const double PregledTypeWeight = 1.0;

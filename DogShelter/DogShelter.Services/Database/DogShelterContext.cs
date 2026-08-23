@@ -21,6 +21,8 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<Donacija> Donacijas { get; set; }
 
+    public virtual DbSet<DonacijaStavka> DonacijaStavkas { get; set; }
+
     public virtual DbSet<Grad> Grads { get; set; }
 
     public virtual DbSet<JedinicaMjere> JedinicaMjeres { get; set; }
@@ -139,8 +141,6 @@ public partial class DogShelterContext : DbContext
             entity.Property(e => e.StripeRefundId).HasMaxLength(200);
             entity.Property(e => e.RazlogOdbijanja).HasMaxLength(1000);
             entity.Property(e => e.RazlogVracanja).HasMaxLength(1000);
-            entity.Property(e => e.PrilagodjenNaziv).HasMaxLength(200);
-            entity.Property(e => e.Kolicina).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.TrebaPreuzimanje).HasDefaultValue(false);
             entity.Property(e => e.AdresaPreuzimanja).HasMaxLength(255);
             entity.Property(e => e.TelefonPreuzimanja).HasMaxLength(30);
@@ -165,16 +165,30 @@ public partial class DogShelterContext : DbContext
                 .HasForeignKey(d => d.TipDonacijeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Donacija_Tip");
+        });
 
-            entity.HasOne(d => d.KategorijaDonacije).WithMany(p => p.Donacijas)
-                .HasForeignKey(d => d.KategorijaDonacijeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Donacija_Kategorija");
+        modelBuilder.Entity<DonacijaStavka>(entity =>
+        {
+            entity.ToTable("DonacijaStavka");
 
-            entity.HasOne(d => d.JedinicaMjere).WithMany(p => p.Donacijas)
-                .HasForeignKey(d => d.JedinicaMjereId)
+            entity.Property(e => e.PrilagodjenNaziv).HasMaxLength(200);
+            entity.Property(e => e.Kolicina).HasColumnType("decimal(10, 2)");
+
+            // Item lines have no existence independent of their parent donation.
+            entity.HasOne(s => s.Donacija).WithMany(d => d.Stavke)
+                .HasForeignKey(s => s.DonacijaId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_DonacijaStavka_Donacija");
+
+            entity.HasOne(s => s.KategorijaDonacije).WithMany(k => k.DonacijaStavke)
+                .HasForeignKey(s => s.KategorijaDonacijeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Donacija_JedinicaMjere");
+                .HasConstraintName("FK_DonacijaStavka_Kategorija");
+
+            entity.HasOne(s => s.JedinicaMjere).WithMany(j => j.DonacijaStavke)
+                .HasForeignKey(s => s.JedinicaMjereId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DonacijaStavka_JedinicaMjere");
         });
 
         modelBuilder.Entity<Grad>(entity =>

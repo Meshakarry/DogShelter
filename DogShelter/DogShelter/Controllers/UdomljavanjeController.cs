@@ -23,12 +23,12 @@ public class UdomljavanjeController : ControllerBase
     [HttpGet]
     [Authorize]
     public async Task<PagedResult<Udomljavanje>> Get([FromQuery] UdomljavanjeSearchRequest search)
-        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     [HttpGet("{ID:int}")]
     [Authorize]
     public async Task<Udomljavanje> GetById(int ID)
-        => await _service.GetById(ID, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+        => await _service.GetById(ID, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     [HttpGet("report")]
     [Authorize(Roles = RoleNames.Admin)]

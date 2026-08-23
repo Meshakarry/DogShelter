@@ -24,7 +24,7 @@ public class ZahtjevZaUdomljavanjeController : ControllerBase
     [HttpGet]
     [Authorize]
     public async Task<PagedResult<ZahtjevZaUdomljavanje>> Get([FromQuery] ZahtjevZaUdomljavanjeSearchRequest search)
-        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     [HttpGet("{ID:int}")]
     [Authorize]

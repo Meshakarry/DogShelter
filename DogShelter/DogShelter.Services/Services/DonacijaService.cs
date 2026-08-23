@@ -31,8 +31,8 @@ public class DonacijaService : IDonacijaService
             .Include(d => d.TipDonacije)
             .Include(d => d.StatusDonacije)
             .Include(d => d.ObradioKorisnik)
-            .Include(d => d.KategorijaDonacije)
-            .Include(d => d.JedinicaMjere)
+            .Include(d => d.Stavke).ThenInclude(s => s.KategorijaDonacije)
+            .Include(d => d.Stavke).ThenInclude(s => s.JedinicaMjere)
             .AsNoTracking();
 
     // Shared by RetryPlacanje/Potvrdi/Odbij/Refund — each needs TipDonacije+StatusDonacije
@@ -97,26 +97,37 @@ public class DonacijaService : IDonacijaService
             if (request.Iznos.HasValue)
                 throw new ValidationException("Iznos nije dozvoljen za materijalnu donaciju.", nameof(request.Iznos), "Materijalna donacija nema novčani iznos.");
 
-            if (!request.KategorijaDonacijeId.HasValue)
-                throw new ValidationException("Kategorija je obavezna za materijalnu donaciju.", nameof(request.KategorijaDonacijeId), "Odaberite kategoriju donacije.");
+            if (request.Stavke == null || request.Stavke.Count == 0)
+                throw new ValidationException("Potrebno je dodati barem jednu stavku donacije.", nameof(request.Stavke), "Dodajte barem jednu stavku.");
 
-            var kategorija = await _context.KategorijaDonacijes.FirstOrDefaultAsync(k => k.KategorijaDonacijeId == request.KategorijaDonacijeId.Value)
-                ?? throw new ValidationException("Odabrana kategorija ne postoji.", nameof(request.KategorijaDonacijeId), "Kategorija ne postoji.");
+            if (request.Stavke.Count > 20)
+                throw new ValidationException("Moguće je dodati najviše 20 stavki po donaciji.", nameof(request.Stavke), "Smanjite broj stavki.");
 
-            var isOstalo = kategorija.Naziv == KategorijaDonacijeNazivi.Ostalo;
-            if (isOstalo && string.IsNullOrWhiteSpace(request.PrilagodjenNaziv))
-                throw new ValidationException("Naziv stavke je obavezan kada je odabrana kategorija 'Ostalo'.", nameof(request.PrilagodjenNaziv), "Opišite šta donirate.");
-            if (!isOstalo && !string.IsNullOrWhiteSpace(request.PrilagodjenNaziv))
-                throw new ValidationException("Naziv stavke je dozvoljen samo za kategoriju 'Ostalo'.", nameof(request.PrilagodjenNaziv), "Ovo polje se popunjava samo za kategoriju 'Ostalo'.");
+            var kategorijeIds = request.Stavke.Select(s => s.KategorijaDonacijeId).Distinct().ToList();
+            var kategorije = await _context.KategorijaDonacijes
+                .Where(k => kategorijeIds.Contains(k.KategorijaDonacijeId))
+                .ToDictionaryAsync(k => k.KategorijaDonacijeId);
 
-            if (!request.Kolicina.HasValue || request.Kolicina.Value <= 0)
-                throw new ValidationException("Količina je obavezna za materijalnu donaciju.", nameof(request.Kolicina), "Unesite količinu veću od 0.");
+            var jedinicaIds = request.Stavke.Select(s => s.JedinicaMjereId).Distinct().ToList();
+            var postojeceJedinice = await _context.JedinicaMjeres
+                .Where(j => jedinicaIds.Contains(j.JedinicaMjereId))
+                .Select(j => j.JedinicaMjereId)
+                .ToListAsync();
 
-            if (!request.JedinicaMjereId.HasValue)
-                throw new ValidationException("Jedinica mjere je obavezna za materijalnu donaciju.", nameof(request.JedinicaMjereId), "Odaberite jedinicu mjere.");
+            foreach (var stavka in request.Stavke)
+            {
+                if (!kategorije.TryGetValue(stavka.KategorijaDonacijeId, out var kategorija))
+                    throw new ValidationException("Odabrana kategorija ne postoji.", nameof(stavka.KategorijaDonacijeId), "Kategorija ne postoji.");
 
-            if (!await _context.JedinicaMjeres.AnyAsync(j => j.JedinicaMjereId == request.JedinicaMjereId.Value))
-                throw new ValidationException("Odabrana jedinica mjere ne postoji.", nameof(request.JedinicaMjereId), "Jedinica mjere ne postoji.");
+                var isOstalo = kategorija.Naziv == KategorijaDonacijeNazivi.Ostalo;
+                if (isOstalo && string.IsNullOrWhiteSpace(stavka.PrilagodjenNaziv))
+                    throw new ValidationException("Naziv stavke je obavezan kada je odabrana kategorija 'Ostalo'.", nameof(stavka.PrilagodjenNaziv), "Opišite šta donirate.");
+                if (!isOstalo && !string.IsNullOrWhiteSpace(stavka.PrilagodjenNaziv))
+                    throw new ValidationException("Naziv stavke je dozvoljen samo za kategoriju 'Ostalo'.", nameof(stavka.PrilagodjenNaziv), "Ovo polje se popunjava samo za kategoriju 'Ostalo'.");
+
+                if (!postojeceJedinice.Contains(stavka.JedinicaMjereId))
+                    throw new ValidationException("Odabrana jedinica mjere ne postoji.", nameof(stavka.JedinicaMjereId), "Jedinica mjere ne postoji.");
+            }
 
             if (request.TrebaPreuzimanje)
             {
@@ -150,16 +161,23 @@ public class DonacijaService : IDonacijaService
             Iznos = request.Iznos,
             DatumDonacije = DateTime.UtcNow,
             Napomena = request.Napomena,
-            KategorijaDonacijeId = isNovcana ? null : request.KategorijaDonacijeId,
-            PrilagodjenNaziv = isNovcana ? null : request.PrilagodjenNaziv,
-            Kolicina = isNovcana ? null : request.Kolicina,
-            JedinicaMjereId = isNovcana ? null : request.JedinicaMjereId,
             TrebaPreuzimanje = !isNovcana && request.TrebaPreuzimanje,
             AdresaPreuzimanja = isNovcana ? null : request.AdresaPreuzimanja,
             TelefonPreuzimanja = isNovcana ? null : request.TelefonPreuzimanja,
             DatumPreuzimanja = isNovcana ? null : request.DatumPreuzimanja,
             ZeljeniDatumDostave = isNovcana ? null : request.ZeljeniDatumDostave
         };
+
+        if (!isNovcana)
+        {
+            entity.Stavke = request.Stavke.Select(s => new Database.DonacijaStavka
+            {
+                KategorijaDonacijeId = s.KategorijaDonacijeId,
+                PrilagodjenNaziv = s.PrilagodjenNaziv,
+                Kolicina = s.Kolicina,
+                JedinicaMjereId = s.JedinicaMjereId
+            }).ToList();
+        }
 
         string? clientSecret = null;
 

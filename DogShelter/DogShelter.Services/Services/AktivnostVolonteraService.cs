@@ -101,10 +101,17 @@ public class AktivnostVolonteraService : IAktivnostVolonteraService
         var entity = await _context.AktivnostVolonteras.FindAsync(id)
             ?? throw new NotFoundException($"Aktivnost volontera s ID {id} nije pronađena.");
 
-        _context.AktivnostVolonteras.Remove(entity);
-        await _context.SaveChangesAsync();
-
-        return true;
+        try
+        {
+            _context.AktivnostVolonteras.Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException ex)
+        {
+            DbUpdateExceptionMapper.ThrowDeleteConflictOrRethrow(ex);
+            throw;
+        }
     }
 
     private async Task<int> GetVolonterIdForKorisnikAsync(int korisnikId)

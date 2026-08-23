@@ -6,5 +6,5 @@ public partial class JedinicaMjere
 
     public string Naziv { get; set; } = null!;
 
-    public virtual ICollection<Donacija> Donacijas { get; set; } = new List<Donacija>();
+    public virtual ICollection<DonacijaStavka> DonacijaStavke { get; set; } = new List<DonacijaStavka>();
 }

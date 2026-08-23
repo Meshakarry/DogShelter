@@ -28,15 +28,7 @@ public partial class Donacija
 
     public string? RazlogVracanja { get; set; }
 
-    // --- Materijalna donacija details (all null for Novčana) ---
-    public int? KategorijaDonacijeId { get; set; }
-
-    public string? PrilagodjenNaziv { get; set; }
-
-    public decimal? Kolicina { get; set; }
-
-    public int? JedinicaMjereId { get; set; }
-
+    // --- Materijalna donacija pickup details (empty/false for Novčana) ---
     public bool TrebaPreuzimanje { get; set; }
 
     public string? AdresaPreuzimanja { get; set; }
@@ -59,7 +51,5 @@ public partial class Donacija
 
     public virtual TipDonacije TipDonacije { get; set; } = null!;
 
-    public virtual KategorijaDonacije? KategorijaDonacije { get; set; }
-
-    public virtual JedinicaMjere? JedinicaMjere { get; set; }
+    public virtual ICollection<DonacijaStavka> Stavke { get; set; } = new List<DonacijaStavka>();
 }

@@ -279,6 +279,7 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
   int? _gradId;
   late bool _aktivan;
   late Set<String> _selectedRoles;
+  late bool _promijeniLozinku;
 
   @override
   final errorScrollController = ScrollController();
@@ -295,6 +296,8 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
     _gradId = widget.existing?.gradId;
     _aktivan = widget.existing?.aktivan ?? true;
     _selectedRoles = widget.existing?.roles.toSet() ?? {};
+    // New users always need a password; existing users keep theirs unless the admin opts in.
+    _promijeniLozinku = !_isEdit;
   }
 
   @override
@@ -316,15 +319,15 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
     final prezime = _prezimeController.text.trim();
     final email = _emailController.text.trim();
     final korisnickoIme = _korisnickoImeController.text.trim();
-    final lozinka = _lozinkaController.text;
-    final lozinkaPotvrda = _lozinkaPotvrdaController.text;
+    final lozinka = _promijeniLozinku ? _lozinkaController.text : '';
+    final lozinkaPotvrda = _promijeniLozinku ? _lozinkaPotvrdaController.text : '';
 
     final errors = <String, String>{};
     if (ime.isEmpty) errors['ime'] = 'Ime je obavezno.';
     if (prezime.isEmpty) errors['prezime'] = 'Prezime je obavezno.';
     if (email.isEmpty) errors['email'] = 'Email je obavezan.';
     if (korisnickoIme.isEmpty) errors['korisnickoIme'] = 'Korisničko ime je obavezno.';
-    if (!_isEdit && lozinka.isEmpty) errors['lozinka'] = 'Lozinka je obavezna.';
+    if (_promijeniLozinku && lozinka.isEmpty) errors['lozinka'] = 'Lozinka je obavezna.';
     if (lozinka.isNotEmpty && lozinka != lozinkaPotvrda) {
       errors['lozinkaPotvrda'] = 'Lozinke se ne podudaraju.';
     }
@@ -468,43 +471,56 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: LabeledField(
-                      key: keyFor('lozinka'),
-                      label: isEdit ? 'Nova lozinka' : 'Lozinka',
-                      required: !isEdit,
-                      errorText: fieldErrors['lozinka'],
-                      child: TextField(
-                        controller: _lozinkaController,
-                        obscureText: true,
-                        onChanged: (_) => clearFieldError('lozinka'),
-                        decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          hintText: isEdit ? 'Ostavite prazno da ostane nepromijenjena' : null,
+              if (isEdit)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Izmijeni lozinku'),
+                  value: _promijeniLozinku,
+                  onChanged: (value) => setState(() {
+                    _promijeniLozinku = value ?? false;
+                    if (!_promijeniLozinku) {
+                      _lozinkaController.clear();
+                      _lozinkaPotvrdaController.clear();
+                      clearFieldError('lozinka');
+                      clearFieldError('lozinkaPotvrda');
+                    }
+                  }),
+                ),
+              if (_promijeniLozinku)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: LabeledField(
+                        key: keyFor('lozinka'),
+                        label: isEdit ? 'Nova lozinka' : 'Lozinka',
+                        errorText: fieldErrors['lozinka'],
+                        child: TextField(
+                          controller: _lozinkaController,
+                          autofocus: isEdit,
+                          obscureText: true,
+                          onChanged: (_) => clearFieldError('lozinka'),
+                          decoration: const InputDecoration(border: OutlineInputBorder()),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: LabeledField(
-                      key: keyFor('lozinkaPotvrda'),
-                      label: 'Potvrda lozinke',
-                      required: !isEdit,
-                      errorText: fieldErrors['lozinkaPotvrda'],
-                      child: TextField(
-                        controller: _lozinkaPotvrdaController,
-                        obscureText: true,
-                        onChanged: (_) => clearFieldError('lozinkaPotvrda'),
-                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: LabeledField(
+                        key: keyFor('lozinkaPotvrda'),
+                        label: 'Potvrda lozinke',
+                        errorText: fieldErrors['lozinkaPotvrda'],
+                        child: TextField(
+                          controller: _lozinkaPotvrdaController,
+                          obscureText: true,
+                          onChanged: (_) => clearFieldError('lozinkaPotvrda'),
+                          decoration: const InputDecoration(border: OutlineInputBorder()),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               const SizedBox(height: 12),
               RequiredLabel('Uloge', key: keyFor('uloge'), style: Theme.of(context).textTheme.bodyMedium),
               Wrap(

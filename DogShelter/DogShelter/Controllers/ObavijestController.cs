@@ -22,12 +22,12 @@ public class ObavijestController : ControllerBase
     [HttpGet]
     [Authorize]
     public async Task<PagedResult<Model.ObavijestListItem>> Get([FromQuery] ObavijestSearchRequest search)
-        => await _obavijestService.Get(search, User.IsInRole("Admin"));
+        => await _obavijestService.Get(search, User.IsInRole(RoleNames.Admin));
 
     [HttpGet("{ID:int}")]
     [Authorize]
     public async Task<Model.Obavijest> GetById(int ID)
-        => await _obavijestService.GetById(ID, User.IsInRole("Admin"));
+        => await _obavijestService.GetById(ID, User.IsInRole(RoleNames.Admin));
 
     [HttpPost]
     [Authorize(Roles = RoleNames.Admin)]

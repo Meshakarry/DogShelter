@@ -16,19 +16,26 @@ abstract class PagedListNotifier<T> extends StateNotifier<AsyncValue<PagedResult
 
   Future<PagedResult<T>> fetch({String? query, required int page});
 
+  // autoDispose subclasses may already be disposed when this runs (stale ref.read from a
+  // screen that's navigated away) - reading or writing `state` after dispose throws, so guard
+  // both before the request and after it resolves.
   Future<void> load({String? query}) async {
+    if (!mounted) return;
     final isNewQuery = query != null;
     _query = query ?? _query;
     if (isNewQuery) _page = 1;
     if (!state.hasValue) {
       state = const AsyncValue.loading();
     }
-    state = await AsyncValue.guard(() => fetch(query: _query, page: _page));
+    final result = await AsyncValue.guard(() => fetch(query: _query, page: _page));
+    if (mounted) state = result;
   }
 
   Future<void> goToPage(int page) async {
+    if (!mounted) return;
     _page = page;
-    state = await AsyncValue.guard(() => fetch(query: _query, page: _page));
+    final result = await AsyncValue.guard(() => fetch(query: _query, page: _page));
+    if (mounted) state = result;
   }
 
   Future<void> refresh() => load();
@@ -36,7 +43,9 @@ abstract class PagedListNotifier<T> extends StateNotifier<AsyncValue<PagedResult
   /// For subclasses with non-search filter fields (e.g. a status dropdown) that need to
   /// jump back to page 1 without going through the search-only [load] parameter.
   Future<void> resetAndReload() async {
+    if (!mounted) return;
     _page = 1;
-    state = await AsyncValue.guard(() => fetch(query: _query, page: _page));
+    final result = await AsyncValue.guard(() => fetch(query: _query, page: _page));
+    if (mounted) state = result;
   }
 }

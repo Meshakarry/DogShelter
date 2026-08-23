@@ -215,7 +215,7 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
                                   ),
                                   title: Text('${donacija.korisnikIme} ${donacija.korisnikPrezime}'),
                                   subtitle: Text(
-                                    '${isNovcana ? '${donacija.iznos?.toStringAsFixed(2) ?? '-'} BAM' : donacija.prikazNazivStavke ?? '-'} · '
+                                    '${isNovcana ? '${donacija.iznos?.toStringAsFixed(2) ?? '-'} BAM' : (donacija.stavkeSazetak.isEmpty ? '-' : donacija.stavkeSazetak)} · '
                                     '${formatDate(donacija.datumDonacije)}',
                                   ),
                                   trailing: Row(

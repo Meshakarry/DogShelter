@@ -61,7 +61,14 @@ class _PsiListScreenState extends ConsumerState<PsiListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Potvrda brisanja'),
-        content: Text('Da li ste sigurni da želite obrisati psa "${item.naziv}"?'),
+        content: SizedBox(
+          width: 420,
+          child: Text(
+            'Da li ste sigurni da želite obrisati psa "${item.naziv}"?\n\n'
+            'Pas neće biti trajno obrisan iz baze - biće označen kao neaktivan i uklonjen iz javnog pregleda, '
+            'dok će historijski podaci (prethodni zahtjevi za udomljavanje, posjete i sl.) ostati sačuvani.',
+          ),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
           FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
@@ -72,7 +79,7 @@ class _PsiListScreenState extends ConsumerState<PsiListScreen> {
 
     try {
       await ref.read(psiListProvider.notifier).remove(item.pasId);
-      _showMessage('Pas je obrisan.');
+      _showMessage('Pas je označen kao neaktivan.');
     } catch (e) {
       _showMessage(describeApiError(e), isError: true);
     }

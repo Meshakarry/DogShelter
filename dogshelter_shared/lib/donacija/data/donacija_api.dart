@@ -39,14 +39,12 @@ class DonacijaApi {
     return Donacija.fromJson(json as Map<String, dynamic>);
   }
 
+  /// [stavke] entries: `{kategorijaDonacijeId, prilagodjenNaziv, kolicina, jedinicaMjereId}`.
   Future<DonacijaPaymentResponse> createDonacija({
     required int tipDonacijeId,
     double? iznos,
     String? napomena,
-    int? kategorijaDonacijeId,
-    String? prilagodjenNaziv,
-    double? kolicina,
-    int? jedinicaMjereId,
+    List<Map<String, dynamic>> stavke = const [],
     bool trebaPreuzimanje = false,
     String? adresaPreuzimanja,
     String? telefonPreuzimanja,
@@ -57,10 +55,7 @@ class DonacijaApi {
       'tipDonacijeId': tipDonacijeId,
       'iznos': iznos,
       'napomena': (napomena == null || napomena.isEmpty) ? null : napomena,
-      'kategorijaDonacijeId': kategorijaDonacijeId,
-      'prilagodjenNaziv': (prilagodjenNaziv == null || prilagodjenNaziv.isEmpty) ? null : prilagodjenNaziv,
-      'kolicina': kolicina,
-      'jedinicaMjereId': jedinicaMjereId,
+      'stavke': stavke,
       'trebaPreuzimanje': trebaPreuzimanje,
       'adresaPreuzimanja': (adresaPreuzimanja == null || adresaPreuzimanja.isEmpty) ? null : adresaPreuzimanja,
       'telefonPreuzimanja': (telefonPreuzimanja == null || telefonPreuzimanja.isEmpty) ? null : telefonPreuzimanja,

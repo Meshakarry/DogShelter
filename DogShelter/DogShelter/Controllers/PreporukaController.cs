@@ -18,10 +18,16 @@ public class PreporukaController : ControllerBase
         _service = service;
     }
 
+    private const int MaxBrojPreporuka = 50;
+
     [HttpGet("psi")]
     [Authorize]
     public async Task<List<Model.PreporuceniPas>> Psi([FromQuery] int? take)
-        => await _service.PreporuceniPsi(GetCurrentKorisnikId(), take ?? PreporukaService.DefaultBrojPreporuka);
+    {
+        var howMany = take ?? PreporukaService.DefaultBrojPreporuka;
+        howMany = Math.Clamp(howMany, 1, MaxBrojPreporuka);
+        return await _service.PreporuceniPsi(GetCurrentKorisnikId(), howMany);
+    }
 
     private int GetCurrentKorisnikId()
     {

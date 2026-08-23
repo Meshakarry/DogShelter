@@ -3,7 +3,7 @@ class Environment {
 
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5265',
+    defaultValue: 'http://10.0.2.2:8080',
   );
 
   // Stripe publishable keys are meant to be embedded client-side (unlike the secret key, which

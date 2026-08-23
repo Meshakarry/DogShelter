@@ -31,9 +31,6 @@ public class DogadjajService : IDogadjajService
 
         if (!isAdmin)
         {
-            // Non-admins may browse past events too (mobile's "Nadolazeći"/"Prošli" tabs both use
-            // this endpoint via DatumOd/DatumDo below) — cancelled events stay hidden though, the
-            // same way Obavijest hides drafts.
             query = query.Where(d => d.Aktivan);
         }
         else if (search.Aktivan.HasValue)
@@ -50,8 +47,6 @@ public class DogadjajService : IDogadjajService
         if (search.DatumDo.HasValue)
             query = query.Where(d => d.Datum <= search.DatumDo.Value);
 
-        // A DatumDo-only filter (no DatumOd) means "browsing past events" (mobile's Prošli tab) —
-        // most-recent-first reads more naturally there than the default soonest-first order.
         var isPastOnlyQuery = search.DatumDo.HasValue && !search.DatumOd.HasValue;
         query = isPastOnlyQuery ? query.OrderByDescending(d => d.Datum) : query.OrderBy(d => d.Datum);
 

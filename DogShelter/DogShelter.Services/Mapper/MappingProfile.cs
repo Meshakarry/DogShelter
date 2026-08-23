@@ -61,6 +61,9 @@ public class MappingProfile : Profile
             .ForMember(d => d.ObradioKorisnikIme,      o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Ime : null))
             .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null))
             .ForMember(d => d.IsPaid,                  o => o.MapFrom(s => s.StatusDonacije != null && s.StatusDonacije.Naziv == StatusDonacijeNazivi.Uspjesna))
+            .ForMember(d => d.Stavke,                  o => o.MapFrom(s => s.Stavke));
+
+        CreateMap<Database.DonacijaStavka, Model.DonacijaStavka>()
             .ForMember(d => d.KategorijaDonacijeNaziv, o => o.MapFrom(s => s.KategorijaDonacije != null ? s.KategorijaDonacije.Naziv : null))
             .ForMember(d => d.JedinicaMjereNaziv,      o => o.MapFrom(s => s.JedinicaMjere != null ? s.JedinicaMjere.Naziv : null));
         CreateMap<Database.AktivnostVolontera, Model.AktivnostVolontera>()

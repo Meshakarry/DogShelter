@@ -14,15 +14,7 @@ public class DonacijaInsertRequest
     public string? Napomena { get; set; }
 
     // --- Materijalna donacija details (only relevant/validated when TipDonacije == Materijalna) ---
-    public int? KategorijaDonacijeId { get; set; }
-
-    [MaxLength(200, ErrorMessage = ValidationMessages.PrilagodjenNazivMaxLength)]
-    public string? PrilagodjenNaziv { get; set; }
-
-    [Range(0.01, 100000, ErrorMessage = ValidationMessages.KolicinaRange)]
-    public decimal? Kolicina { get; set; }
-
-    public int? JedinicaMjereId { get; set; }
+    public List<DonacijaStavkaRequest> Stavke { get; set; } = new();
 
     public bool TrebaPreuzimanje { get; set; }
 

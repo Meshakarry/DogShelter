@@ -76,21 +76,21 @@ Nema izloženi port — konzumira poruke sa RabbitMQ i šalje email preko SMTP-a
 
 ### Desktop (Flutter)
 
+Bez `--dart-define`, desktop aplikacija se po defaultu povezuje na `http://localhost:8080` (Docker). Za lokalni `dotnet run` backend (port 5265), proslijedi eksplicitno:
+
 ```bash
 cd dogshelter_desktop
-flutter run -d windows
+flutter run -d windows --dart-define=API_BASE_URL=http://localhost:5265
 ```
-
-Bez `--dart-define`, desktop aplikacija se po defaultu povezuje na `http://localhost:5265`.
 
 ### Mobile (Flutter) — Android emulator
 
+Bez `--dart-define`, mobilna aplikacija se po defaultu povezuje na `http://10.0.2.2:8080` (Docker, Android emulator loopback ka hostu). Za lokalni `dotnet run` backend:
+
 ```bash
 cd dogshelter_mobile
-flutter run
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5265
 ```
-
-Bez `--dart-define`, mobilna aplikacija se po defaultu povezuje na `http://10.0.2.2:5265` (Android emulator loopback ka hostu).
 
 ## Login podaci (seed)
 

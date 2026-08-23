@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/widgets/error_banner.dart';
@@ -44,9 +44,11 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
   double? _selectedPreset;
   bool _customAmountSelected = false;
 
-  int? _kategorijaDonacijeId;
-  double? _kolicina;
-  int? _jedinicaMjereId;
+  // The item currently being configured in the "Dodaj stavku" editor, before it's appended to _stavke.
+  int? _editKategorijaDonacijeId;
+  double? _editKolicina;
+  int? _editJedinicaMjereId;
+  final List<_StavkaDraft> _stavke = [];
   bool _trebaPreuzimanje = false;
   DateTime? _pickupDate;
   String? _pickupTimeSlot;
@@ -69,6 +71,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
     'prilagodjenNaziv',
     'kolicina',
     'jedinica',
+    'stavke',
     'adresa',
     'telefon',
     'pickupDatum',
@@ -114,8 +117,8 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
     return tip?.naziv == 'Novčana';
   }
 
-  KategorijaDonacije? _selectedKategorija(List<KategorijaDonacije> kategorije) {
-    return kategorije.where((k) => k.kategorijaDonacijeId == _kategorijaDonacijeId).firstOrNull;
+  KategorijaDonacije? _editSelectedKategorija(List<KategorijaDonacije> kategorije) {
+    return kategorije.where((k) => k.kategorijaDonacijeId == _editKategorijaDonacijeId).firstOrNull;
   }
 
   DateTime? get _pickupDateTime {
@@ -131,11 +134,9 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
     return _selectedPreset;
   }
 
-  Future<void> _submit(List<TipDonacije> tipovi, List<KategorijaDonacije> kategorije) async {
+  Future<void> _submit(List<TipDonacije> tipovi) async {
     final errors = <String, String>{};
     final isNovcana = _isNovcana(tipovi);
-    final kategorija = _selectedKategorija(kategorije);
-    final isOstalo = kategorija?.isOstalo ?? false;
 
     if (_tipDonacijeId == null) {
       errors['tip'] = 'Odaberite tip donacije.';
@@ -143,14 +144,8 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
       final iznos = _iznos;
       if (iznos == null || iznos <= 0) errors['iznos'] = 'Unesite ispravan iznos donacije.';
     } else {
-      if (_kategorijaDonacijeId == null) {
-        errors['kategorija'] = 'Odaberite kategoriju donacije.';
-      } else {
-        if (isOstalo && _prilagodjenNazivController.text.trim().isEmpty) {
-          errors['prilagodjenNaziv'] = 'Opišite šta biste željeli donirati.';
-        }
-        if (_kolicina == null || _kolicina! <= 0) errors['kolicina'] = 'Unesite ispravnu količinu.';
-        if (_jedinicaMjereId == null) errors['jedinica'] = 'Odaberite jedinicu mjere.';
+      if (_stavke.isEmpty) {
+        errors['stavke'] = 'Dodajte barem jednu stavku donacije.';
       }
       if (_trebaPreuzimanje) {
         if (_adresaController.text.trim().isEmpty) errors['adresa'] = 'Unesite adresu za preuzimanje.';
@@ -175,10 +170,17 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
             tipDonacijeId: _tipDonacijeId!,
             iznos: isNovcana ? _iznos : null,
             napomena: _napomenaController.text.trim(),
-            kategorijaDonacijeId: isNovcana ? null : _kategorijaDonacijeId,
-            prilagodjenNaziv: isNovcana ? null : _prilagodjenNazivController.text.trim(),
-            kolicina: isNovcana ? null : _kolicina,
-            jedinicaMjereId: isNovcana ? null : _jedinicaMjereId,
+            stavke: isNovcana
+                ? const []
+                : [
+                    for (final s in _stavke)
+                      {
+                        'kategorijaDonacijeId': s.kategorijaDonacijeId,
+                        'prilagodjenNaziv': s.prilagodjenNaziv,
+                        'kolicina': s.kolicina,
+                        'jedinicaMjereId': s.jedinicaMjereId,
+                      },
+                  ],
             trebaPreuzimanje: !isNovcana && _trebaPreuzimanje,
             adresaPreuzimanja: (!isNovcana && _trebaPreuzimanje) ? _adresaController.text.trim() : null,
             telefonPreuzimanja: (!isNovcana && _trebaPreuzimanje) ? _telefonController.text.trim() : null,
@@ -284,7 +286,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
                 ),
                 const SizedBox(height: 8),
                 FilledButton(
-                  onPressed: _isSubmitting ? null : () => _submit(tipovi, ref.read(kategorijaDonacijeLookupProvider).valueOrNull ?? const []),
+                  onPressed: _isSubmitting ? null : () => _submit(tipovi),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                   child: _isSubmitting
                       ? const SizedBox(
@@ -368,12 +370,51 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
     final jediniceAsync = ref.watch(jedinicaMjereLookupProvider);
     final kategorije = kategorijeAsync.valueOrNull ?? const <KategorijaDonacije>[];
     final jedinice = jediniceAsync.valueOrNull ?? const <JedinicaMjere>[];
-    final kategorija = _selectedKategorija(kategorije);
-    final isOstalo = kategorija?.isOstalo ?? false;
+    final editKategorija = _editSelectedKategorija(kategorije);
+    final editIsOstalo = editKategorija?.isOstalo ?? false;
 
     return [
       const ShelterNeedsSection(),
       const SizedBox(height: 24),
+      if (_stavke.isNotEmpty) ...[
+        Text('Stavke donacije (${_stavke.length})', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        for (var i = 0; i < _stavke.length; i++)
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: const Color(0xFF008554),
+                foregroundColor: Colors.white,
+                child: Icon(donationIconFor(_stavke[i].ikonaKljuc)),
+              ),
+              title: Text(_stavke[i].prikazNaziv),
+              subtitle: Text(
+                '${_stavke[i].kolicina.toStringAsFixed(_stavke[i].kolicina % 1 == 0 ? 0 : 2)} ${_stavke[i].jedinicaNaziv}',
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Ukloni stavku',
+                onPressed: () => setState(() => _stavke.removeAt(i)),
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+      ],
+      if (fieldErrors['stavke'] != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            fieldErrors['stavke']!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+          ),
+        ),
+      Text(
+        _stavke.isEmpty ? 'Dodajte prvu stavku' : 'Dodajte još jednu stavku',
+        key: keyFor('stavke'),
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 12),
       LabeledField(
         key: keyFor('kategorija'),
         label: 'Kategorija donacije',
@@ -395,7 +436,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
                       label: kat.naziv,
                       icon: donationIconFor(kat.ikonaKljuc),
                       width: cardWidth,
-                      selected: _kategorijaDonacijeId == kat.kategorijaDonacijeId,
+                      selected: _editKategorijaDonacijeId == kat.kategorijaDonacijeId,
                       onTap: () {
                         _clearApiError();
                         setState(() {
@@ -403,9 +444,9 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
                           fieldErrors.remove('kolicina');
                           fieldErrors.remove('jedinica');
                           fieldErrors.remove('prilagodjenNaziv');
-                          _kategorijaDonacijeId = kat.kategorijaDonacijeId;
-                          _kolicina = null;
-                          _jedinicaMjereId = kat.podrazumijevanaJedinicaMjereId;
+                          _editKategorijaDonacijeId = kat.kategorijaDonacijeId;
+                          _editKolicina = null;
+                          _editJedinicaMjereId = kat.podrazumijevanaJedinicaMjereId;
                         });
                       },
                     ),
@@ -415,7 +456,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
           ),
         ),
       ),
-      if (isOstalo) ...[
+      if (editIsOstalo) ...[
         const SizedBox(height: 16),
         LabeledField(
           key: keyFor('prilagodjenNaziv'),
@@ -431,19 +472,19 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
           ),
         ),
       ],
-      if (_kategorijaDonacijeId != null) ...[
+      if (_editKategorijaDonacijeId != null) ...[
         const SizedBox(height: 20),
         LabeledField(
           key: keyFor('kolicina'),
           label: 'Količina',
           errorText: fieldErrors['kolicina'],
           child: QuantityStepper(
-            value: _kolicina,
-            step: _stepForSelectedUnit(jedinice),
+            value: _editKolicina,
+            step: _stepForSelectedUnit(jedinice, _editJedinicaMjereId),
             onChanged: (value) {
               _clearApiError();
               clearFieldError('kolicina');
-              setState(() => _kolicina = value);
+              setState(() => _editKolicina = value);
             },
           ),
         ),
@@ -454,17 +495,28 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
           errorText: fieldErrors['jedinica'],
           child: UnitPicker(
             allUnits: jedinice,
-            allowedUnits: kategorija?.dozvoljeneJedinice ?? const [],
-            selectedId: _jedinicaMjereId,
+            allowedUnits: editKategorija?.dozvoljeneJedinice ?? const [],
+            selectedId: _editJedinicaMjereId,
             errorText: fieldErrors['jedinica'],
             onChanged: (value) {
               _clearApiError();
               clearFieldError('jedinica');
-              setState(() => _jedinicaMjereId = value);
+              setState(() => _editJedinicaMjereId = value);
             },
           ),
         ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _addStavka(editKategorija, editIsOstalo, jedinice),
+            icon: const Icon(Icons.add),
+            label: const Text('Dodaj stavku'),
+          ),
+        ),
       ],
+      const SizedBox(height: 24),
+      const Divider(),
       const SizedBox(height: 20),
       Text('Kako biste željeli dostaviti donaciju?', style: Theme.of(context).textTheme.titleMedium),
       RadioGroup<bool>(
@@ -498,9 +550,73 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
 
   // kg is the only unit in this app's inventory where a half-unit makes practical sense (0.5 kg
   // of food); every other unit (kom/vreće/kutije/boce) only ever makes sense as a whole number.
-  double _stepForSelectedUnit(List<JedinicaMjere> jedinice) {
-    final naziv = jedinice.where((j) => j.jedinicaMjereId == _jedinicaMjereId).firstOrNull?.naziv;
+  double _stepForSelectedUnit(List<JedinicaMjere> jedinice, int? jedinicaMjereId) {
+    final naziv = jedinice.where((j) => j.jedinicaMjereId == jedinicaMjereId).firstOrNull?.naziv;
     return naziv == 'kg' ? 0.5 : 1;
+  }
+
+  void _addStavka(KategorijaDonacije? editKategorija, bool editIsOstalo, List<JedinicaMjere> jedinice) {
+    final errors = <String, String>{};
+    if (_editKategorijaDonacijeId == null) errors['kategorija'] = 'Odaberite kategoriju donacije.';
+    if (editIsOstalo && _prilagodjenNazivController.text.trim().isEmpty) {
+      errors['prilagodjenNaziv'] = 'Opišite šta biste željeli donirati.';
+    }
+    if (_editKolicina == null || _editKolicina! <= 0) errors['kolicina'] = 'Unesite ispravnu količinu.';
+    if (_editJedinicaMjereId == null) errors['jedinica'] = 'Odaberite jedinicu mjere.';
+
+    if (errors.isNotEmpty) {
+      applyValidationErrors(errors);
+      return;
+    }
+
+    final jedinica = jedinice.where((j) => j.jedinicaMjereId == _editJedinicaMjereId).firstOrNull;
+    final noviNaziv = editIsOstalo ? _prilagodjenNazivController.text.trim() : null;
+
+    // Same category + unit + custom name is the same item - merge quantities instead of duplicating.
+    final existingIndex = _stavke.indexWhere((s) =>
+        s.kategorijaDonacijeId == _editKategorijaDonacijeId &&
+        s.jedinicaMjereId == _editJedinicaMjereId &&
+        (s.prilagodjenNaziv ?? '').toLowerCase() == (noviNaziv ?? '').toLowerCase());
+
+    setState(() {
+      fieldErrors.remove('kategorija');
+      fieldErrors.remove('kolicina');
+      fieldErrors.remove('jedinica');
+      fieldErrors.remove('prilagodjenNaziv');
+      fieldErrors.remove('stavke');
+      if (existingIndex != -1) {
+        final existing = _stavke[existingIndex];
+        _stavke[existingIndex] = _StavkaDraft(
+          kategorijaDonacijeId: existing.kategorijaDonacijeId,
+          kategorijaNaziv: existing.kategorijaNaziv,
+          ikonaKljuc: existing.ikonaKljuc,
+          prilagodjenNaziv: existing.prilagodjenNaziv,
+          kolicina: existing.kolicina + _editKolicina!,
+          jedinicaMjereId: existing.jedinicaMjereId,
+          jedinicaNaziv: existing.jedinicaNaziv,
+        );
+      } else {
+        _stavke.add(_StavkaDraft(
+          kategorijaDonacijeId: _editKategorijaDonacijeId!,
+          kategorijaNaziv: editKategorija?.naziv ?? '-',
+          ikonaKljuc: editKategorija?.ikonaKljuc ?? 'ostalo',
+          prilagodjenNaziv: noviNaziv,
+          kolicina: _editKolicina!,
+          jedinicaMjereId: _editJedinicaMjereId!,
+          jedinicaNaziv: jedinica?.naziv ?? '',
+        ));
+      }
+      _editKategorijaDonacijeId = null;
+      _editKolicina = null;
+      _editJedinicaMjereId = null;
+      _prilagodjenNazivController.clear();
+    });
+
+    if (existingIndex != -1 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Količina je dodana postojećoj stavci.'), duration: Duration(seconds: 2)),
+      );
+    }
   }
 
   List<Widget> _buildPickupFields() {
@@ -623,6 +739,32 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
         ),
     ];
   }
+}
+
+/// Display strings are snapshotted at add-time so the list stays stable if lookups reload.
+class _StavkaDraft {
+  const _StavkaDraft({
+    required this.kategorijaDonacijeId,
+    required this.kategorijaNaziv,
+    required this.ikonaKljuc,
+    this.prilagodjenNaziv,
+    required this.kolicina,
+    required this.jedinicaMjereId,
+    required this.jedinicaNaziv,
+  });
+
+  final int kategorijaDonacijeId;
+  final String kategorijaNaziv;
+  final String ikonaKljuc;
+  final String? prilagodjenNaziv;
+  final double kolicina;
+  final int jedinicaMjereId;
+  final String jedinicaNaziv;
+
+  String get prikazNaziv =>
+      (kategorijaNaziv == 'Ostalo' && prilagodjenNaziv != null && prilagodjenNaziv!.isNotEmpty)
+          ? prilagodjenNaziv!
+          : kategorijaNaziv;
 }
 
 class _CategoryCard extends StatelessWidget {

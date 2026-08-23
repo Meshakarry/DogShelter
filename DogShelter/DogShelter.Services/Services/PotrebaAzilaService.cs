@@ -29,7 +29,6 @@ public class PotrebaAzilaService : IPotrebaAzilaService
         var query = BaseQuery();
 
         // Donors only ever see currently-active needs; admins can see everything and filter,
-        // same visibility split precedent as Obavijest (draft/published).
         if (!isAdmin)
             query = query.Where(p => p.Aktivna);
         else if (search.Aktivna.HasValue)
@@ -87,8 +86,16 @@ public class PotrebaAzilaService : IPotrebaAzilaService
         var entity = await _context.PotrebeAzila.FindAsync(id)
             ?? throw new NotFoundException($"Potreba azila s ID {id} nije pronađena.");
 
-        _context.PotrebeAzila.Remove(entity);
-        await _context.SaveChangesAsync();
-        return true;
+        try
+        {
+            _context.PotrebeAzila.Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException ex)
+        {
+            DbUpdateExceptionMapper.ThrowDeleteConflictOrRethrow(ex);
+            throw;
+        }
     }
 }

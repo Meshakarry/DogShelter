@@ -690,6 +690,14 @@ public static class DatabaseSeeder
 
         var now = DateTime.UtcNow;
 
+        DonacijaStavka Stavka(string kategorijaNaziv, decimal kolicina, string jedinicaNaziv, string? prilagodjenNaziv = null) => new()
+        {
+            KategorijaDonacijeId = Kat(kategorijaNaziv),
+            Kolicina = kolicina,
+            JedinicaMjereId = Jed(jedinicaNaziv),
+            PrilagodjenNaziv = prilagodjenNaziv
+        };
+
         var donacije = new List<Donacija>
         {
             new()
@@ -697,38 +705,40 @@ public static class DatabaseSeeder
                 KorisnikId = korisnik.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sNaCekanju.StatusDonacijeId,
-                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.HranaZaPse),
-                Kolicina = 20,
-                JedinicaMjereId = Jed("kg"),
                 DatumDonacije = now.AddDays(-1),
-                Napomena = "20kg hrane za pse i dvije deke, dostava dogovorena za vikend."
+                Napomena = "20kg hrane za pse i dvije deke, dostava dogovorena za vikend.",
+                Stavke =
+                [
+                    Stavka(KategorijaDonacijeNazivi.HranaZaPse, 20, "kg"),
+                    Stavka(KategorijaDonacijeNazivi.DekeIPosteljina, 2, "kom")
+                ]
             },
             new()
             {
                 KorisnikId = korisnik.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sUspjesna.StatusDonacijeId,
-                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.HranaZaPse),
-                Kolicina = 10,
-                JedinicaMjereId = Jed("vreće"),
                 DatumDonacije = now.AddDays(-10),
                 Napomena = "Deset vreća hrane i ogrlice.",
                 ObradioKorisnikId = admin.KorisnikId,
-                DatumObrade = now.AddDays(-9)
+                DatumObrade = now.AddDays(-9),
+                Stavke =
+                [
+                    Stavka(KategorijaDonacijeNazivi.HranaZaPse, 10, "vreće"),
+                    Stavka(KategorijaDonacijeNazivi.Ostalo, 3, "kom", "Ogrlice raznih veličina")
+                ]
             },
             new()
             {
                 KorisnikId = volonter.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sNeuspjesna.StatusDonacijeId,
-                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.Ostalo),
-                Kolicina = 2,
-                JedinicaMjereId = Jed("kom"),
                 DatumDonacije = now.AddDays(-6),
                 Napomena = "Ponuđena stara kavezna oprema.",
                 ObradioKorisnikId = admin.KorisnikId,
                 DatumObrade = now.AddDays(-5),
-                RazlogOdbijanja = "Oprema ne zadovoljava sigurnosne standarde azila."
+                RazlogOdbijanja = "Oprema ne zadovoljava sigurnosne standarde azila.",
+                Stavke = [Stavka(KategorijaDonacijeNazivi.Ostalo, 2, "kom", "Stara kavezna oprema")]
             },
             new()
             {
@@ -751,38 +761,36 @@ public static class DatabaseSeeder
                 KorisnikId = volonter.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sUspjesna.StatusDonacijeId,
-                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.Igracke),
-                Kolicina = 15,
-                JedinicaMjereId = Jed("kom"),
                 DatumDonacije = now.AddDays(-45),
                 Napomena = "Petnaest igračaka za pse, razne veličine.",
                 ObradioKorisnikId = admin.KorisnikId,
-                DatumObrade = now.AddDays(-44)
+                DatumObrade = now.AddDays(-44),
+                Stavke = [Stavka(KategorijaDonacijeNazivi.Igracke, 15, "kom")]
             },
             new()
             {
                 KorisnikId = korisnik.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sNaCekanju.StatusDonacijeId,
-                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.DekeIPosteljina),
-                Kolicina = 5,
-                JedinicaMjereId = Jed("kom"),
                 DatumDonacije = now.AddDays(-35),
-                Napomena = "Pet deka za zimu."
+                Napomena = "Pet deka za zimu, plus igračke koje su djeca donirala.",
+                Stavke =
+                [
+                    Stavka(KategorijaDonacijeNazivi.DekeIPosteljina, 5, "kom"),
+                    Stavka(KategorijaDonacijeNazivi.Igracke, 4, "kom")
+                ]
             },
             new()
             {
                 KorisnikId = korisnik.KorisnikId,
                 TipDonacijeId = tipMaterijalna.TipDonacijeId,
                 StatusDonacijeId = sNeuspjesna.StatusDonacijeId,
-                KategorijaDonacijeId = Kat(KategorijaDonacijeNazivi.Lijekovi),
-                Kolicina = 8,
-                JedinicaMjereId = Jed("kutije"),
                 DatumDonacije = now.AddDays(-70),
                 Napomena = "Osam kutija lijekova kojima je istekao rok.",
                 ObradioKorisnikId = admin.KorisnikId,
                 DatumObrade = now.AddDays(-69),
-                RazlogOdbijanja = "Lijekovima je istekao rok trajanja."
+                RazlogOdbijanja = "Lijekovima je istekao rok trajanja.",
+                Stavke = [Stavka(KategorijaDonacijeNazivi.Lijekovi, 8, "kutije")]
             },
             new()
             {
@@ -812,11 +820,8 @@ public static class DatabaseSeeder
         if (admin == null) return;
 
         var bella = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Bella");
+        var lola = await context.Pas.FirstOrDefaultAsync(p => p.Naziv == "Lola");
         var now = DateTime.UtcNow;
-
-        // Dedicated seed photos (not dog reuse) - obavijest1/2/3 map to the 3 published
-        // articles by recency, newest first; obavijest3.jpg (volunteers examining a dog) is a
-        // clear content match for the volunteer call-out regardless of pure date order.
         string Img(string name) => CopySeedImage(name, wwwrootPath, logger, folder: "obavijesti") ?? string.Empty;
 
         var obavijesti = new List<Obavijest>
@@ -826,7 +831,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Azil dobio novu opremu zahvaljujući donatorima",
                 Sadrzaj = "Ovih sedmica primili smo veliku donaciju hrane, deka i kaveza od naših dragih donatora. Hvala svima koji su prepoznali da se svaka pomoć broji – zahvaljujući vama naši štićenici imaju toplije zime i punije stomake.",
-                SlikaPutanja = Img("obavijest2"),
+                SlikaPutanja = Img("obavijest1"),
                 DatumObjave = now.AddDays(-14),
                 Aktivna = true
             },
@@ -835,7 +840,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Lola pronašla svoj dom!",
                 Sadrzaj = "Sa velikim zadovoljstvom javljamo da je Lola, naša labradorica koja je čekala godinu dana, konačno udomljena. Nova porodica joj je pripremila prostrano dvorište i toplu dobrodošlicu. Hvala svima koji su navijali za nju!",
-                SlikaPutanja = Img("obavijest1"),
+                SlikaPutanja = lola?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Lola' nije pronađen za Obavijest sliku."),
                 DatumObjave = now.AddDays(-8),
                 Aktivna = true
             },
@@ -844,7 +849,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Otvoren poziv za volontere ovog vikenda",
                 Sadrzaj = "Tražimo volontere za šetnju pasa i pomoć oko čišćenja azila subotom i nedjeljom od 9 do 13 sati. Prijave su moguće putem aplikacije u sekciji Volontiranje. Svaka pomoć je dobrodošla!",
-                SlikaPutanja = Img("obavijest3"),
+                SlikaPutanja = Img("obavijest2"),
                 DatumObjave = now.AddDays(-3),
                 Aktivna = true
             },
@@ -853,7 +858,7 @@ public static class DatabaseSeeder
                 AutorId = admin.KorisnikId,
                 Naslov = "Nacrt: najava zimske akcije prikupljanja donacija",
                 Sadrzaj = "Radna verzija teksta za predstojeću zimsku akciju prikupljanja hrane i deka – još uvijek čeka odobrenje uprave prije objave.",
-                SlikaPutanja = bella?.SlikaNaslovna ?? throw new InvalidOperationException("Seed pas 'Bella' nije pronađen za Obavijest sliku."),
+                SlikaPutanja = Img("obavijest3"),
                 DatumObjave = now,
                 Aktivna = false
             }
@@ -953,12 +958,6 @@ public static class DatabaseSeeder
     {
         if (await context.Dogadjajs.AnyAsync()) return;
 
-        // Dedicated seed photos, matched to each event by actual content: dogadjaj3 (a dog in
-        // an "adopt me" bandana) -> the adoption promo; dogadjaj4 (large group + hosing down
-        // the yard) -> the cleaning weekend; dogadjaj1 (kennel/cleaning-supplies scene, general
-        // humanitarian-care feel) -> both "humanitarna akcija"-titled events (reused across the
-        // two, same deliberate-reuse precedent as Obavijest's seed); dogadjaj2 (puppies) -> the
-        // open house as a generic welcoming photo.
         string Img(string name) => CopySeedImage(name, wwwrootPath, logger, folder: "dogadjaji") ?? string.Empty;
 
         var now = DateTime.UtcNow;

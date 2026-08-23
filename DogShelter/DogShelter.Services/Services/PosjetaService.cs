@@ -279,11 +279,9 @@ public class PosjetaService : IPosjetaService
         }
     }
 
-    // A losing race under Serializable isolation is a SQL Server deadlock (error 1205) — EF Core's
-    // default execution strategy wraps that SqlException in a DbUpdateException, then wraps THAT in
-    // an InvalidOperationException (its "this looks transient, consider EnableRetryOnFailure"
-    // diagnostic), so the type we actually catch is neither DbUpdateException nor SqlException
-    // directly. Walk the whole InnerException chain instead of matching the outermost type.
+    // A losing race under Serializable isolation surfaces as a SQL deadlock wrapped in
+    // DbUpdateException or SqlException somewhere in the InnerException chain, not necessarily
+    // as the outermost exception type.
     private static bool IsConcurrencyConflict(Exception ex)
     {
         for (var e = ex; e != null; e = e.InnerException)

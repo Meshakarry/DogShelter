@@ -112,6 +112,7 @@ class PsiListNotifier extends StateNotifier<PsiListState> {
   final PasApi _api;
 
   Future<void> load({int? page}) async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final result = await _api.getDogs(
@@ -123,18 +124,23 @@ class PsiListNotifier extends StateNotifier<PsiListState> {
         velicinaPsaId: state.filters.velicinaPsaId,
         aktivan: state.filters.aktivan,
       );
+      // May already be disposed (autoDispose, screen navigated away) - guard before touching state.
+      if (!mounted) return;
       state = state.copyWith(items: result.items, page: result.page, totalCount: result.totalCount, isLoading: false);
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(isLoading: false, error: e);
     }
   }
 
   Future<void> applyFilters(PsiFilters filters) async {
+    if (!mounted) return;
     state = state.copyWith(filters: filters, page: 1);
     await load(page: 1);
   }
 
   Future<void> applySearch(String naziv) async {
+    if (!mounted) return;
     await applyFilters(state.filters.copyWith(naziv: naziv, clearNaziv: naziv.isEmpty));
   }
 
@@ -142,6 +148,7 @@ class PsiListNotifier extends StateNotifier<PsiListState> {
 
   Future<void> remove(int id) async {
     await _api.delete(id);
+    if (!mounted) return;
     // Deleting the last row on a page that's no longer the first should step back a page
     // instead of landing on a now-empty page.
     final targetPage = (state.items.length == 1 && state.page > 1) ? state.page - 1 : state.page;
@@ -168,24 +175,29 @@ class PsiGalleryNotifier extends StateNotifier<AsyncValue<List<SlikaPsa>>> {
   final int pasId;
 
   Future<void> _load() async {
-    state = await AsyncValue.guard(() async => (await _api.getDogById(pasId)).slike);
+    final result = await AsyncValue.guard(() async => (await _api.getDogById(pasId)).slike);
+    if (mounted) state = result;
   }
 
   Future<void> add(File image) async {
     final current = state.valueOrNull ?? [];
+    if (!mounted) return;
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
+    final result = await AsyncValue.guard(() async {
       await _api.addGalleryImage(pasId, image, current.length);
       return (await _api.getDogById(pasId)).slike;
     });
+    if (mounted) state = result;
   }
 
   Future<void> remove(int slikaId) async {
+    if (!mounted) return;
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
+    final result = await AsyncValue.guard(() async {
       await _api.deleteGalleryImage(pasId, slikaId);
       return (await _api.getDogById(pasId)).slike;
     });
+    if (mounted) state = result;
   }
 }
 

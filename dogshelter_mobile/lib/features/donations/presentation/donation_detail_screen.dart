@@ -122,12 +122,19 @@ class _DonationDetailBodyState extends ConsumerState<_DonationDetailBody> {
           ),
           const SizedBox(height: 16),
           if (donacija.iznos != null) DetailRow(label: 'Iznos', value: '${donacija.iznos!.toStringAsFixed(2)} KM'),
-          if (donacija.prikazNazivStavke != null) DetailRow(label: 'Kategorija', value: donacija.prikazNazivStavke!),
-          if (donacija.kolicina != null)
-            DetailRow(
-              label: 'Količina',
-              value: '${donacija.kolicina!.toStringAsFixed(donacija.kolicina! % 1 == 0 ? 0 : 2)} ${donacija.jedinicaMjereNaziv ?? ''}',
-            ),
+          if (donacija.stavke.isNotEmpty) ...[
+            Text('Stavke', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            for (final stavka in donacija.stavke)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '• ${stavka.prikazNaziv ?? '-'} — '
+                  '${stavka.kolicina.toStringAsFixed(stavka.kolicina % 1 == 0 ? 0 : 2)} ${stavka.jedinicaMjereNaziv ?? ''}',
+                ),
+              ),
+            const SizedBox(height: 12),
+          ],
           if (!donacija.isNovcana)
             DetailRow(
               label: 'Dostava',

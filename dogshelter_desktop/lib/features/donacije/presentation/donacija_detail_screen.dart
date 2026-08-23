@@ -166,12 +166,44 @@ class DonacijaDetailScreen extends ConsumerWidget {
                             if (isNovcana)
                               DetailRow(label: 'Iznos', value: '${donacija.iznos?.toStringAsFixed(2) ?? '-'} BAM')
                             else ...[
-                              DetailRow(label: 'Stavka', value: donacija.prikazNazivStavke ?? '-'),
-                              DetailRow(
-                                label: 'Količina',
-                                value: donacija.kolicina == null
-                                    ? '-'
-                                    : '${donacija.kolicina} ${donacija.jedinicaMjereNaziv ?? ''}'.trim(),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 150,
+                                      child: Text('Stavke', style: Theme.of(context).textTheme.bodyMedium),
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          for (final stavka in donacija.stavke)
+                                            Padding(
+                                              padding: const EdgeInsets.only(bottom: 2),
+                                              child: Text(
+                                                '${stavka.prikazNaziv ?? '-'} — ${stavka.kolicina} ${stavka.jedinicaMjereNaziv ?? ''}'
+                                                    .trim(),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(fontWeight: FontWeight.w600),
+                                              ),
+                                            ),
+                                          if (donacija.stavke.isEmpty)
+                                            Text(
+                                              '-',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(fontWeight: FontWeight.w600),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               DetailRow(
                                 label: 'Preuzimanje',

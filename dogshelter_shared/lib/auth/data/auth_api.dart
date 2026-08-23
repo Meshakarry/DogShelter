@@ -40,6 +40,11 @@ class AuthApi {
     await _client.post('/api/Korisnik/logout');
   }
 
+  Future<Korisnik> getById(int id) async {
+    final json = await _client.get('/api/Korisnik/$id');
+    return Korisnik.fromJson(json as Map<String, dynamic>);
+  }
+
   Future<String> requestPasswordReset({required String email}) async {
     final json = await _client.post('/api/PasswordReset/request', body: {'email': email});
     return (json as Map<String, dynamic>)['message'] as String;

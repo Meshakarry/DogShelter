@@ -25,7 +25,7 @@ public class DonacijaController : ControllerBase
     [HttpGet]
     [Authorize]
     public async Task<PagedResult<Donacija>> Get([FromQuery] DonacijaSearchRequest search)
-        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     [HttpGet("{ID:int}")]
     [Authorize]
@@ -48,7 +48,7 @@ public class DonacijaController : ControllerBase
     [HttpPost("{ID:int}/retry-placanje")]
     [Authorize]
     public async Task<DonacijaPaymentResponse> RetryPlacanje(int ID)
-        => await _service.RetryPlacanje(ID, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+        => await _service.RetryPlacanje(ID, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     [HttpPost("{ID:int}/potvrdi")]
     [Authorize(Roles = RoleNames.Admin)]

@@ -1,3 +1,42 @@
+class DonacijaStavka {
+  DonacijaStavka({
+    required this.donacijaStavkaId,
+    required this.kategorijaDonacijeId,
+    this.kategorijaDonacijeNaziv,
+    this.prilagodjenNaziv,
+    required this.kolicina,
+    required this.jedinicaMjereId,
+    this.jedinicaMjereNaziv,
+  });
+
+  final int donacijaStavkaId;
+  final int kategorijaDonacijeId;
+  final String? kategorijaDonacijeNaziv;
+  final String? prilagodjenNaziv;
+  final double kolicina;
+  final int jedinicaMjereId;
+  final String? jedinicaMjereNaziv;
+
+  /// The name shown to the user - when the category is the generic "Ostalo", the donor's own
+  /// custom item name is shown instead.
+  String? get prikazNaziv =>
+      (kategorijaDonacijeNaziv == 'Ostalo' && prilagodjenNaziv != null && prilagodjenNaziv!.isNotEmpty)
+          ? prilagodjenNaziv
+          : kategorijaDonacijeNaziv;
+
+  factory DonacijaStavka.fromJson(Map<String, dynamic> json) {
+    return DonacijaStavka(
+      donacijaStavkaId: json['donacijaStavkaId'] as int,
+      kategorijaDonacijeId: json['kategorijaDonacijeId'] as int,
+      kategorijaDonacijeNaziv: json['kategorijaDonacijeNaziv'] as String?,
+      prilagodjenNaziv: json['prilagodjenNaziv'] as String?,
+      kolicina: (json['kolicina'] as num).toDouble(),
+      jedinicaMjereId: json['jedinicaMjereId'] as int,
+      jedinicaMjereNaziv: json['jedinicaMjereNaziv'] as String?,
+    );
+  }
+}
+
 class Donacija {
   Donacija({
     required this.donacijaId,
@@ -18,12 +57,7 @@ class Donacija {
     this.razlogOdbijanja,
     this.razlogVracanja,
     required this.isPaid,
-    this.kategorijaDonacijeId,
-    this.kategorijaDonacijeNaziv,
-    this.prilagodjenNaziv,
-    this.kolicina,
-    this.jedinicaMjereId,
-    this.jedinicaMjereNaziv,
+    this.stavke = const [],
     required this.trebaPreuzimanje,
     this.adresaPreuzimanja,
     this.telefonPreuzimanja,
@@ -50,13 +84,8 @@ class Donacija {
   final String? razlogVracanja;
   final bool isPaid;
 
-  // --- Materijalna donacija details (null/false for Novčana) ---
-  final int? kategorijaDonacijeId;
-  final String? kategorijaDonacijeNaziv;
-  final String? prilagodjenNaziv;
-  final double? kolicina;
-  final int? jedinicaMjereId;
-  final String? jedinicaMjereNaziv;
+  // --- Materijalna donacija details (empty/false for Novčana) ---
+  final List<DonacijaStavka> stavke;
   final bool trebaPreuzimanje;
   final String? adresaPreuzimanja;
   final String? telefonPreuzimanja;
@@ -65,12 +94,7 @@ class Donacija {
 
   bool get isNovcana => tipDonacijeNaziv == 'Novčana';
 
-  /// The category name shown to the user - when the category is the generic "Ostalo", the
-  /// donor's own custom item name is shown instead.
-  String? get prikazNazivStavke =>
-      (kategorijaDonacijeNaziv == 'Ostalo' && prilagodjenNaziv != null && prilagodjenNaziv!.isNotEmpty)
-          ? prilagodjenNaziv
-          : kategorijaDonacijeNaziv;
+  String get stavkeSazetak => stavke.map((s) => s.prikazNaziv ?? '').where((s) => s.isNotEmpty).join(', ');
 
   factory Donacija.fromJson(Map<String, dynamic> json) {
     return Donacija(
@@ -92,12 +116,9 @@ class Donacija {
       razlogOdbijanja: json['razlogOdbijanja'] as String?,
       razlogVracanja: json['razlogVracanja'] as String?,
       isPaid: json['isPaid'] as bool,
-      kategorijaDonacijeId: json['kategorijaDonacijeId'] as int?,
-      kategorijaDonacijeNaziv: json['kategorijaDonacijeNaziv'] as String?,
-      prilagodjenNaziv: json['prilagodjenNaziv'] as String?,
-      kolicina: (json['kolicina'] as num?)?.toDouble(),
-      jedinicaMjereId: json['jedinicaMjereId'] as int?,
-      jedinicaMjereNaziv: json['jedinicaMjereNaziv'] as String?,
+      stavke: (json['stavke'] as List<dynamic>? ?? [])
+          .map((e) => DonacijaStavka.fromJson(e as Map<String, dynamic>))
+          .toList(),
       trebaPreuzimanje: json['trebaPreuzimanje'] as bool? ?? false,
       adresaPreuzimanja: json['adresaPreuzimanja'] as String?,
       telefonPreuzimanja: json['telefonPreuzimanja'] as String?,

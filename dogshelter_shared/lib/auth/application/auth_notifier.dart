@@ -67,6 +67,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       expiresUtc: session.expiresUtc,
       korisnik: korisnik,
     );
+
+    // expiresUtc alone can't see a server-side revocation (e.g. logout from another device) -
+    // ping the backend now so that's caught at splash rather than the first real API call.
+    unawaited(_validateSessionWithServer(korisnik.korisnikId));
+  }
+
+  Future<void> _validateSessionWithServer(int korisnikId) async {
+    try {
+      final fresh = await _authApi.getById(korisnikId);
+      if (state.status == AuthStatus.loggedIn) {
+        await updateKorisnik(fresh);
+      }
+    } catch (_) {
+      // Only a 401 (via ApiClient.onUnauthorized) should log the user out, not e.g. being offline.
+    }
   }
 
   Future<void> login({required String korisnickoIme, required String lozinka}) async {

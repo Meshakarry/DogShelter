@@ -48,11 +48,38 @@ class NotifikacijaListState {
 class NotifikacijaListNotifier extends StateNotifier<NotifikacijaListState> {
   NotifikacijaListNotifier(this._api, this._ref) : super(const NotifikacijaListState()) {
     loadFirstPage();
+    // Keeps the list itself current too, not just the unread badge.
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _silentRefresh());
   }
 
   final NotificationsApi _api;
   final Ref _ref;
+  Timer? _pollTimer;
   static const _pageSize = 20;
+
+  /// Re-fetches everything currently on screen without touching `isLoading`/`error`, so a
+  /// background poll doesn't flash a spinner or interrupt the user.
+  Future<void> _silentRefresh() async {
+    if (state.isLoading) return;
+    try {
+      final loadedCount = (_pageSize * state.page).clamp(_pageSize, 100);
+      final result = await _api.getNotifikacije(
+        page: 1,
+        pageSize: loadedCount,
+        procitano: state.onlyUnread ? false : null,
+      );
+      if (!mounted) return;
+      state = state.copyWith(items: result.items, hasMore: result.hasMore);
+    } catch (_) {
+      // Silent by design - the unread badge already surfaces connectivity issues.
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   Future<void> loadFirstPage() async {
     state = state.copyWith(isLoading: true, clearError: true);

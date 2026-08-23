@@ -24,7 +24,7 @@ public class PosjetaController : ControllerBase
     [HttpGet]
     [Authorize]
     public async Task<PagedResult<Posjeta>> Get([FromQuery] PosjetaSearchRequest search)
-        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+        => await _service.Get(search, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     [HttpGet("{ID:int}")]
     [Authorize]
@@ -62,7 +62,7 @@ public class PosjetaController : ControllerBase
     [HttpPost("{ID:int}/otkazi")]
     [Authorize]
     public async Task<Posjeta> Otkazi(int ID, [FromBody] PosjetaOtkaziRequest request)
-        => await _service.Otkazi(ID, request, GetCurrentKorisnikId(), User.IsInRole("Admin"));
+        => await _service.Otkazi(ID, request, GetCurrentKorisnikId(), User.IsInRole(RoleNames.Admin));
 
     [HttpPost("{ID:int}/zavrsi")]
     [Authorize(Roles = RoleNames.Admin)]

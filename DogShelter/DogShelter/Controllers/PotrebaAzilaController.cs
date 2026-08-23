@@ -20,7 +20,7 @@ public class PotrebaAzilaController : ControllerBase
     [HttpGet]
     [Authorize]
     public async Task<PagedResult<PotrebaAzila>> Get([FromQuery] PotrebaAzilaSearchRequest search)
-        => await _service.Get(search, User.IsInRole("Admin"));
+        => await _service.Get(search, User.IsInRole(RoleNames.Admin));
 
     [HttpGet("{ID:int}")]
     [Authorize]

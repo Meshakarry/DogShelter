@@ -72,19 +72,32 @@ public class PasswordResetService : IPasswordResetService
         if (_env.IsDevelopment())
             _logger.LogInformation("[DEV ONLY] Password reset code for {Email}: {Code}", user.Email, code);
 
-        try
+        var subject = "Reset lozinke - DogShelter";
+        var body = $"Poštovani/a {user.Ime},\n\n" +
+                   $"Vaš kod za resetiranje lozinke je: {code}\n" +
+                   "Kod ističe za 30 minuta.\n\n" +
+                   "Ako niste zatražili resetiranje lozinke, ignorišite ovu poruku.\n\n" +
+                   "DogShelter tim";
+
+        // Retries a transient RabbitMQ reconnect blip; SMTP delivery itself is the Worker's own
+        // retry/backoff. Response never reveals send outcome, to avoid email enumeration.
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            var subject = "Reset lozinke - DogShelter";
-            var body = $"Poštovani/a {user.Ime},\n\n" +
-                       $"Vaš kod za resetiranje lozinke je: {code}\n" +
-                       "Kod ističe za 30 minuta.\n\n" +
-                       "Ako niste zatražili resetiranje lozinke, ignorišite ovu poruku.\n\n" +
-                       "DogShelter tim";
-            await _emailSender.SendAsync(user.Email, subject, body);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send password reset email to {Email}.", user.Email);
+            try
+            {
+                await _emailSender.SendAsync(user.Email, subject, body);
+                break;
+            }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                _logger.LogWarning(ex, "Attempt {Attempt} to queue password reset email for {Email} failed, retrying.", attempt, user.Email);
+                await Task.Delay(TimeSpan.FromMilliseconds(300 * attempt));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to queue password reset email to {Email} after {Attempts} attempts.", user.Email, maxAttempts);
+            }
         }
     }
 

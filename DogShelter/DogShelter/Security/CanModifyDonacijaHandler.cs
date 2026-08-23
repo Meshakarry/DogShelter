@@ -16,7 +16,7 @@ namespace DogShelter.Security
             if (resource == null)
                 return Task.CompletedTask;
 
-            if (context.User.IsInRole("Admin"))
+            if (context.User.IsInRole(RoleNames.Admin))
             {
                 context.Succeed(requirement);
                 return Task.CompletedTask;

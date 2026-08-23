@@ -121,6 +121,7 @@ class PosjetaListNotifier extends StateNotifier<PosjetaListState> {
   final PosjetaApi _api;
 
   Future<void> load({int? page}) async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final result = await _api.getPosjete(
@@ -130,13 +131,17 @@ class PosjetaListNotifier extends StateNotifier<PosjetaListState> {
         datumOd: state.filters.datumOd,
         datumDo: state.filters.datumDo,
       );
+      // May already be disposed (autoDispose, screen navigated away) - guard before touching state.
+      if (!mounted) return;
       state = state.copyWith(items: result.items, page: result.page, totalCount: result.totalCount, isLoading: false);
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(isLoading: false, error: e);
     }
   }
 
   Future<void> applyFilters(PosjetaFilters filters) async {
+    if (!mounted) return;
     state = state.copyWith(filters: filters, page: 1);
     await load(page: 1);
   }
