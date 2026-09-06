@@ -1,8 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace DogShelter.Model.Requests
 {
     public class AuthenticationRequest
     {
-        public string KorisnickoIme { get; set; }
-        public string Lozinka { get; set; }
+        [Required(ErrorMessage = ValidationMessages.UsernameRequired)]
+        public string KorisnickoIme { get; set; } = null!;
+
+        [Required(ErrorMessage = ValidationMessages.PasswordRequired)]
+        public string Lozinka { get; set; } = null!;
     }
 }

@@ -8,11 +8,11 @@ class PocetnaApi {
 
   Future<int> countPas({int? statusPsaId, bool? aktivan}) async {
     final json = await _client.get('/api/Pas', query: {
-      if (statusPsaId != null) 'StatusPsaId': statusPsaId,
+      'StatusPsaId': ?statusPsaId,
       // Admin sessions get every dog back unless this is passed explicitly (PasService only
       // defaults to Aktivan=true for non-admins) - the dashboard counts are meaningless if they
       // silently include deactivated ("obrisani") dogs.
-      if (aktivan != null) 'Aktivan': aktivan,
+      'Aktivan': ?aktivan,
       'Page': 1,
       'PageSize': 1,
     });
@@ -21,7 +21,7 @@ class PocetnaApi {
 
   Future<int> countZahtjevi({int? statusZahtjevaId}) async {
     final json = await _client.get('/api/ZahtjevZaUdomljavanje', query: {
-      if (statusZahtjevaId != null) 'StatusZahtjevaId': statusZahtjevaId,
+      'StatusZahtjevaId': ?statusZahtjevaId,
       'Page': 1,
       'PageSize': 1,
     });

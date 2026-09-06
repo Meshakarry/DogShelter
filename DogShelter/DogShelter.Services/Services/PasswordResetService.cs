@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using DogShelter.Model.Requests;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
@@ -62,7 +61,7 @@ public class PasswordResetService : IPasswordResetService
         _context.LozinkaResetTokens.Add(new LozinkaResetToken
         {
             KorisnikId = user.KorisnikId,
-            KodHash = HashCode(code),
+            KodHash = HashResetCode(code),
             DatumKreiranja = DateTime.UtcNow,
             IsticeU = DateTime.UtcNow.Add(TokenLifetime),
             Iskoristen = false
@@ -108,16 +107,19 @@ public class PasswordResetService : IPasswordResetService
         if (user == null)
             throw new ValidationException(GenericInvalidCodeMessage);
 
-        var kodHash = HashCode(request.Kod);
-
         await using var tx = await _context.Database.BeginTransactionAsync();
         try
         {
-            var token = await _context.LozinkaResetTokens
-                .Where(t => t.KorisnikId == user.KorisnikId && t.KodHash == kodHash
-                    && !t.Iskoristen && t.IsticeU > DateTime.UtcNow)
+            // bcrypt hashes carry their own per-hash salt, so the code can't be matched with a
+            // WHERE KodHash == x query - load the user's live candidate tokens and verify against
+            // each. RequestResetAsync marks every earlier unused token as spent, so in practice
+            // this is a single row.
+            var candidates = await _context.LozinkaResetTokens
+                .Where(t => t.KorisnikId == user.KorisnikId && !t.Iskoristen && t.IsticeU > DateTime.UtcNow)
                 .OrderByDescending(t => t.DatumKreiranja)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
+
+            var token = candidates.FirstOrDefault(t => VerifyResetCode(request.Kod, t.KodHash));
             if (token == null)
                 throw new ValidationException(GenericInvalidCodeMessage);
 
@@ -149,6 +151,26 @@ public class PasswordResetService : IPasswordResetService
     private static string GenerateResetCode()
         => RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
 
-    private static string HashCode(string code)
-        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(code))).ToLowerInvariant();
+    // Reset codes are hashed with bcrypt (same family as the account password hash) - never a bare
+    // digest. The code space is small, so the real protections against guessing are the 30-minute
+    // expiry, single-use flag and the 3-per-15-minutes request rate limit; bcrypt just keeps a
+    // leaked LozinkaResetToken row from yielding the plaintext code.
+    private const int ResetCodeWorkFactor = 12;
+
+    private static string HashResetCode(string code)
+        => BCrypt.Net.BCrypt.HashPassword(code, workFactor: ResetCodeWorkFactor);
+
+    private static bool VerifyResetCode(string code, string hash)
+    {
+        try
+        {
+            return BCrypt.Net.BCrypt.Verify(code, hash);
+        }
+        catch (BCrypt.Net.SaltParseException)
+        {
+            // A pre-existing row from before this hashing change (or any malformed value) simply
+            // doesn't match - it must not throw out of the verify loop.
+            return false;
+        }
+    }
 }

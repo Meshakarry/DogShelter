@@ -83,12 +83,6 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<ZahtjevZaUdomljavanje> ZahtjevZaUdomljavanjes { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlServer("Server=localhost;Database=180026;Trusted_Connection=True;TrustServerCertificate=True");
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AktivnostVolontera>(entity =>
