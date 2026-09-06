@@ -32,4 +32,14 @@ public class TokenRevocationService : ITokenRevocationService
     {
         return _context.RevokedTokens.AsNoTracking().AnyAsync(t => t.Jti == jti);
     }
+
+    public async Task<bool> IsSecurityStampValidAsync(int korisnikId, Guid tokenStamp)
+    {
+        var current = await _context.Korisniks.AsNoTracking()
+            .Where(k => k.KorisnikId == korisnikId)
+            .Select(k => new { k.Aktivan, k.SigurnosniPecat })
+            .FirstOrDefaultAsync();
+
+        return current != null && current.Aktivan && current.SigurnosniPecat == tokenStamp;
+    }
 }

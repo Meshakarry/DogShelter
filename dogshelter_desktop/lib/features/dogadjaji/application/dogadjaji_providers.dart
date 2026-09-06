@@ -44,7 +44,7 @@ class DogadjajListNotifier extends PagedListNotifier<Dogadjaj> {
   }
 }
 
-final dogadjajListProvider = StateNotifierProvider<DogadjajListNotifier, AsyncValue<PagedResult<Dogadjaj>>>((ref) {
+final dogadjajListProvider = StateNotifierProvider.autoDispose<DogadjajListNotifier, AsyncValue<PagedResult<Dogadjaj>>>((ref) {
   return DogadjajListNotifier(ref.watch(dogadjajApiProvider));
 });
 

@@ -9,7 +9,13 @@ String formatDate(DateTime date) {
 /// Formats a DateTime as dd.MM.yyyy HH:mm - used for entities carrying a specific time slot
 /// (e.g. Posjeta), not just a date, unlike formatDate above.
 String formatDateTime(DateTime date) {
+  return '${formatDate(date)} ${formatTime(date)}';
+}
+
+/// Just the HH:mm portion - for a list already grouped/headed by day, where repeating the full
+/// date on every row would be redundant.
+String formatTime(DateTime date) {
   final hour = date.hour.toString().padLeft(2, '0');
   final minute = date.minute.toString().padLeft(2, '0');
-  return '${formatDate(date)} $hour:$minute';
+  return '$hour:$minute';
 }

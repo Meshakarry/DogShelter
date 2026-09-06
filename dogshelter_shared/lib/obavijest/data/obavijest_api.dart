@@ -59,7 +59,7 @@ class ObavijestApi {
       'POST',
       '/api/Obavijest',
       fields: data.toFields(),
-      files: [await http.MultipartFile.fromPath('slika', slika.path)],
+      files: [await imageMultipartFile('slika', slika.path)],
     );
     return Obavijest.fromJson(json as Map<String, dynamic>);
   }
@@ -67,7 +67,7 @@ class ObavijestApi {
   /// Admin-only
   Future<Obavijest> update(int id, ObavijestFormData data, {File? slika}) async {
     final files = <http.MultipartFile>[
-      if (slika != null) await http.MultipartFile.fromPath('slika', slika.path),
+      if (slika != null) await imageMultipartFile('slika', slika.path),
     ];
     final json = await _client.multipart('PUT', '/api/Obavijest/$id', fields: data.toFields(), files: files);
     return Obavijest.fromJson(json as Map<String, dynamic>);

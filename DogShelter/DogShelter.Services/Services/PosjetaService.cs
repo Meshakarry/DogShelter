@@ -88,7 +88,11 @@ public class PosjetaService : IPosjetaService
 
         await ExecuteConcurrencySafeBookingAsync(request.DatumVrijeme, async () =>
         {
+            // Notifications need entity.PosjetaId, only assigned after this first
+            // SaveChangesAsync - staging them before that (as this used to) captured
+            // VezaniEntitetId as 0. Both saves still run inside the same transaction.
             _context.Posjeta.Add(entity);
+            await _context.SaveChangesAsync();
 
             _notifikacijaService.StageCreate(
                 korisnikId,
@@ -111,6 +115,12 @@ public class PosjetaService : IPosjetaService
 
     public async Task<Model.Posjeta> InsertAdmin(PosjetaAdminInsertRequest request, int adminKorisnikId)
     {
+        // Same rule as the self-service Insert() below - this was previously only enforced
+        // client-side in the desktop form, which made it a UI convention rather than a server
+        // invariant. A booking API is supposed to guarantee this regardless of caller.
+        if (request.DatumVrijeme <= DateTime.UtcNow)
+            throw new ValidationException("Datum i vrijeme posjete moraju biti u budućnosti.", nameof(request.DatumVrijeme), "Odaberite termin u budućnosti.");
+
         var korisnikAktivan = await _context.Korisniks
             .Where(k => k.KorisnikId == request.KorisnikId)
             .Select(k => (bool?)k.Aktivan)
@@ -144,6 +154,17 @@ public class PosjetaService : IPosjetaService
         {
             _context.Posjeta.Add(entity);
             await _context.SaveChangesAsync();
+
+            // The self-service Insert() above notifies the booking user; this admin-created
+            // posjeta is already Potvrdjena on arrival, so the user should still hear about it.
+            _notifikacijaService.StageCreate(
+                request.KorisnikId,
+                NotifikacijaTipovi.PosjetaPotvrdjena,
+                "Posjeta zakazana",
+                $"Zakazana Vam je i potvrđena posjeta za {request.DatumVrijeme:dd.MM.yyyy. HH:mm}.",
+                entity.PosjetaId);
+
+            await _context.SaveChangesAsync();
         });
 
         return await GetById(entity.PosjetaId);
@@ -157,6 +178,12 @@ public class PosjetaService : IPosjetaService
         var statusNaCekanju = await _context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.NaCekanju);
         if (entity.StatusPosjeteId != statusNaCekanju.StatusPosjeteId)
             throw new BusinessException("Samo posjeta na čekanju može biti potvrđena.");
+
+        // Time is a server invariant (same principle as Insert/InsertAdmin rejecting past terms
+        // and Zavrsi requiring the term to have passed) - confirming a visit whose slot is already
+        // gone makes no sense and would leave a "Potvrđena" row that Zavrsi then immediately accepts.
+        if (entity.DatumVrijeme <= DateTime.UtcNow)
+            throw new BusinessException("Termin posjete je prošao i posjeta se više ne može potvrditi.");
 
         var statusPotvrdjena = await _context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.Potvrdjena);
 
@@ -197,12 +224,27 @@ public class PosjetaService : IPosjetaService
         entity.ObradioKorisnikId = callerKorisnikId;
         entity.DatumObrade = DateTime.UtcNow;
 
-        _notifikacijaService.StageCreate(
-            entity.KorisnikId,
-            NotifikacijaTipovi.PosjetaOtkazana,
-            "Posjeta otkazana",
-            $"Vaša posjeta zakazana za {entity.DatumVrijeme:dd.MM.yyyy HH:mm} je otkazana. Razlog: {request.RazlogOtkazivanja}",
-            entity.PosjetaId);
+        // Same recipient split as ZahtjevZaUdomljavanjeService.Otkazi(): an admin cancelling
+        // notifies the visitor; the visitor cancelling their own posjeta notifies admins instead
+        // (they don't need to be told about their own action) so the freed-up slot gets noticed.
+        if (isAdmin)
+        {
+            _notifikacijaService.StageCreate(
+                entity.KorisnikId,
+                NotifikacijaTipovi.PosjetaOtkazana,
+                "Posjeta otkazana",
+                $"Vaša posjeta zakazana za {entity.DatumVrijeme:dd.MM.yyyy HH:mm} je otkazana. Razlog: {request.RazlogOtkazivanja}",
+                entity.PosjetaId);
+        }
+        else
+        {
+            await _notifikacijaService.StageCreateForRoleAsync(
+                RoleNames.Admin,
+                NotifikacijaTipovi.PosjetaOtkazana,
+                "Posjeta otkazana od strane korisnika",
+                $"Korisnik je otkazao posjetu zakazanu za {entity.DatumVrijeme:dd.MM.yyyy HH:mm}. Razlog: {request.RazlogOtkazivanja}",
+                entity.PosjetaId);
+        }
 
         await _context.SaveChangesAsync();
 
@@ -217,6 +259,9 @@ public class PosjetaService : IPosjetaService
         var statusPotvrdjena = await _context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.Potvrdjena);
         if (entity.StatusPosjeteId != statusPotvrdjena.StatusPosjeteId)
             throw new BusinessException("Samo potvrđena posjeta može biti označena kao završena.");
+
+        if (entity.DatumVrijeme > DateTime.UtcNow)
+            throw new BusinessException("Posjeta se ne može označiti završenom prije zakazanog termina.");
 
         var statusZavrsena = await _context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.Zavrsena);
 
@@ -243,8 +288,14 @@ public class PosjetaService : IPosjetaService
         var pas = await _context.Pas.Include(p => p.StatusPsa).FirstOrDefaultAsync(p => p.PasId == pasId)
             ?? throw new ValidationException("Odabrani pas ne postoji.", nameof(pasId), "Pas ne postoji.");
 
-        if (pas.StatusPsa.Naziv == StatusPsaNazivi.Udomljen)
-            throw new BusinessException($"Pas \"{pas.Naziv}\" je već udomljen i nije moguće zakazati posjetu za njega.");
+        if (!pas.Aktivan)
+            throw new BusinessException($"Pas \"{pas.Naziv}\" više nije aktivan i nije moguće zakazati posjetu za njega.");
+
+        // Whitelist ("Dostupan" only), not a blacklist of specific unavailable statuses - a
+        // blacklist of just Udomljen/Rezervisan silently let visits be booked for a dog
+        // "U tretmanu" or "Ugašen" too. Mirrors ZahtjevZaUdomljavanjeService.Insert().
+        if (pas.StatusPsa.Naziv != StatusPsaNazivi.Dostupan)
+            throw new BusinessException($"Pas \"{pas.Naziv}\" trenutno nije dostupan i nije moguće zakazati posjetu za njega.");
     }
 
     private async Task EnsureSlotAvailableAsync(DateTime datumVrijeme)

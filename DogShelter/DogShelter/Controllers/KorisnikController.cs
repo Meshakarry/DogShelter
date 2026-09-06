@@ -68,14 +68,6 @@ namespace DogShelter.Controllers
             return await _service.Delete(ID);
         }
 
-        [HttpPost("Authenticate")]
-        [AllowAnonymous]
-        public async Task<ActionResult<Korisnik>> Authenticate(AuthenticationRequest request)
-        {
-            var user = await _service.Authenticate(request);
-            return user == null ? Unauthorized() : user;
-        }
-
         [HttpPost("Register")]
         [AllowAnonymous]
         public async Task<Korisnik> Register(RegisterRequest request)

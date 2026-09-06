@@ -9,17 +9,18 @@ import 'package:dogshelter_shared/pas/domain/spol.dart';
 
 final dogsApiProvider = Provider<PasApi>((ref) => PasApi(ref.watch(apiClientProvider)));
 
-typedef DogLookups = ({List<Rasa> rase, List<StatusPsa> statusi, List<VelicinaPsa> velicine});
+typedef DogLookups = ({List<Rasa> rase, List<StatusPsa> statusi, List<VelicinaPsa> velicine, List<NivoAktivnosti> nivoiAktivnosti});
 
 final dogLookupsProvider = FutureProvider<DogLookups>((ref) async {
   final api = ref.watch(dogsApiProvider);
-  // Issued together via Future.wait rather than sequentially, since the three lookups are
+  // Issued together via Future.wait rather than sequentially, since the four lookups are
   // independent.
-  final results = await Future.wait([api.getRase(), api.getStatusi(), api.getVelicine()]);
+  final results = await Future.wait([api.getRase(), api.getStatusi(), api.getVelicine(), api.getNivoiAktivnosti()]);
   return (
     rase: results[0] as List<Rasa>,
     statusi: results[1] as List<StatusPsa>,
     velicine: results[2] as List<VelicinaPsa>,
+    nivoiAktivnosti: results[3] as List<NivoAktivnosti>,
   );
 });
 
@@ -28,12 +29,13 @@ final dogDetailProvider = FutureProvider.family<Pas, int>((ref, id) {
 });
 
 class DogFilters {
-  const DogFilters({this.naziv, this.rasaId, this.statusPsaId, this.velicinaPsaId, this.spol});
+  const DogFilters({this.naziv, this.rasaId, this.statusPsaId, this.velicinaPsaId, this.nivoAktivnostiId, this.spol});
 
   final String? naziv;
   final int? rasaId;
   final int? statusPsaId;
   final int? velicinaPsaId;
+  final int? nivoAktivnostiId;
   final Spol? spol;
 
   bool get isEmpty =>
@@ -41,6 +43,7 @@ class DogFilters {
       rasaId == null &&
       statusPsaId == null &&
       velicinaPsaId == null &&
+      nivoAktivnostiId == null &&
       spol == null;
 
   DogFilters copyWith({
@@ -52,6 +55,8 @@ class DogFilters {
     bool clearStatusPsaId = false,
     int? velicinaPsaId,
     bool clearVelicinaPsaId = false,
+    int? nivoAktivnostiId,
+    bool clearNivoAktivnostiId = false,
     Spol? spol,
     bool clearSpol = false,
   }) {
@@ -60,6 +65,7 @@ class DogFilters {
       rasaId: clearRasaId ? null : (rasaId ?? this.rasaId),
       statusPsaId: clearStatusPsaId ? null : (statusPsaId ?? this.statusPsaId),
       velicinaPsaId: clearVelicinaPsaId ? null : (velicinaPsaId ?? this.velicinaPsaId),
+      nivoAktivnostiId: clearNivoAktivnostiId ? null : (nivoAktivnostiId ?? this.nivoAktivnostiId),
       spol: clearSpol ? null : (spol ?? this.spol),
     );
   }
@@ -125,6 +131,7 @@ class DogsListNotifier extends StateNotifier<DogsListState> {
         rasaId: state.filters.rasaId,
         statusPsaId: state.filters.statusPsaId,
         velicinaPsaId: state.filters.velicinaPsaId,
+        nivoAktivnostiId: state.filters.nivoAktivnostiId,
         spol: state.filters.spol,
       );
       state = state.copyWith(
@@ -151,6 +158,7 @@ class DogsListNotifier extends StateNotifier<DogsListState> {
         rasaId: state.filters.rasaId,
         statusPsaId: state.filters.statusPsaId,
         velicinaPsaId: state.filters.velicinaPsaId,
+        nivoAktivnostiId: state.filters.nivoAktivnostiId,
         spol: state.filters.spol,
       );
       state = state.copyWith(

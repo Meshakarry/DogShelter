@@ -22,6 +22,10 @@ public partial class Posjeta
 
     public string? RazlogOtkazivanja { get; set; }
 
+    // Set by DogShelter.Worker's PosjetaReminderService once a reminder email has gone out for
+    // this visit, so the periodic sweep never sends the same reminder twice.
+    public bool PodsjetnikPoslan { get; set; }
+
     public virtual Korisnik Korisnik { get; set; } = null!;
 
     public virtual Korisnik? ObradioKorisnik { get; set; }

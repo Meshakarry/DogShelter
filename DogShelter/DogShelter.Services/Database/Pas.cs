@@ -20,6 +20,8 @@ public partial class Pas
 
     public int VelicinaPsaId { get; set; }
 
+    public int NivoAktivnostiId { get; set; }
+
     public decimal? Tezina { get; set; }
 
     public DateOnly DatumPrijema { get; set; }
@@ -35,6 +37,10 @@ public partial class Pas
     public virtual ICollection<PregledPsa> PregledPsas { get; set; } = new List<PregledPsa>();
 
     public virtual ICollection<Posjeta> Posjetas { get; set; } = new List<Posjeta>();
+
+    public virtual ICollection<Favorit> Favoriti { get; set; } = new List<Favorit>();
+
+    public virtual NivoAktivnosti NivoAktivnosti { get; set; } = null!;
 
     public virtual Rasa Rasa { get; set; } = null!;
 

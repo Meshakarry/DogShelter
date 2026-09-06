@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/core/paged_result.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
 import '../../../core/paged_list_notifier.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 
@@ -69,7 +70,7 @@ class RasaListNotifier extends PagedListNotifier<Rasa> {
   }
 }
 
-final rasaListProvider = StateNotifierProvider<RasaListNotifier, AsyncValue<PagedResult<Rasa>>>((ref) {
+final rasaListProvider = StateNotifierProvider.autoDispose<RasaListNotifier, AsyncValue<PagedResult<Rasa>>>((ref) {
   return RasaListNotifier(ref.watch(rasaApiProvider));
 });
 
@@ -111,18 +112,13 @@ class _RasaCrudScreenState extends ConsumerState<RasaCrudScreen> {
   }
 
   Future<void> _confirmDelete(Rasa rasa) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text('Da li ste sigurni da želite obrisati rasu "${rasa.naziv}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li ste sigurni da želite obrisati rasu "${rasa.naziv}"?',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     try {
       await ref.read(rasaListProvider.notifier).remove(rasa.id);
       _showMessage('Rasa je obrisana.');

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 import 'package:go_router/go_router.dart';
 
+import 'package:dogshelter_shared/core/validators.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/inline_calendar.dart';
@@ -149,7 +150,12 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
       }
       if (_trebaPreuzimanje) {
         if (_adresaController.text.trim().isEmpty) errors['adresa'] = 'Unesite adresu za preuzimanje.';
-        if (_telefonController.text.trim().isEmpty) errors['telefon'] = 'Unesite kontakt telefon za preuzimanje.';
+        final telefon = _telefonController.text.trim();
+        if (telefon.isEmpty) {
+          errors['telefon'] = 'Unesite kontakt telefon za preuzimanje.';
+        } else if (!Validators.isValidPhone(telefon)) {
+          errors['telefon'] = Validators.phoneInvalidMessage;
+        }
         if (_pickupDate == null) errors['pickupDatum'] = 'Odaberite datum preuzimanja.';
         if (_pickupTimeSlot == null) errors['pickupVrijeme'] = 'Odaberite vrijeme preuzimanja.';
       }
@@ -208,6 +214,11 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
             ),
           ),
         );
+        // Refresh the list provider directly rather than relying on a navigation return value -
+        // this screen pushReplacement's into the detail screen next, so the Donacije list (still
+        // alive underneath, un-disposed) wouldn't otherwise see the new donation until the user
+        // manually pulls to refresh.
+        ref.read(donacijaListProvider.notifier).loadFirstPage();
         // pushReplacement (not go) so the back stack still resolves to the Donacije list this
         // screen was pushed from, instead of go()'s full-stack-replace leaving no back target.
         context.pushReplacement('/donacije/${response.donacija.donacijaId}');
@@ -644,7 +655,7 @@ class _NewDonationScreenState extends ConsumerState<NewDonationScreen> with Form
           onChanged: (_) => clearFieldError('telefon'),
           keyboardType: TextInputType.phone,
           decoration: InputDecoration(
-            hintText: 'npr. 061 234 567',
+            hintText: 'npr. 061234567 (9 brojeva, bez razmaka)',
             border: const OutlineInputBorder(),
             errorText: fieldErrors['telefon'],
           ),

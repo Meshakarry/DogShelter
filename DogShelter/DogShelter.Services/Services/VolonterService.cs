@@ -102,8 +102,42 @@ public class VolonterService : IVolonterService
         var entity = await _context.Volonters.FindAsync(id)
             ?? throw new NotFoundException($"Volonter s ID {id} nije pronađen.");
 
+        var wasActive = entity.Aktivan;
         entity.Aktivan = request.Aktivan;
         entity.Napomena = request.Napomena;
+
+        // Keeps the Korisnik.Volonter role in sync with the volunteer profile's Aktivan flag -
+        // without this, a deactivated volunteer keeps the role (and, via a still-valid JWT, the
+        // access that comes with it) even though AktivnostVolonteraService now also refuses them
+        // at the profile-lookup level. Deactivating and reactivating both bump the user's
+        // security stamp so any already-issued token picks up the role change immediately
+        // instead of on its next natural expiry (same mechanism as KorisnikService.Update()).
+        if (wasActive != request.Aktivan)
+        {
+            var volonterRole = await _context.Ulogas.FirstOrDefaultAsync(r => r.Naziv == RoleNames.Volonter)
+                ?? throw new BusinessException("Uloga 'Volonter' nije podešena u sistemu.");
+
+            var korisnik = await _context.Korisniks.FindAsync(entity.KorisnikId)
+                ?? throw new NotFoundException("Korisnik povezan sa volonterom nije pronađen.");
+
+            if (!request.Aktivan)
+            {
+                var ku = await _context.KorisnikUlogas
+                    .FirstOrDefaultAsync(x => x.KorisnikId == entity.KorisnikId && x.UlogaId == volonterRole.UlogaId);
+                if (ku != null)
+                    _context.KorisnikUlogas.Remove(ku);
+            }
+            else
+            {
+                var hasRole = await _context.KorisnikUlogas
+                    .AnyAsync(x => x.KorisnikId == entity.KorisnikId && x.UlogaId == volonterRole.UlogaId);
+                if (!hasRole)
+                    _context.KorisnikUlogas.Add(new Database.KorisnikUloga { KorisnikId = entity.KorisnikId, UlogaId = volonterRole.UlogaId });
+            }
+
+            korisnik.SigurnosniPecat = Guid.NewGuid();
+        }
+
         await _context.SaveChangesAsync();
 
         return await GetById(id);

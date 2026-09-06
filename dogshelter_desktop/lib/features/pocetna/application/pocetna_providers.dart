@@ -27,7 +27,7 @@ final pocetnaDashboardProvider = FutureProvider.autoDispose<PocetnaDashboardData
   // instead of paying for each round-trip sequentially.
   final statusPsaFuture = statusPsaApi.search();
   final statusZahtjevaFuture = statusZahtjevaApi.search();
-  final ukupnoPasaFuture = api.countPas();
+  final ukupnoPasaFuture = api.countPas(aktivan: true);
   final danasnjePosjeteFuture = api.countPosjeteToday();
   final nedavniZahtjeviFuture = api.recentZahtjevi();
   final reportFuture = ref.watch(reportsApiProvider).getUdomljavanjeReport();
@@ -39,7 +39,7 @@ final pocetnaDashboardProvider = FutureProvider.autoDispose<PocetnaDashboardData
   final naCekanjuId =
       statusZahtjevaList.firstWhere((item) => item.naziv == _statusZahtjevaNaCekanju, orElse: () => missing).id;
 
-  final dostupnihPasaFuture = api.countPas(statusPsaId: dostupanId);
+  final dostupnihPasaFuture = api.countPas(statusPsaId: dostupanId, aktivan: true);
   final zahtjevaNaCekanjuFuture = api.countZahtjevi(statusZahtjevaId: naCekanjuId);
 
   return PocetnaDashboardData(

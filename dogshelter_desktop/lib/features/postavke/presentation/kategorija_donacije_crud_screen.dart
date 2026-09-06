@@ -9,6 +9,7 @@ import '../../../core/app_theme.dart';
 import '../../../core/paged_list_notifier.dart';
 import '../data/lookup_api.dart';
 import '../domain/lookup_item.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 
@@ -112,7 +113,7 @@ class KategorijaDonacijeListNotifier extends PagedListNotifier<KategorijaDonacij
 }
 
 final kategorijaDonacijeListProvider =
-    StateNotifierProvider<KategorijaDonacijeListNotifier, AsyncValue<PagedResult<KategorijaDonacije>>>((ref) {
+    StateNotifierProvider.autoDispose<KategorijaDonacijeListNotifier, AsyncValue<PagedResult<KategorijaDonacije>>>((ref) {
   return KategorijaDonacijeListNotifier(ref.watch(kategorijaDonacijeApiProvider));
 });
 
@@ -157,18 +158,13 @@ class _KategorijaDonacijeCrudScreenState extends ConsumerState<KategorijaDonacij
   }
 
   Future<void> _confirmDelete(KategorijaDonacije item) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text('Da li ste sigurni da želite obrisati kategoriju "${item.naziv}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li ste sigurni da želite obrisati kategoriju "${item.naziv}"?',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     try {
       await ref.read(kategorijaDonacijeListProvider.notifier).remove(item.id);
       _showMessage('Kategorija je obrisana.');
@@ -231,6 +227,11 @@ class _KategorijaDonacijeCrudScreenState extends ConsumerState<KategorijaDonacij
                       final unitLabel = item.dozvoljeneJedinice.isEmpty
                           ? 'Sve jedinice mjere'
                           : item.dozvoljeneJedinice.map((e) => e.naziv).join(', ');
+                      // "Ostalo" is protected server-side (KategorijaDonacijeService) - disabling
+                      // it here too avoids a round-trip error, matching simple_lookup_crud_screen.dart.
+                      final isOstalo = item.naziv.toLowerCase() == 'ostalo';
+                      final protectedTooltip =
+                          'Ova kategorija je dio sistemske logike i ne može biti preimenovana niti obrisana.';
                       return ListTile(
                         title: Text(item.naziv),
                         subtitle: Text('Ikona: ${item.ikonaKljuc} · Dozvoljene jedinice: $unitLabel'),
@@ -239,13 +240,13 @@ class _KategorijaDonacijeCrudScreenState extends ConsumerState<KategorijaDonacij
                           children: [
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),
-                              tooltip: 'Uredi',
-                              onPressed: () => _openForm(existing: item),
+                              tooltip: isOstalo ? protectedTooltip : 'Uredi',
+                              onPressed: isOstalo ? null : () => _openForm(existing: item),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
-                              tooltip: 'Obriši',
-                              onPressed: () => _confirmDelete(item),
+                              tooltip: isOstalo ? protectedTooltip : 'Obriši',
+                              onPressed: isOstalo ? null : () => _confirmDelete(item),
                             ),
                           ],
                         ),

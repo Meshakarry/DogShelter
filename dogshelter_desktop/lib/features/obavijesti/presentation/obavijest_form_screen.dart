@@ -103,7 +103,10 @@ class _ObavijestFormBodyState extends ConsumerState<_ObavijestFormBody> with For
     final path = result?.files.single.path;
     if (path == null) return;
     clearFieldError('slika');
-    setState(() => _newSlika = File(path));
+    setState(() {
+      _newSlika = File(path);
+      _submitError = null;
+    });
   }
 
   Future<void> _submit() async {

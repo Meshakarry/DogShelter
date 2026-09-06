@@ -16,36 +16,40 @@ public class MappingProfile : Profile
 
         CreateMap<Database.Korisnik, Model.Requests.KorisnikInsertRequest>();
 
+        // SlikaPutanja is never client-supplied on these requests (removed from the DTOs
+        // entirely - the server is the only writer, via UpdateMyAvatar's SavePrivateImageAsync).
         CreateMap<Model.Requests.KorisnikInsertRequest, Database.Korisnik>()
-            .ForMember(d => d.SlikaPutanja, o => o.Condition((src, _, _, _) => !string.IsNullOrEmpty(src.SlikaPutanja)))
+            .ForMember(d => d.SlikaPutanja, o => o.Ignore())
             .ForMember(d => d.LozinkaHash, o => o.Ignore())
             .ForMember(d => d.LozinkaSalt, o => o.Ignore());
 
         CreateMap<Model.Requests.KorisnikUpdateRequest, Database.Korisnik>()
             .ForMember(d => d.Aktivan, o => o.MapFrom(s => s.Status ?? false))
-            .ForMember(d => d.SlikaPutanja, o => o.Condition((src, _, _, _) => !string.IsNullOrEmpty(src.SlikaPutanja)))
+            .ForMember(d => d.SlikaPutanja, o => o.Ignore())
             .ForMember(d => d.LozinkaHash, o => o.Ignore())
             .ForMember(d => d.LozinkaSalt, o => o.Ignore());
 
         CreateMap<Model.Requests.RegisterRequest, Database.Korisnik>()
-            .ForMember(d => d.SlikaPutanja, o => o.Condition((src, _, _, _) => !string.IsNullOrEmpty(src.SlikaPutanja)))
+            .ForMember(d => d.SlikaPutanja, o => o.Ignore())
             .ForMember(d => d.LozinkaHash, o => o.Ignore())
             .ForMember(d => d.LozinkaSalt, o => o.Ignore());
 
         CreateMap<Model.Requests.KorisnikProfileUpdateRequest, Database.Korisnik>()
-            .ForMember(d => d.SlikaPutanja, o => o.Condition((src, _, _, _) => !string.IsNullOrEmpty(src.SlikaPutanja)))
+            .ForMember(d => d.SlikaPutanja, o => o.Ignore())
             .ForMember(d => d.LozinkaHash, o => o.Ignore())
             .ForMember(d => d.LozinkaSalt, o => o.Ignore());
         CreateMap<Database.Pas, Model.Pas>()
             .ForMember(d => d.RasaNaziv,     o => o.MapFrom(s => s.Rasa != null ? s.Rasa.Naziv : null))
             .ForMember(d => d.StatusNaziv,   o => o.MapFrom(s => s.StatusPsa != null ? s.StatusPsa.Naziv : null))
             .ForMember(d => d.VelicinaNaziv, o => o.MapFrom(s => s.VelicinaPsa != null ? s.VelicinaPsa.Naziv : null))
+            .ForMember(d => d.NivoAktivnostiNaziv, o => o.MapFrom(s => s.NivoAktivnosti != null ? s.NivoAktivnosti.Naziv : null))
             .ForMember(d => d.Slike,         o => o.MapFrom(s => s.SlikaPsas));
 
         CreateMap<Database.Pas, Model.PasListItem>()
             .ForMember(d => d.RasaNaziv,     o => o.MapFrom(s => s.Rasa != null ? s.Rasa.Naziv : null))
             .ForMember(d => d.StatusNaziv,   o => o.MapFrom(s => s.StatusPsa != null ? s.StatusPsa.Naziv : null))
-            .ForMember(d => d.VelicinaNaziv, o => o.MapFrom(s => s.VelicinaPsa != null ? s.VelicinaPsa.Naziv : null));
+            .ForMember(d => d.VelicinaNaziv, o => o.MapFrom(s => s.VelicinaPsa != null ? s.VelicinaPsa.Naziv : null))
+            .ForMember(d => d.NivoAktivnostiNaziv, o => o.MapFrom(s => s.NivoAktivnosti != null ? s.NivoAktivnosti.Naziv : null));
 
         CreateMap<Model.Requests.PasInsertRequest, Database.Pas>()
             .ForMember(d => d.SlikaNaslovna, o => o.Ignore())
@@ -150,6 +154,7 @@ public class MappingProfile : Profile
             .ForMember(d => d.KorisnikPrezime, o => o.MapFrom(s => s.ZahtjevZaUdomljavanje.Korisnik != null ? s.ZahtjevZaUdomljavanje.Korisnik.Prezime : null));
         CreateMap<Database.Uloga, Model.Uloga>();
         CreateMap<Database.VelicinaPsa, Model.VelicinaPsa>();
+        CreateMap<Database.NivoAktivnosti, Model.NivoAktivnosti>();
         CreateMap<Database.Volonter, Model.Volonter>()
             .ForMember(d => d.KorisnikIme,      o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Ime : null))
             .ForMember(d => d.KorisnikPrezime,  o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))
@@ -161,14 +166,18 @@ public class MappingProfile : Profile
             .ForMember(d => d.KorisnikPrezime,         o => o.MapFrom(s => s.Korisnik != null ? s.Korisnik.Prezime : null))
             .ForMember(d => d.PasNaziv,                o => o.MapFrom(s => s.Pas != null ? s.Pas.Naziv : null))
             .ForMember(d => d.PasSlikaNaslovna,        o => o.MapFrom(s => s.Pas != null ? s.Pas.SlikaNaslovna : null))
+            .ForMember(d => d.PasAktivan,               o => o.MapFrom(s => s.Pas != null && s.Pas.Aktivan))
+            .ForMember(d => d.PasStatusNaziv,          o => o.MapFrom(s => s.Pas != null && s.Pas.StatusPsa != null ? s.Pas.StatusPsa.Naziv : null))
             .ForMember(d => d.StatusZahtjevaNaziv,     o => o.MapFrom(s => s.StatusZahtjeva != null ? s.StatusZahtjeva.Naziv : null))
             .ForMember(d => d.ObradioKorisnikIme,      o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Ime : null))
-            .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null));
+            .ForMember(d => d.ObradioKorisnikPrezime,  o => o.MapFrom(s => s.ObradioKorisnik != null ? s.ObradioKorisnik.Prezime : null))
+            .ForMember(d => d.UdomljenjeFinalizovano,  o => o.MapFrom(s => s.Udomljavanje != null));
 
         // Lookup upsert request → database entity mappings
         CreateMap<Model.Requests.GradUpsertRequest, Database.Grad>();
         CreateMap<Model.Requests.RasaUpsertRequest, Database.Rasa>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.VelicinaPsa>();
+        CreateMap<Model.Requests.LookupUpsertRequest, Database.NivoAktivnosti>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusPsa>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusDonacije>();
         CreateMap<Model.Requests.LookupUpsertRequest, Database.StatusPosjete>();

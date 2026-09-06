@@ -15,6 +15,8 @@ const _neutralGray = Color(0xFF6B7280);
     case 'DonacijaPotvrdjena':
     case 'DonacijaUspjesna':
       return (Icons.check_circle, _successGreen);
+    case 'UdomljenjeFinalizovano':
+      return (Icons.home, _successGreen);
     case 'ZahtjevOdbijen':
     case 'ZahtjevOtkazan':
     case 'PosjetaOtkazana':

@@ -7,6 +7,8 @@ class ZahtjevZaUdomljavanje {
     required this.pasId,
     this.pasNaziv,
     this.pasSlikaNaslovna,
+    this.pasAktivan = true,
+    this.pasStatusNaziv,
     required this.statusZahtjevaId,
     this.statusZahtjevaNaziv,
     required this.datumPodnosenja,
@@ -16,6 +18,7 @@ class ZahtjevZaUdomljavanje {
     this.obradioKorisnikIme,
     this.obradioKorisnikPrezime,
     this.razlogOdbijanja,
+    this.udomljenjeFinalizovano = false,
   });
 
   final int zahtjevZaUdomljavanjeId;
@@ -25,6 +28,12 @@ class ZahtjevZaUdomljavanje {
   final int pasId;
   final String? pasNaziv;
   final String? pasSlikaNaslovna;
+
+  // Whether the dog is still adoptable *right now* - may have changed since the request was
+  // submitted (deactivated, or reserved/adopted via a different request). Used to disable
+  // "Odobri" instead of letting the click round-trip to the backend's own re-check.
+  final bool pasAktivan;
+  final String? pasStatusNaziv;
   final int statusZahtjevaId;
   final String? statusZahtjevaNaziv;
   final DateTime datumPodnosenja;
@@ -35,6 +44,11 @@ class ZahtjevZaUdomljavanje {
   final String? obradioKorisnikPrezime;
   final String? razlogOdbijanja;
 
+  // True once the adoption has actually been finalized (an Udomljavanje row exists) - a request
+  // stays "Odobren" forever after approval, so this is what tells an old, already-completed
+  // adoption apart from one still waiting on FinalizirajUdomljenje.
+  final bool udomljenjeFinalizovano;
+
   factory ZahtjevZaUdomljavanje.fromJson(Map<String, dynamic> json) {
     return ZahtjevZaUdomljavanje(
       zahtjevZaUdomljavanjeId: json['zahtjevZaUdomljavanjeId'] as int,
@@ -44,6 +58,8 @@ class ZahtjevZaUdomljavanje {
       pasId: json['pasId'] as int,
       pasNaziv: json['pasNaziv'] as String?,
       pasSlikaNaslovna: json['pasSlikaNaslovna'] as String?,
+      pasAktivan: json['pasAktivan'] as bool? ?? true,
+      pasStatusNaziv: json['pasStatusNaziv'] as String?,
       statusZahtjevaId: json['statusZahtjevaId'] as int,
       statusZahtjevaNaziv: json['statusZahtjevaNaziv'] as String?,
       datumPodnosenja: DateTime.parse(json['datumPodnosenja'] as String),
@@ -53,6 +69,7 @@ class ZahtjevZaUdomljavanje {
       obradioKorisnikIme: json['obradioKorisnikIme'] as String?,
       obradioKorisnikPrezime: json['obradioKorisnikPrezime'] as String?,
       razlogOdbijanja: json['razlogOdbijanja'] as String?,
+      udomljenjeFinalizovano: json['udomljenjeFinalizovano'] as bool? ?? false,
     );
   }
 }

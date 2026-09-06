@@ -41,6 +41,16 @@ class ZahtjevListNotifier extends PagedListNotifier<ZahtjevZaUdomljavanje> {
     await refresh();
   }
 
+  Future<void> ponistiOdobravanje(int id, String razlog) async {
+    await _api.ponistiOdobravanje(id, razlog: razlog);
+    await refresh();
+  }
+
+  Future<void> finalizirajUdomljenje(int id) async {
+    await _api.finalizirajUdomljenje(id);
+    await refresh();
+  }
+
   Future<void> odbij(int id, String razlogOdbijanja) async {
     await _api.odbij(id, razlogOdbijanja: razlogOdbijanja);
     await refresh();
@@ -53,7 +63,7 @@ class ZahtjevListNotifier extends PagedListNotifier<ZahtjevZaUdomljavanje> {
 }
 
 final zahtjevListProvider =
-    StateNotifierProvider<ZahtjevListNotifier, AsyncValue<PagedResult<ZahtjevZaUdomljavanje>>>((ref) {
+    StateNotifierProvider.autoDispose<ZahtjevListNotifier, AsyncValue<PagedResult<ZahtjevZaUdomljavanje>>>((ref) {
   return ZahtjevListNotifier(ref.watch(zahtjevZaUdomljavanjeApiProvider));
 });
 

@@ -21,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
 
     final shortcuts = [
       (icon: Icons.pets, label: 'Pregled pasa', route: '/dogs', color: const Color(0xFF008554)),
+      (icon: Icons.favorite, label: 'Moji favoriti', route: '/favoriti', color: const Color(0xFFE11D48)),
       (icon: Icons.assignment, label: 'Moji zahtjevi', route: '/zahtjevi', color: const Color(0xFF2563EB)),
       (icon: Icons.volunteer_activism, label: 'Donacije', route: '/donacije', color: const Color(0xFFDB2777)),
       (icon: Icons.campaign, label: 'Obavijesti', route: '/obavijesti', color: const Color(0xFFD97706)),

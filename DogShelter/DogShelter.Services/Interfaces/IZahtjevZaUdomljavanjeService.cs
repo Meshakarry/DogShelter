@@ -9,6 +9,8 @@ public interface IZahtjevZaUdomljavanjeService
     Task<ZahtjevZaUdomljavanje> GetById(int id);
     Task<ZahtjevZaUdomljavanje> Insert(ZahtjevZaUdomljavanjeInsertRequest request, int korisnikId);
     Task<ZahtjevZaUdomljavanje> Odobri(int id, int adminKorisnikId);
+    Task<ZahtjevZaUdomljavanje> PonistiOdobravanje(int id, ZahtjevZaUdomljavanjeOtkaziRequest request, int adminKorisnikId);
+    Task<ZahtjevZaUdomljavanje> FinalizirajUdomljenje(int id, int adminKorisnikId);
     Task<ZahtjevZaUdomljavanje> Odbij(int id, ZahtjevZaUdomljavanjeOdbijRequest request, int adminKorisnikId);
     Task<ZahtjevZaUdomljavanje> Otkazi(int id, ZahtjevZaUdomljavanjeOtkaziRequest request, int callerKorisnikId, bool isAdmin);
 }

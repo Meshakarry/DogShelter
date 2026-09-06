@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:dogshelter_shared/core/date_format.dart';
+import 'package:dogshelter_shared/core/date_format.dart' show formatDate, formatTime;
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
@@ -14,6 +14,24 @@ import 'posjeta_status_style.dart';
 // Real StatusPosjete.Naziv values double as tab labels directly (unlike Zahtjev's tabs, these
 // are already display-ready adjectives) - "Svi" has no backing row (null filter).
 const _tabs = ['Svi', 'Na čekanju', 'Potvrđena', 'Otkazana', 'Završena'];
+
+/// Interleaves a day marker (the day's own midnight DateTime) before each run of Posjeta that
+/// share a calendar day - a plain single pass since `items` already arrives sorted by
+/// DatumVrijeme from the backend.
+List<Object> _groupByDay(List<Posjeta> items) {
+  final rows = <Object>[];
+  DateTime? lastDay;
+  for (final posjeta in items) {
+    final datum = posjeta.datumVrijeme;
+    final day = DateTime(datum.year, datum.month, datum.day);
+    if (day != lastDay) {
+      rows.add(day);
+      lastDay = day;
+    }
+    rows.add(posjeta);
+  }
+  return rows;
+}
 
 class VisitsListScreen extends ConsumerStatefulWidget {
   const VisitsListScreen({super.key});
@@ -73,6 +91,10 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen> {
   Widget build(BuildContext context) {
     ref.watch(statusPosjeteLookupProvider);
     final state = ref.watch(posjetaListProvider);
+    // A day marker (DateTime, not Posjeta) inserted wherever the calendar day changes from the
+    // previous row - the backend already returns items ordered by DatumVrijeme, so this is a
+    // single pass, no re-sorting.
+    final rows = _groupByDay(state.items);
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -146,25 +168,62 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen> {
                         Center(child: Text('Nema posjeta u ovoj kategoriji.')),
                       ],
                     )
-                  : ListView.separated(
+                  : ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                      itemCount: state.items.length + (state.hasMore ? 1 : 0),
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemCount: rows.length + (state.hasMore ? 1 : 0),
                       itemBuilder: (context, index) {
-                        if (index >= state.items.length) {
+                        if (index >= rows.length) {
                           return const Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),
                             child: Center(child: CircularProgressIndicator()),
                           );
                         }
-                        return _PosjetaListTile(posjeta: state.items[index]);
+                        final row = rows[index];
+                        if (row is DateTime) {
+                          return Padding(
+                            padding: EdgeInsets.only(top: index == 0 ? 0 : 12, bottom: 8),
+                            child: _DayHeader(day: row),
+                          );
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _PosjetaListTile(posjeta: row as Posjeta),
+                        );
                       },
                     ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.day});
+
+  final DateTime day;
+
+  String get _label {
+    final today = DateTime.now();
+    final diff = day.difference(DateTime(today.year, today.month, today.day)).inDays;
+    return switch (diff) {
+      0 => 'Danas',
+      1 => 'Sutra',
+      -1 => 'Juče',
+      _ => formatDate(day),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _label,
+      style: Theme.of(context)
+          .textTheme
+          .titleSmall
+          ?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF6B7280)),
     );
   }
 }
@@ -219,7 +278,8 @@ class _PosjetaListTile extends StatelessWidget {
                         Text('Termin:', style: greyText),
                         const SizedBox(width: 8),
                         Text(
-                          formatDateTime(posjeta.datumVrijeme),
+                          // Just the time - the day is already shown by this row's _DayHeader.
+                          formatTime(posjeta.datumVrijeme),
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],

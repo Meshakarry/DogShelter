@@ -14,30 +14,50 @@ public class PasController : ControllerBase
 {
     private readonly IPasService _pasService;
     private readonly IPregledPsaService _pregledService;
+    private readonly IPretragaLogService _pretragaLogService;
 
-    public PasController(IPasService pasService, IPregledPsaService pregledService)
+    public PasController(IPasService pasService, IPregledPsaService pregledService, IPretragaLogService pretragaLogService)
     {
         _pasService = pasService;
         _pregledService = pregledService;
+        _pretragaLogService = pretragaLogService;
     }
 
     [HttpGet]
     [Authorize]
     public async Task<PagedResult<Model.PasListItem>> Get([FromQuery] PasSearchRequest search)
-        => await _pasService.Get(search);
+    {
+        var isAdmin = User.IsInRole(RoleNames.Admin);
+        var result = await _pasService.Get(search, isAdmin);
+
+        var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(idClaim, out var korisnikId))
+        {
+            try { await _pretragaLogService.LogPretragaAsync(search, korisnikId, isAdmin); }
+            catch { /* log failure must never break a dog search */ }
+        }
+
+        return result;
+    }
 
     [HttpGet("{ID:int}")]
     [Authorize]
     public async Task<Model.Pas> GetById(int ID)
     {
-        var pas = await _pasService.GetById(ID);
+        var isAdmin = User.IsInRole(RoleNames.Admin);
+        var pas = await _pasService.GetById(ID, isAdmin);
 
         var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(idClaim, out var korisnikId))
             throw new ForbiddenException("Nije moguće identificirati korisnika.");
 
-        try { await _pregledService.LogPregled(ID, korisnikId); }
-        catch { /* log failure must never break a dog read */ }
+        // Admin browsing (desktop Psi) is not a recommender signal - same exclusion as
+        // PretragaLogService already applies to admin searches. Only end-user views are logged.
+        if (!isAdmin)
+        {
+            try { await _pregledService.LogPregled(ID, korisnikId); }
+            catch { /* log failure must never break a dog read */ }
+        }
 
         return pas;
     }

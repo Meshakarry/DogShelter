@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:dogshelter_shared/core/validators.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
@@ -20,8 +21,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
   final _scrollController = ScrollController();
   bool _isSubmitting = false;
   Object? _apiError;
-
-  static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   @override
   List<String> get fieldOrder => const ['email'];
@@ -42,12 +41,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
 
   Future<void> _submit() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      applyValidationErrors({'email': 'Email je obavezan.'});
-      return;
-    }
-    if (!_emailRegex.hasMatch(email)) {
-      applyValidationErrors({'email': 'Unesite ispravan email, npr. ime@primjer.com'});
+    final emailError = Validators.email(email);
+    if (emailError != null) {
+      applyValidationErrors({'email': emailError});
       return;
     }
 

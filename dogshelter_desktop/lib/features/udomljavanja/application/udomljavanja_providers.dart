@@ -29,8 +29,10 @@ class UdomljavanjeListNotifier extends PagedListNotifier<Udomljavanje> {
   }
 }
 
+// autoDispose: new rows appear from a different screen (ZahtjevZaUdomljavanjeService's
+// finalizuj action, on the Zahtjevi detail page), so a cached instance would miss them.
 final udomljavanjeListProvider =
-    StateNotifierProvider<UdomljavanjeListNotifier, AsyncValue<PagedResult<Udomljavanje>>>((ref) {
+    StateNotifierProvider.autoDispose<UdomljavanjeListNotifier, AsyncValue<PagedResult<Udomljavanje>>>((ref) {
   return UdomljavanjeListNotifier(ref.watch(udomljavanjeApiProvider));
 });
 

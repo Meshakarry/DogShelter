@@ -141,7 +141,10 @@ class _DogadjajFormBodyState extends ConsumerState<_DogadjajFormBody> with FormE
     final path = result?.files.single.path;
     if (path == null) return;
     clearFieldError('coverImage');
-    setState(() => _newSlika = File(path));
+    setState(() {
+      _newSlika = File(path);
+      _submitError = null;
+    });
   }
 
   Future<void> _pickDatum() async {

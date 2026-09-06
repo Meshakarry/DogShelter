@@ -119,6 +119,13 @@ public class AktivnostVolonteraService : IAktivnostVolonteraService
         var volonter = await _context.Volonters.FirstOrDefaultAsync(v => v.KorisnikId == korisnikId)
             ?? throw new BusinessException("Nemate evidentiran volonterski profil.");
 
+        // Defense-in-depth alongside VolonterService.Update() removing the Volonter role on
+        // deactivation: even if the caller's JWT still carries an old Volonter role claim (issued
+        // before deactivation, not yet re-validated - see the security-stamp check in
+        // Program.cs), a deactivated profile must not be able to log new hours through itself.
+        if (!volonter.Aktivan)
+            throw new BusinessException("Vaš volonterski profil nije aktivan.");
+
         return volonter.VolonterId;
     }
 

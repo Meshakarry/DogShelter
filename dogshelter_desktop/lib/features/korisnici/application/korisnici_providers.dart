@@ -48,6 +48,12 @@ class KorisnikListNotifier extends PagedListNotifier<Korisnik> {
   }
 }
 
-final korisnikListProvider = StateNotifierProvider<KorisnikListNotifier, AsyncValue<PagedResult<Korisnik>>>((ref) {
+// autoDispose so re-entering the Korisnici screen always refetches instead of showing a
+// cached list from earlier in the session - a Korisnik's roles can change from a completely
+// different screen (e.g. VolonterService.Update() adding/removing "Volonter" when an admin
+// (de)activates a volunteer profile on the Volonteri screen), and without this the Korisnici
+// list would keep showing the role set from whenever it was first loaded this session.
+final korisnikListProvider =
+    StateNotifierProvider.autoDispose<KorisnikListNotifier, AsyncValue<PagedResult<Korisnik>>>((ref) {
   return KorisnikListNotifier(ref.watch(korisnikAdminApiProvider));
 });

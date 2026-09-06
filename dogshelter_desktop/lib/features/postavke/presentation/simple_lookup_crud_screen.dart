@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
 import '../application/lookup_providers.dart';
 import '../domain/lookup_item.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 
@@ -53,18 +54,13 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
   }
 
   Future<void> _confirmDelete(LookupItem item) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text('Da li ste sigurni da želite obrisati "${item.naziv}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li ste sigurni da želite obrisati "${item.naziv}"?',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     try {
       await ref.read(lookupListProvider(widget.config).notifier).remove(item.id);
@@ -130,6 +126,9 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
                     separatorBuilder: (context, index) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      final isProtected = widget.config.isProtected(item.naziv);
+                      final protectedTooltip =
+                          'Ova stavka je dio sistemske logike i ne može biti izmijenjena niti obrisana.';
                       return ListTile(
                         title: Text(item.naziv),
                         trailing: Row(
@@ -137,13 +136,13 @@ class _SimpleLookupCrudScreenState extends ConsumerState<SimpleLookupCrudScreen>
                           children: [
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),
-                              tooltip: 'Uredi',
-                              onPressed: () => _openForm(existing: item),
+                              tooltip: isProtected ? protectedTooltip : 'Uredi',
+                              onPressed: isProtected ? null : () => _openForm(existing: item),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
-                              tooltip: 'Obriši',
-                              onPressed: () => _confirmDelete(item),
+                              tooltip: isProtected ? protectedTooltip : 'Obriši',
+                              onPressed: isProtected ? null : () => _confirmDelete(item),
                             ),
                           ],
                         ),

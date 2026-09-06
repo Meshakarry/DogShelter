@@ -13,6 +13,7 @@ public static class DatabaseSeeder
     {
         await EnsureGradoviAsync(context, logger);
         await EnsureVelicinePsaAsync(context, logger);
+        await EnsureNivoAktivnostiAsync(context, logger);
         await EnsureStatusPsaAsync(context, logger);
         await EnsureStatusZahtjevaAsync(context, logger);
         await EnsureStatusPosjeteAsync(context, logger);
@@ -32,6 +33,7 @@ public static class DatabaseSeeder
         await EnsureObavijestiAsync(context, logger, wwwrootPath);
         await EnsureTipAktivnostiAsync(context, logger);
         await EnsureVolonteriAsync(context, logger);
+        await EnsureVolonterRoleConsistencyAsync(context, logger);
         await EnsureDogadjajiAsync(context, logger, wwwrootPath);
         await EnsureAktivnostiVolonteraAsync(context, logger);
         await EnsureDogadjajVolonteriAsync(context, logger);
@@ -108,9 +110,21 @@ public static class DatabaseSeeder
         logger.LogInformation("Seeded VelicinaPsa.");
     }
 
+    private static async Task EnsureNivoAktivnostiAsync(DogShelterContext context, ILogger logger)
+    {
+        var names = new[] { "Nizak", "Srednji", "Visok" };
+        foreach (var naziv in names)
+        {
+            if (!await context.NivoAktivnostis.AnyAsync(n => n.Naziv == naziv))
+                context.NivoAktivnostis.Add(new NivoAktivnosti { Naziv = naziv });
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded NivoAktivnosti.");
+    }
+
     private static async Task EnsureStatusPsaAsync(DogShelterContext context, ILogger logger)
     {
-        var names = new[] { "Dostupan", "Udomljen", "U tretmanu", "Ugašen" };
+        var names = new[] { "Dostupan", "Rezervisan", "Udomljen", "U tretmanu", "Ugašen" };
         foreach (var naziv in names)
         {
             if (!await context.StatusPsas.AnyAsync(s => s.Naziv == naziv))
@@ -175,6 +189,10 @@ public static class DatabaseSeeder
         var vVelika    = await context.VelicinaPsas.FirstAsync(v => v.Naziv == "Velika");
         var vDzinovska = await context.VelicinaPsas.FirstAsync(v => v.Naziv == "Džinovska");
 
+        var naNizak   = await context.NivoAktivnostis.FirstAsync(n => n.Naziv == "Nizak");
+        var naSrednji = await context.NivoAktivnostis.FirstAsync(n => n.Naziv == "Srednji");
+        var naVisok   = await context.NivoAktivnostis.FirstAsync(n => n.Naziv == "Visok");
+
         var rLab        = await context.Rasas.FirstAsync(r => r.Naziv == "Labrador retriver");
         var rNjemacki   = await context.Rasas.FirstAsync(r => r.Naziv == "Njemački ovčar");
         var rMjesanac   = await context.Rasas.FirstAsync(r => r.Naziv == "Mješanac");
@@ -194,43 +212,43 @@ public static class DatabaseSeeder
         var psi = new Pas[]
         {
             // 1 ── Luna (Dostupan, Velika, ženka, 3 god)
-            new() { Naziv = "Luna",    RasaId = rLab.RasaId,        Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 27.5m, DatumPrijema = new DateOnly(2024,  3, 10), DatumRodjenja = new DateOnly(2022,  6,  1), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas1"),  Opis = "Lunica je pravi ljubimac azila – odmah priđe svakom posjetitelju, zamahne repom i traži mazanje. Jako se slaže s djecom i navikla je na kućni život. Morala je doći k nama zbog selidbe vlasnika u inostranstvo. Zna osnovne komande i čista je u kući. Traži topao dom s puno pažnje." },
+            new() { Naziv = "Luna",    RasaId = rLab.RasaId,        Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naSrednji.NivoAktivnostiId,    Tezina = 27.5m, DatumPrijema = new DateOnly(2024,  3, 10), DatumRodjenja = new DateOnly(2022,  6,  1), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas1"),  Opis = "Lunica je pravi ljubimac azila – odmah priđe svakom posjetitelju, zamahne repom i traži mazanje. Jako se slaže s djecom i navikla je na kućni život. Morala je doći k nama zbog selidbe vlasnika u inostranstvo. Zna osnovne komande i čista je u kući. Traži topao dom s puno pažnje." },
             // 2 ── Rex (Dostupan, Velika, mužjak, 4 god)
-            new() { Naziv = "Rex",     RasaId = rNjemacki.RasaId,   Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 34.0m, DatumPrijema = new DateOnly(2024,  5, 20), DatumRodjenja = new DateOnly(2021,  4, 15), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas2"),  Opis = "Rex je bio u obuci za policijskog psa, ali zbog prevelike igrivosti nije prošao selekciju. Izrazito inteligentan i lojalan, ali treba vlasnika koji ima iskustva s pastirskim rasama. Odlično reaguje na nagrade i konsistentnu obuku. Nije preporučljiv za porodice s malom djecom bez prethodne socijalizacije." },
+            new() { Naziv = "Rex",     RasaId = rNjemacki.RasaId,   Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naVisok.NivoAktivnostiId,    Tezina = 34.0m, DatumPrijema = new DateOnly(2024,  5, 20), DatumRodjenja = new DateOnly(2021,  4, 15), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas2"),  Opis = "Rex je bio u obuci za policijskog psa, ali zbog prevelike igrivosti nije prošao selekciju. Izrazito inteligentan i lojalan, ali treba vlasnika koji ima iskustva s pastirskim rasama. Odlično reaguje na nagrade i konsistentnu obuku. Nije preporučljiv za porodice s malom djecom bez prethodne socijalizacije." },
             // 3 ── Bella (Dostupan, Srednja, ženka, nepoznata starost)
-            new() { Naziv = "Bella",   RasaId = rMjesanac.RasaId,   Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 17.5m, DatumPrijema = new DateOnly(2024,  1,  5), DatumRodjenja = null,                      Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas3"),  Opis = "Bella je pronađena uz cestu u lošem stanju – uplašena i iscrpljena. Sada je puna snage i sreće. Malo je stidljiva pri prvom susretu, ali brzo se opusti uz mirne ljude. Voli šetnje i sunčanje ispred azila, a s ostalim psima se slaže bez imalo problema." },
+            new() { Naziv = "Bella",   RasaId = rMjesanac.RasaId,   Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId,   Tezina = 17.5m, DatumPrijema = new DateOnly(2024,  1,  5), DatumRodjenja = null,                      Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas3"),  Opis = "Bella je pronađena uz cestu u lošem stanju – uplašena i iscrpljena. Sada je puna snage i sreće. Malo je stidljiva pri prvom susretu, ali brzo se opusti uz mirne ljude. Voli šetnje i sunčanje ispred azila, a s ostalim psima se slaže bez imalo problema." },
             // 4 ── Max (Udomljen, Srednja, mužjak, 3 god)
-            new() { Naziv = "Max",     RasaId = rDalma.RasaId,      Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 23.0m, DatumPrijema = new DateOnly(2023, 11, 12), DatumRodjenja = new DateOnly(2022,  3, 20), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas4"),  Opis = "Max je pronašao svoju porodicu! Energičan i bezbrižan dalmatinac otišao je u dom s troje djece i prostranim dvorištem. Odrastao je uz trčanje i igru – nova porodica mu pruža upravo to." },
+            new() { Naziv = "Max",     RasaId = rDalma.RasaId,      Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId, NivoAktivnostiId = naVisok.NivoAktivnostiId,   Tezina = 23.0m, DatumPrijema = new DateOnly(2023, 11, 12), DatumRodjenja = new DateOnly(2022,  3, 20), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas4"),  Opis = "Max je pronašao svoju porodicu! Energičan i bezbrižan dalmatinac otišao je u dom s troje djece i prostranim dvorištem. Odrastao je uz trčanje i igru – nova porodica mu pruža upravo to." },
             // 5 ── Zlatko (Udomljen, Velika, mužjak, 2 god)
-            new() { Naziv = "Zlatko",  RasaId = rGolden.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 29.5m, DatumPrijema = new DateOnly(2024,  6,  1), DatumRodjenja = new DateOnly(2023,  1, 10), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas5"),  Opis = "Mlad i bezbrižan, Zlatko je štene u tijelu odraslog psa. Žvače sve do čega dođe, ali ne možeš mu se naljutiti. Obožava vodu, bacanje loptice i beskonačno grljenje. Sada uživa u novom domu s aktivnom porodicom koja mu svaki dan pruža šetnje, vodu i beskonačno grljenje." },
+            new() { Naziv = "Zlatko",  RasaId = rGolden.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naVisok.NivoAktivnostiId,    Tezina = 29.5m, DatumPrijema = new DateOnly(2024,  6,  1), DatumRodjenja = new DateOnly(2023,  1, 10), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas5"),  Opis = "Mlad i bezbrižan, Zlatko je štene u tijelu odraslog psa. Žvače sve do čega dođe, ali ne možeš mu se naljutiti. Obožava vodu, bacanje loptice i beskonačno grljenje. Sada uživa u novom domu s aktivnom porodicom koja mu svaki dan pruža šetnje, vodu i beskonačno grljenje." },
             // 6 ── Maci (U tretmanu, Srednja, ženka, 4 god)
-            new() { Naziv = "Maci",    RasaId = rBorder.RasaId,     Spol = Zenka,  StatusPsaId = sTretman.StatusPsaId,  VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 15.5m, DatumPrijema = new DateOnly(2024,  4,  8), DatumRodjenja = new DateOnly(2021,  9,  5), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas6"),  Opis = "Maci je bila pronađena na putu s ozljedom prednje šape. Šapa je operisana i sada je na fizioterapiji. Izrazito pametan border koli koji treba mentalnu stimulaciju. Veterinar procjenjuje da će biti potpuno zdrava za tri do četiri sedmice." },
+            new() { Naziv = "Maci",    RasaId = rBorder.RasaId,     Spol = Zenka,  StatusPsaId = sTretman.StatusPsaId,  VelicinaPsaId = vSrednja.VelicinaPsaId, NivoAktivnostiId = naSrednji.NivoAktivnostiId,   Tezina = 15.5m, DatumPrijema = new DateOnly(2024,  4,  8), DatumRodjenja = new DateOnly(2021,  9,  5), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas6"),  Opis = "Maci je bila pronađena na putu s ozljedom prednje šape. Šapa je operisana i sada je na fizioterapiji. Izrazito pametan border koli koji treba mentalnu stimulaciju. Veterinar procjenjuje da će biti potpuno zdrava za tri do četiri sedmice." },
             // 7 ── Vuk (Dostupan, Velika, mužjak, 4 god)
-            new() { Naziv = "Vuk",     RasaId = rHusky.RasaId,      Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 26.5m, DatumPrijema = new DateOnly(2023,  9, 15), DatumRodjenja = new DateOnly(2021, 12,  1), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas7"),  Opis = "Vuk se voli činiti ozbiljnim, ali je u stvari potpuna dramska diva. Huče, glasno razgovara i traži pažnju svake sekunde. Odrastao je na otvorenom i treba dvorište – nije za stan. S psima ide sjajno, ali mačkama je nepredvidiv. Nije za početnike." },
+            new() { Naziv = "Vuk",     RasaId = rHusky.RasaId,      Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naVisok.NivoAktivnostiId,    Tezina = 26.5m, DatumPrijema = new DateOnly(2023,  9, 15), DatumRodjenja = new DateOnly(2021, 12,  1), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas7"),  Opis = "Vuk se voli činiti ozbiljnim, ali je u stvari potpuna dramska diva. Huče, glasno razgovara i traži pažnju svake sekunde. Odrastao je na otvorenom i treba dvorište – nije za stan. S psima ide sjajno, ali mačkama je nepredvidiv. Nije za početnike." },
             // 8 ── Roki (Dostupan, Velika, mužjak, 5 god)
-            new() { Naziv = "Roki",    RasaId = rBokser.RasaId,     Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 31.0m, DatumPrijema = new DateOnly(2024,  2, 28), DatumRodjenja = new DateOnly(2020,  7,  4), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas8"),  Opis = "Roki je prava stara duša – miran, uglađen i zna svoja pravila. Idealan za mir i tišinu kućnog života. Voli kratke šetnje ujutro i dugačka drijemanja poslijepodne. Nervozni ambijent ga umori, pa nije idealan za domove s malom djecom." },
+            new() { Naziv = "Roki",    RasaId = rBokser.RasaId,     Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId,    Tezina = 31.0m, DatumPrijema = new DateOnly(2024,  2, 28), DatumRodjenja = new DateOnly(2020,  7,  4), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas8"),  Opis = "Roki je prava stara duša – miran, uglađen i zna svoja pravila. Idealan za mir i tišinu kućnog života. Voli kratke šetnje ujutro i dugačka drijemanja poslijepodne. Nervozni ambijent ga umori, pa nije idealan za domove s malom djecom." },
             // 9 ── Pahulja (Dostupan, Mala, ženka, 2 god)
-            new() { Naziv = "Pahulja", RasaId = rPudl.RasaId,       Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId,      Tezina =  6.0m, DatumPrijema = new DateOnly(2024,  7, 18), DatumRodjenja = new DateOnly(2023,  5, 15), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas9"),  Opis = "Pahulja brine o svojoj frizuri više nego o mišima u dvorištu. Mala, elegantna i pametna do bola. Jako je vezana za ljude i ne podnosi dugo ostati sama. Podučena je čistim manirima i voli rutinu. Savršena za stan i za vlasnike koji imaju vremena za njenu pažnju." },
+            new() { Naziv = "Pahulja", RasaId = rPudl.RasaId,       Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId,      Tezina =  6.0m, DatumPrijema = new DateOnly(2024,  7, 18), DatumRodjenja = new DateOnly(2023,  5, 15), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas9"),  Opis = "Pahulja brine o svojoj frizuri više nego o mišima u dvorištu. Mala, elegantna i pametna do bola. Jako je vezana za ljude i ne podnosi dugo ostati sama. Podučena je čistim manirima i voli rutinu. Savršena za stan i za vlasnike koji imaju vremena za njenu pažnju." },
             // 10 ── Šaki (Udomljen, Mala, mužjak, nepoznata starost)
-            new() { Naziv = "Šaki",    RasaId = rCivava.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId,      Tezina =  2.8m, DatumPrijema = new DateOnly(2024,  8,  3), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas10"), Opis = "Šaki je primljen bez ikakvog dokumenta – nađen je u kartonskoj kutiji kod tržnog centra. Starost se procjenjuje na 2-4 godine. Nije bio vakcinisan ni registrovan. Zna biti glasaša i mrzovoljan prema nepoznatima, ali s poznatim ljudima je topla i privržena maža. Sada mirno živi kod starijeg bračnog para koji mu posvećuje punu pažnju." },
+            new() { Naziv = "Šaki",    RasaId = rCivava.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId,      Tezina =  2.8m, DatumPrijema = new DateOnly(2024,  8,  3), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas10"), Opis = "Šaki je primljen bez ikakvog dokumenta – nađen je u kartonskoj kutiji kod tržnog centra. Starost se procjenjuje na 2-4 godine. Nije bio vakcinisan ni registrovan. Zna biti glasaša i mrzovoljan prema nepoznatima, ali s poznatim ljudima je topla i privržena maža. Sada mirno živi kod starijeg bračnog para koji mu posvećuje punu pažnju." },
             // 11 ── Bora (Dostupan, Džinovska, mužjak, 5 god)
-            new() { Naziv = "Bora",    RasaId = rTornjak.RasaId,    Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, Tezina = 52.0m, DatumPrijema = new DateOnly(2023,  6, 10), DatumRodjenja = new DateOnly(2020, 11, 10), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas11"), Opis = "Bora je pravi tornjak – čuva, pazi i laje na sve nepoznato. Nije pas za stan ni za lančanje uz kuću. Treba imanje, ograđeno dvorište i vlasnika koji razumije pastirske rase. U azilu je miran i omiljen kod osoblja, ali zaslužuje pravi dom u prirodi." },
+            new() { Naziv = "Bora",    RasaId = rTornjak.RasaId,    Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, NivoAktivnostiId = naSrednji.NivoAktivnostiId, Tezina = 52.0m, DatumPrijema = new DateOnly(2023,  6, 10), DatumRodjenja = new DateOnly(2020, 11, 10), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas11"), Opis = "Bora je pravi tornjak – čuva, pazi i laje na sve nepoznato. Nije pas za stan ni za lančanje uz kuću. Treba imanje, ograđeno dvorište i vlasnika koji razumije pastirske rase. U azilu je miran i omiljen kod osoblja, ali zaslužuje pravi dom u prirodi." },
             // 12 ── Sjena (U tretmanu, Srednja, ženka, nepoznata starost)
-            new() { Naziv = "Sjena",   RasaId = rMjesanac.RasaId,   Spol = Zenka,  StatusPsaId = sTretman.StatusPsaId,  VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 13.0m, DatumPrijema = new DateOnly(2024,  9,  1), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas12"), Opis = "Sjena je dovedena u veoma lošem stanju – pothranjujuća i jako uplašena. Sada je na veterinarskom oporavku i polako gradi povjerenje prema ljudima. Traži posebno strpljivog vlasnika koji razumije pse s traumom i zna da je put do srca nekad dug." },
+            new() { Naziv = "Sjena",   RasaId = rMjesanac.RasaId,   Spol = Zenka,  StatusPsaId = sTretman.StatusPsaId,  VelicinaPsaId = vSrednja.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId,   Tezina = 13.0m, DatumPrijema = new DateOnly(2024,  9,  1), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas12"), Opis = "Sjena je dovedena u veoma lošem stanju – pothranjujuća i jako uplašena. Sada je na veterinarskom oporavku i polako gradi povjerenje prema ljudima. Traži posebno strpljivog vlasnika koji razumije pse s traumom i zna da je put do srca nekad dug." },
             // 13 ── Hektor (Dostupan, Džinovska, mužjak, 4 god)
-            new() { Naziv = "Hektor",  RasaId = rRottweiler.RasaId, Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, Tezina = 48.0m, DatumPrijema = new DateOnly(2024,  3, 22), DatumRodjenja = new DateOnly(2021,  8, 22), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas13"), Opis = "Hektor izgleda zastrašujuće, ali uz pravu osobu je potpuno drugačiji. Socijaliziran je s odraslim psima i nema agresivnih ispada. Zna sjesti, leći i javiti se šapom. Treba iskusnog vlasnika koji zna postaviti granice. Zaslužuje drugu šansu u toplom domu." },
+            new() { Naziv = "Hektor",  RasaId = rRottweiler.RasaId, Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, NivoAktivnostiId = naSrednji.NivoAktivnostiId, Tezina = 48.0m, DatumPrijema = new DateOnly(2024,  3, 22), DatumRodjenja = new DateOnly(2021,  8, 22), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas13"), Opis = "Hektor izgleda zastrašujuće, ali uz pravu osobu je potpuno drugačiji. Socijaliziran je s odraslim psima i nema agresivnih ispada. Zna sjesti, leći i javiti se šapom. Treba iskusnog vlasnika koji zna postaviti granice. Zaslužuje drugu šansu u toplom domu." },
             // 14 ── Lola (Udomljen, Velika, ženka, 3 god)
-            new() { Naziv = "Lola",    RasaId = rLab.RasaId,        Spol = Zenka,  StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 25.0m, DatumPrijema = new DateOnly(2023,  8, 14), DatumRodjenja = new DateOnly(2022, 11, 30), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas14"), Opis = "Lola je pronašla dom! Otišla je živjeti s porodicom koja ju je čekala skoro godinu dana. Sada šeta po prostranom dvorištu i spava pored dječjeg kreveta. Laboratori doista zaslužuju sve što im se da." },
+            new() { Naziv = "Lola",    RasaId = rLab.RasaId,        Spol = Zenka,  StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId,    Tezina = 25.0m, DatumPrijema = new DateOnly(2023,  8, 14), DatumRodjenja = new DateOnly(2022, 11, 30), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas14"), Opis = "Lola je pronašla dom! Otišla je živjeti s porodicom koja ju je čekala skoro godinu dana. Sada šeta po prostranom dvorištu i spava pored dječjeg kreveta. Laboratori doista zaslužuju sve što im se da." },
             // 15 ── Medo (Ugašen, Velika, mužjak, 11 god)
-            new() { Naziv = "Medo",    RasaId = rMjesanac.RasaId,   Spol = Muzjak, StatusPsaId = sUgasen.StatusPsaId,   VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 22.0m, DatumPrijema = new DateOnly(2014,  4,  1), DatumRodjenja = new DateOnly(2013,  4,  1), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas15"), Opis = "Medo je preminuo prirodnom smrću u svojoj jedanaestoj godini, okružen osobljem azila koje ga je voljelo kao da je bio kućni ljubimac. Proveo je skoro deset godina u azilu jer ga niko nije htio, ali nikada nije ostao bez ljubavi. Čuvamo ga u sjećanju." },
+            new() { Naziv = "Medo",    RasaId = rMjesanac.RasaId,   Spol = Muzjak, StatusPsaId = sUgasen.StatusPsaId,   VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId,    Tezina = 22.0m, DatumPrijema = new DateOnly(2014,  4,  1), DatumRodjenja = new DateOnly(2013,  4,  1), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas15"), Opis = "Medo je preminuo prirodnom smrću u svojoj jedanaestoj godini, okružen osobljem azila koje ga je voljelo kao da je bio kućni ljubimac. Proveo je skoro deset godina u azilu jer ga niko nije htio, ali nikada nije ostao bez ljubavi. Čuvamo ga u sjećanju." },
             // 16 ── Zara (Dostupan, Velika, ženka, 2 god)
-            new() { Naziv = "Zara",    RasaId = rNjemacki.RasaId,   Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId,    Tezina = 28.0m, DatumPrijema = new DateOnly(2024,  7,  5), DatumRodjenja = new DateOnly(2023,  3, 18), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas16"), Opis = "Zara je mlada štenerka koja još uči šta znači biti pas. Primljena je kao lutalica s nepunih godinu dana. Divlja, radoznala i puna energije koja nikad ne prestaje. Treba dosljednu obuku i socijalizaciju. Nije preporučljiva za prvu adopciju, ali uz iskusnog vlasnika ima ogroman potencijal." },
+            new() { Naziv = "Zara",    RasaId = rNjemacki.RasaId,   Spol = Zenka,  StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vVelika.VelicinaPsaId, NivoAktivnostiId = naVisok.NivoAktivnostiId,    Tezina = 28.0m, DatumPrijema = new DateOnly(2024,  7,  5), DatumRodjenja = new DateOnly(2023,  3, 18), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas16"), Opis = "Zara je mlada štenerka koja još uči šta znači biti pas. Primljena je kao lutalica s nepunih godinu dana. Divlja, radoznala i puna energije koja nikad ne prestaje. Treba dosljednu obuku i socijalizaciju. Nije preporučljiva za prvu adopciju, ali uz iskusnog vlasnika ima ogroman potencijal." },
             // 17 ── Đuro (Dostupan, Mala, mužjak, nepoznata starost)
-            new() { Naziv = "Đuro",    RasaId = rMjesanac.RasaId,   Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId,      Tezina =  8.5m, DatumPrijema = new DateOnly(2024,  5, 30), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas17"), Opis = "Đuro je mali mješanac koji si nikad ne daje mira. Skakuće, trčkara i hvata sve što mu se nađe pred nosom. Procjenjuje se da ima između jedne i tri godine. Nije bio vakcinisan pri dolasku. S psima u azilu se odlično slaže i uvijek je raspoložen za igru." },
+            new() { Naziv = "Đuro",    RasaId = rMjesanac.RasaId,   Spol = Muzjak, StatusPsaId = sDostupan.StatusPsaId, VelicinaPsaId = vMala.VelicinaPsaId, NivoAktivnostiId = naVisok.NivoAktivnostiId,      Tezina =  8.5m, DatumPrijema = new DateOnly(2024,  5, 30), DatumRodjenja = null,                      Vakcinisan = false, Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas17"), Opis = "Đuro je mali mješanac koji si nikad ne daje mira. Skakuće, trčkara i hvata sve što mu se nađe pred nosom. Procjenjuje se da ima između jedne i tri godine. Nije bio vakcinisan pri dolasku. S psima u azilu se odlično slaže i uvijek je raspoložen za igru." },
             // 18 ── Nera (Udomljen, Džinovska, ženka, 5 god)
-            new() { Naziv = "Nera",    RasaId = rTornjak.RasaId,    Spol = Zenka,  StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, Tezina = 44.0m, DatumPrijema = new DateOnly(2023,  4, 20), DatumRodjenja = new DateOnly(2020,  6, 15), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas18"), Opis = "Nera je udomljena i otišla je živjeti na farmu u blizini Kiseljaka. Tornjak kakav treba biti – mirna, dostojanstvena i puna prirodne inteligencije. Čuvamo fotografije od prvog dana do odlaska." },
+            new() { Naziv = "Nera",    RasaId = rTornjak.RasaId,    Spol = Zenka,  StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vDzinovska.VelicinaPsaId, NivoAktivnostiId = naNizak.NivoAktivnostiId, Tezina = 44.0m, DatumPrijema = new DateOnly(2023,  4, 20), DatumRodjenja = new DateOnly(2020,  6, 15), Vakcinisan = true,  Sterilizovan = true,  Aktivan = true, SlikaNaslovna = Img("pas18"), Opis = "Nera je udomljena i otišla je živjeti na farmu u blizini Kiseljaka. Tornjak kakav treba biti – mirna, dostojanstvena i puna prirodne inteligencije. Čuvamo fotografije od prvog dana do odlaska." },
             // 19 ── Piki (Udomljen, Srednja, mužjak, 1 god)
-            new() { Naziv = "Piki",    RasaId = rBeagle.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId,   Tezina = 11.5m, DatumPrijema = new DateOnly(2024,  9, 12), DatumRodjenja = new DateOnly(2023,  9,  1), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas19"), Opis = "Piki je štene u punom smislu te riječi. Nos mu uvijek ide naprijed, a glava se tek kasnije javi. Beagle rasa traži puno kretanja i mentalne stimulacije. Sada trči po dvorištu svoje nove porodice i igra se s njihovo dvoje djece cijeli dan." },
+            new() { Naziv = "Piki",    RasaId = rBeagle.RasaId,     Spol = Muzjak, StatusPsaId = sUdomljen.StatusPsaId, VelicinaPsaId = vSrednja.VelicinaPsaId, NivoAktivnostiId = naVisok.NivoAktivnostiId,   Tezina = 11.5m, DatumPrijema = new DateOnly(2024,  9, 12), DatumRodjenja = new DateOnly(2023,  9,  1), Vakcinisan = true,  Sterilizovan = false, Aktivan = true, SlikaNaslovna = Img("pas19"), Opis = "Piki je štene u punom smislu te riječi. Nos mu uvijek ide naprijed, a glava se tek kasnije javi. Beagle rasa traži puno kretanja i mentalne stimulacije. Sada trči po dvorištu svoje nove porodice i igra se s njihovo dvoje djece cijeli dan." },
         };
 
         context.Pas.AddRange(psi);
@@ -923,14 +941,6 @@ public static class DatabaseSeeder
             korisnici.Add(korisnik);
         }
 
-        foreach (var korisnik in korisnici)
-        {
-            var hasRole = await context.KorisnikUlogas.AnyAsync(ur => ur.KorisnikId == korisnik.KorisnikId && ur.UlogaId == volonterRole.UlogaId);
-            if (!hasRole)
-                context.KorisnikUlogas.Add(new KorisnikUloga { KorisnikId = korisnik.KorisnikId, UlogaId = volonterRole.UlogaId });
-        }
-        await context.SaveChangesAsync();
-
         var testVolonter = await context.Korisniks.FirstOrDefaultAsync(k => k.KorisnickoIme == "volonter");
 
         var danas = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -941,12 +951,65 @@ public static class DatabaseSeeder
 
         volonteri.Add(new Volonter { KorisnikId = korisnici[0].KorisnikId, DatumPridruzivanja = danas.AddMonths(-5), Aktivan = true });
         volonteri.Add(new Volonter { KorisnikId = korisnici[1].KorisnikId, DatumPridruzivanja = danas.AddMonths(-3), Aktivan = true });
+        // Lejla is seeded inactive on purpose, so the Volonteri screen has a "Neaktivan" row
+        // out of the box.
         volonteri.Add(new Volonter { KorisnikId = korisnici[2].KorisnikId, DatumPridruzivanja = danas.AddYears(-1), Aktivan = false });
 
         context.Volonters.AddRange(volonteri);
         await context.SaveChangesAsync();
 
+        // Role assignment happens after the Volonter rows exist, gated on each one's own Aktivan -
+        // Lejla, seeded inactive above, must not get the role.
+        foreach (var volonter in volonteri.Where(v => v.Aktivan))
+        {
+            var hasRole = await context.KorisnikUlogas.AnyAsync(ur => ur.KorisnikId == volonter.KorisnikId && ur.UlogaId == volonterRole.UlogaId);
+            if (!hasRole)
+                context.KorisnikUlogas.Add(new KorisnikUloga { KorisnikId = volonter.KorisnikId, UlogaId = volonterRole.UlogaId });
+        }
+        await context.SaveChangesAsync();
+
         logger.LogInformation("Seeded {Count} volontera.", volonteri.Count);
+    }
+
+    /// <summary>
+    /// Runs on every startup (not gated behind "table empty") to self-heal any Korisnik whose
+    /// Volonter role doesn't match their Volonter.Aktivan flag - covers both the historical seed
+    /// bug above (already-deployed DBs seeded before that fix) and any other drift, e.g. a role
+    /// removed/added directly against the DB rather than through VolonterService.
+    /// </summary>
+    private static async Task EnsureVolonterRoleConsistencyAsync(DogShelterContext context, ILogger logger)
+    {
+        var volonterRole = await context.Ulogas.FirstOrDefaultAsync(r => r.Naziv == RoleNames.Volonter);
+        if (volonterRole == null) return;
+
+        var volonteri = await context.Volonters.ToListAsync();
+        var korisnikIds = volonteri.Select(v => v.KorisnikId).ToList();
+        var existingRoles = await context.KorisnikUlogas
+            .Where(ku => ku.UlogaId == volonterRole.UlogaId && korisnikIds.Contains(ku.KorisnikId))
+            .ToListAsync();
+        var korisnikIdsWithRole = existingRoles.Select(r => r.KorisnikId).ToHashSet();
+
+        var fixedCount = 0;
+        foreach (var volonter in volonteri)
+        {
+            var hasRole = korisnikIdsWithRole.Contains(volonter.KorisnikId);
+            if (volonter.Aktivan && !hasRole)
+            {
+                context.KorisnikUlogas.Add(new KorisnikUloga { KorisnikId = volonter.KorisnikId, UlogaId = volonterRole.UlogaId });
+                fixedCount++;
+            }
+            else if (!volonter.Aktivan && hasRole)
+            {
+                context.KorisnikUlogas.Remove(existingRoles.First(r => r.KorisnikId == volonter.KorisnikId));
+                fixedCount++;
+            }
+        }
+
+        if (fixedCount > 0)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("Reconciled Volonter role for {Count} korisnik(a) to match Volonter.Aktivan.", fixedCount);
+        }
     }
 
     /// <summary>

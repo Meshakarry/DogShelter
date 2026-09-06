@@ -105,6 +105,7 @@ public class DonacijaService : IDonacijaService
 
             var kategorijeIds = request.Stavke.Select(s => s.KategorijaDonacijeId).Distinct().ToList();
             var kategorije = await _context.KategorijaDonacijes
+                .Include(k => k.DozvoljeneJedinice)
                 .Where(k => kategorijeIds.Contains(k.KategorijaDonacijeId))
                 .ToDictionaryAsync(k => k.KategorijaDonacijeId);
 
@@ -127,6 +128,19 @@ public class DonacijaService : IDonacijaService
 
                 if (!postojeceJedinice.Contains(stavka.JedinicaMjereId))
                     throw new ValidationException("Odabrana jedinica mjere ne postoji.", nameof(stavka.JedinicaMjereId), "Jedinica mjere ne postoji.");
+
+                // An empty DozvoljeneJedinice list means "unrestricted" (same convention as the
+                // mobile smart-unit-picker) - only enforce the whitelist when the category
+                // actually declares one. Without this, a hand-built request could pair e.g. dog
+                // food with "komad" even though the picker only ever offers kg/vreće for it.
+                if (kategorija.DozvoljeneJedinice.Count > 0 &&
+                    !kategorija.DozvoljeneJedinice.Any(j => j.JedinicaMjereId == stavka.JedinicaMjereId))
+                {
+                    throw new ValidationException(
+                        $"Jedinica mjere nije dozvoljena za kategoriju \"{kategorija.Naziv}\".",
+                        nameof(stavka.JedinicaMjereId),
+                        "Odaberite jedinicu mjere dozvoljenu za ovu kategoriju.");
+                }
             }
 
             if (request.TrebaPreuzimanje)

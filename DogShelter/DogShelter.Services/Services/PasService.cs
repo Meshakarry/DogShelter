@@ -1,6 +1,7 @@
 using AutoMapper;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -22,7 +23,7 @@ public class PasService : IPasService
         _fileUpload = fileUpload;
     }
 
-    public async Task<PagedResult<Model.PasListItem>> Get(PasSearchRequest search)
+    public async Task<PagedResult<Model.PasListItem>> Get(PasSearchRequest search, bool isAdmin)
     {
         // List view omits SlikaPsas and Opis to keep payloads small; full gallery/description
         // are returned only by GetById.
@@ -30,6 +31,7 @@ public class PasService : IPasService
             .Include(p => p.Rasa)
             .Include(p => p.StatusPsa)
             .Include(p => p.VelicinaPsa)
+            .Include(p => p.NivoAktivnosti)
             .AsNoTracking()
             .AsQueryable();
 
@@ -45,10 +47,18 @@ public class PasService : IPasService
         if (search.VelicinaPsaId.HasValue)
             query = query.Where(p => p.VelicinaPsaId == search.VelicinaPsaId.Value);
 
+        if (search.NivoAktivnostiId.HasValue)
+            query = query.Where(p => p.NivoAktivnostiId == search.NivoAktivnostiId.Value);
+
         if (search.Spol.HasValue)
             query = query.Where(p => p.Spol == search.Spol.Value);
 
-        if (search.Aktivan.HasValue)
+        // Non-admins (mobile end users) can never see inactive dogs, regardless of what the
+        // client sends - the UI filter is a convenience, not the actual boundary. Admins keep
+        // full control over the filter, including "show me the inactive ones" in Postavke/Psi.
+        if (!isAdmin)
+            query = query.Where(p => p.Aktivan);
+        else if (search.Aktivan.HasValue)
             query = query.Where(p => p.Aktivan == search.Aktivan.Value);
 
         if (search.Vakcinisan.HasValue)
@@ -62,23 +72,29 @@ public class PasService : IPasService
         return await PagedQueryHelper.ToPagedResultAsync<Database.Pas, Model.PasListItem>(query, search, _mapper);
     }
 
-    public async Task<Model.Pas> GetById(int id)
+    public async Task<Model.Pas> GetById(int id, bool isAdmin)
     {
         var entity = await _context.Pas
             .Include(p => p.Rasa)
             .Include(p => p.StatusPsa)
             .Include(p => p.VelicinaPsa)
+            .Include(p => p.NivoAktivnosti)
             .Include(p => p.SlikaPsas)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.PasId == id)
             ?? throw new NotFoundException($"Pas s ID {id} nije pronađen.");
+
+        // Same rule as Get(): a direct-ID guess must not leak a dog the list already hides from
+        // non-admins (matches the ObavijestService.GetById precedent for hidden drafts).
+        if (!isAdmin && !entity.Aktivan)
+            throw new NotFoundException($"Pas s ID {id} nije pronađen.");
 
         return _mapper.Map<Model.Pas>(entity);
     }
 
     public async Task<Model.Pas> InsertWithImage(PasInsertRequest request, IFormFile? cover)
     {
-        await ValidateForeignKeysAsync(request.RasaId, request.StatusPsaId, request.VelicinaPsaId);
+        await ValidateForeignKeysAsync(request.RasaId, request.StatusPsaId, request.VelicinaPsaId, request.NivoAktivnostiId);
 
         if (cover == null)
             throw new ValidationException("Slika je obavezna.", "slikaNaslovna", "Naslovna slika je obavezna.");
@@ -90,15 +106,21 @@ public class PasService : IPasService
         _context.Pas.Add(entity);
         await _context.SaveChangesAsync();
 
-        return await GetById(entity.PasId);
+        return await GetById(entity.PasId, isAdmin: true);
     }
 
     public async Task<Model.Pas> UpdateWithImage(int id, PasUpdateRequest request, IFormFile? cover)
     {
-        var entity = await _context.Pas.FindAsync(id)
+        var entity = await _context.Pas.Include(p => p.StatusPsa).FirstOrDefaultAsync(p => p.PasId == id)
             ?? throw new NotFoundException($"Pas s ID {id} nije pronađen.");
 
-        await ValidateForeignKeysAsync(request.RasaId, request.StatusPsaId, request.VelicinaPsaId);
+        await ValidateForeignKeysAsync(request.RasaId, request.StatusPsaId, request.VelicinaPsaId, request.NivoAktivnostiId);
+
+        // Unchecking "Aktivan" in the edit form is the same soft-delete as Delete() below - guard
+        // it identically so the form isn't a way around the dependency check. Checked before the
+        // map so entity.StatusPsa still reflects the dog's current status.
+        if (entity.Aktivan && !request.Aktivan)
+            await EnsureCanDeactivateAsync(entity);
 
         var oldCover = entity.SlikaNaslovna;
         _mapper.Map(request, entity);
@@ -115,17 +137,40 @@ public class PasService : IPasService
 
         await _context.SaveChangesAsync();
 
-        return await GetById(id);
+        return await GetById(id, isAdmin: true);
     }
 
     public async Task<bool> Delete(int id)
     {
-        var entity = await _context.Pas.FindAsync(id)
+        var entity = await _context.Pas.Include(p => p.StatusPsa).FirstOrDefaultAsync(p => p.PasId == id)
             ?? throw new NotFoundException($"Pas s ID {id} nije pronađen.");
+
+        if (!entity.Aktivan)
+            return true;
+
+        await EnsureCanDeactivateAsync(entity);
 
         entity.Aktivan = false;
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    // Soft-delete (Delete, or unchecking Aktivan in the edit form) must not orphan live workflow
+    // rows. A Rezervisan dog has an approved adoption in flight; a pending zahtjev / upcoming visit
+    // is a user waiting on this dog. Force the admin to resolve those first instead of silently
+    // leaving them pointed at a deactivated dog. `pas.StatusPsa` must be loaded by the caller.
+    private async Task EnsureCanDeactivateAsync(Database.Pas pas)
+    {
+        if (pas.StatusPsa?.Naziv == StatusPsaNazivi.Rezervisan)
+            throw new BusinessException($"Pas \"{pas.Naziv}\" je rezervisan za udomljavanje. Poništite ili finalizirajte odobreni zahtjev prije deaktivacije.");
+
+        if (await _context.ZahtjevZaUdomljavanjes.AnyAsync(z => z.PasId == pas.PasId && z.StatusZahtjeva.Naziv == StatusZahtjevaNazivi.NaCekanju))
+            throw new BusinessException($"Pas \"{pas.Naziv}\" ima zahtjev za udomljavanje na čekanju. Obradite ga prije deaktivacije.");
+
+        if (await _context.Posjeta.AnyAsync(p => p.PasId == pas.PasId
+                && p.DatumVrijeme > DateTime.UtcNow
+                && (p.StatusPosjete.Naziv == StatusPosjeteNazivi.NaCekanju || p.StatusPosjete.Naziv == StatusPosjeteNazivi.Potvrdjena)))
+            throw new BusinessException($"Pas \"{pas.Naziv}\" ima zakazane buduće posjete. Otkažite ih prije deaktivacije.");
     }
 
     public async Task<Model.SlikaPsa> AddSlika(int pasId, IFormFile file, int redniBroj)
@@ -159,7 +204,7 @@ public class PasService : IPasService
         return true;
     }
 
-    private async Task ValidateForeignKeysAsync(int rasaId, int statusPsaId, int velicinaPsaId)
+    private async Task ValidateForeignKeysAsync(int rasaId, int statusPsaId, int velicinaPsaId, int nivoAktivnostiId)
     {
         if (!await _context.Rasas.AnyAsync(r => r.RasaId == rasaId))
             throw new ValidationException("Odabrana rasa ne postoji.", nameof(rasaId), "Rasa ne postoji.");
@@ -169,5 +214,8 @@ public class PasService : IPasService
 
         if (!await _context.VelicinaPsas.AnyAsync(v => v.VelicinaPsaId == velicinaPsaId))
             throw new ValidationException("Odabrana veličina ne postoji.", nameof(velicinaPsaId), "Veličina ne postoji.");
+
+        if (!await _context.NivoAktivnostis.AnyAsync(n => n.NivoAktivnostiId == nivoAktivnostiId))
+            throw new ValidationException("Odabrani nivo aktivnosti ne postoji.", nameof(nivoAktivnostiId), "Nivo aktivnosti ne postoji.");
     }
 }

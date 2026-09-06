@@ -248,8 +248,11 @@ public class EmailQueueConsumer : BackgroundService
 
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(username))
         {
-            _logger.LogWarning("SMTP not configured; skipping email send to {Recipient}.", message.To);
-            return;
+            // Used to log a warning and return here, which OnMessageReceivedAsync then ACKed as
+            // a successful send - the email was silently lost, not just delayed, since it's gone
+            // from every queue at that point. Throwing routes it through the existing
+            // retry/failed-queue path (HandleTransientFailure) like any other send failure.
+            throw new InvalidOperationException($"SMTP nije konfigurisan (Host/Username nedostaje) - email za {message.To} nije poslan.");
         }
 
         using var client = new SmtpClient(host, port)

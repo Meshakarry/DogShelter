@@ -14,20 +14,23 @@ import '../../postavke/domain/lookup_item.dart';
 const rasaConfig = LookupTableConfig(path: '/api/Rasa', idKey: 'rasaId', label: 'rasa');
 const statusPsaConfig = LookupTableConfig(path: '/api/StatusPsa', idKey: 'statusPsaId', label: 'status psa');
 const velicinaPsaConfig = LookupTableConfig(path: '/api/VelicinaPsa', idKey: 'velicinaPsaId', label: 'veličina psa');
+const nivoAktivnostiConfig = LookupTableConfig(path: '/api/NivoAktivnosti', idKey: 'nivoAktivnostiId', label: 'nivo aktivnosti');
 
 final pasApiProvider = Provider<PasApi>((ref) => PasApi(ref.watch(apiClientProvider)));
 
-typedef PsiFormLookups = ({List<Rasa> rase, List<StatusPsa> statusi, List<VelicinaPsa> velicine});
+typedef PsiFormLookups = ({List<Rasa> rase, List<StatusPsa> statusi, List<VelicinaPsa> velicine, List<NivoAktivnosti> nivoiAktivnosti});
 
 final psiFormLookupsProvider = FutureProvider.autoDispose<PsiFormLookups>((ref) async {
   final client = ref.watch(apiClientProvider);
   final rasaFuture = LookupApi(client, rasaConfig).search();
   final statusFuture = LookupApi(client, statusPsaConfig).search();
   final velicinaFuture = LookupApi(client, velicinaPsaConfig).search();
+  final nivoAktivnostiFuture = LookupApi(client, nivoAktivnostiConfig).search();
   return (
     rase: (await rasaFuture).items.map((e) => Rasa(rasaId: e.id, naziv: e.naziv)).toList(),
     statusi: (await statusFuture).items.map((e) => StatusPsa(statusPsaId: e.id, naziv: e.naziv)).toList(),
     velicine: (await velicinaFuture).items.map((e) => VelicinaPsa(velicinaPsaId: e.id, naziv: e.naziv)).toList(),
+    nivoiAktivnosti: (await nivoAktivnostiFuture).items.map((e) => NivoAktivnosti(nivoAktivnostiId: e.id, naziv: e.naziv)).toList(),
   );
 });
 

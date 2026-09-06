@@ -19,6 +19,7 @@ class PasFormData {
     this.opis,
     required this.statusPsaId,
     required this.velicinaPsaId,
+    required this.nivoAktivnostiId,
     this.tezina,
     required this.datumPrijema,
     required this.vakcinisan,
@@ -33,6 +34,7 @@ class PasFormData {
   final String? opis;
   final int statusPsaId;
   final int velicinaPsaId;
+  final int nivoAktivnostiId;
   final double? tezina;
   final DateTime datumPrijema;
   final bool vakcinisan;
@@ -48,6 +50,7 @@ class PasFormData {
       'Spol': spol.toJson(),
       'StatusPsaId': statusPsaId.toString(),
       'VelicinaPsaId': velicinaPsaId.toString(),
+      'NivoAktivnostiId': nivoAktivnostiId.toString(),
       'DatumPrijema': datumPrijema.toIso8601String(),
       'Vakcinisan': vakcinisan.toString(),
       'Sterilizovan': sterilizovan.toString(),
@@ -72,6 +75,7 @@ class PasApi {
     int? rasaId,
     int? statusPsaId,
     int? velicinaPsaId,
+    int? nivoAktivnostiId,
     Spol? spol,
     bool? aktivan,
   }) async {
@@ -82,6 +86,7 @@ class PasApi {
       'rasaId': rasaId,
       'statusPsaId': statusPsaId,
       'velicinaPsaId': velicinaPsaId,
+      'nivoAktivnostiId': nivoAktivnostiId,
       'spol': spol?.toJson(),
       'aktivan': aktivan,
     });
@@ -116,19 +121,25 @@ class PasApi {
     return result.items;
   }
 
+  Future<List<NivoAktivnosti>> getNivoiAktivnosti() async {
+    final json = await _client.get('/api/NivoAktivnosti', query: {'pageSize': 100});
+    final result = PagedResult.fromJson(json as Map<String, dynamic>, (item) => NivoAktivnosti.fromJson(item));
+    return result.items;
+  }
+
   Future<Pas> insert(PasFormData data, File coverImage) async {
     final json = await _client.multipart(
       'POST',
       '/api/Pas',
       fields: data.toFields(),
-      files: [await http.MultipartFile.fromPath('slikaNaslovna', coverImage.path)],
+      files: [await imageMultipartFile('slikaNaslovna', coverImage.path)],
     );
     return Pas.fromJson(json as Map<String, dynamic>);
   }
 
   Future<Pas> update(int id, PasFormData data, {File? coverImage}) async {
     final files = <http.MultipartFile>[
-      if (coverImage != null) await http.MultipartFile.fromPath('slikaNaslovna', coverImage.path),
+      if (coverImage != null) await imageMultipartFile('slikaNaslovna', coverImage.path),
     ];
     final json = await _client.multipart('PUT', '/api/Pas/$id', fields: data.toFields(), files: files);
     return Pas.fromJson(json as Map<String, dynamic>);
@@ -141,7 +152,7 @@ class PasApi {
       'POST',
       '/api/Pas/$pasId/slike',
       fields: {'redniBroj': redniBroj.toString()},
-      files: [await http.MultipartFile.fromPath('slika', image.path)],
+      files: [await imageMultipartFile('slika', image.path)],
     );
     return SlikaPsa.fromJson(json as Map<String, dynamic>);
   }

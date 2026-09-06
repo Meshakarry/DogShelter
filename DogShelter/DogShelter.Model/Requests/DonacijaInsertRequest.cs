@@ -21,7 +21,7 @@ public class DonacijaInsertRequest
     [MaxLength(255, ErrorMessage = ValidationMessages.AdresaPreuzimanjaMaxLength)]
     public string? AdresaPreuzimanja { get; set; }
 
-    [MaxLength(30, ErrorMessage = ValidationMessages.TelefonPreuzimanjaMaxLength)]
+    [RegularExpression(ValidationPatterns.Phone, ErrorMessage = ValidationPatterns.PhoneErrorMessage)]
     public string? TelefonPreuzimanja { get; set; }
 
     public DateTime? DatumPreuzimanja { get; set; }

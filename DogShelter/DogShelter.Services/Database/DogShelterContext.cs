@@ -23,6 +23,8 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<DonacijaStavka> DonacijaStavkas { get; set; }
 
+    public virtual DbSet<Favorit> Favorits { get; set; }
+
     public virtual DbSet<Grad> Grads { get; set; }
 
     public virtual DbSet<JedinicaMjere> JedinicaMjeres { get; set; }
@@ -35,6 +37,8 @@ public partial class DogShelterContext : DbContext
 
     public virtual DbSet<LozinkaResetToken> LozinkaResetTokens { get; set; }
 
+    public virtual DbSet<NivoAktivnosti> NivoAktivnostis { get; set; }
+
     public virtual DbSet<Notifikacija> Notifikacijas { get; set; }
 
     public virtual DbSet<Obavijest> Obavijests { get; set; }
@@ -46,6 +50,8 @@ public partial class DogShelterContext : DbContext
     public virtual DbSet<PotrebaAzila> PotrebeAzila { get; set; }
 
     public virtual DbSet<PregledPsa> PregledPsas { get; set; }
+
+    public virtual DbSet<PretragaLog> PretragaLogs { get; set; }
 
     public virtual DbSet<PrioritetPotrebe> PrioritetPotrebes { get; set; }
 
@@ -245,6 +251,7 @@ public partial class DogShelterContext : DbContext
             entity.Property(e => e.Prezime).HasMaxLength(100);
             entity.Property(e => e.SlikaPutanja).HasMaxLength(500);
             entity.Property(e => e.Telefon).HasMaxLength(30);
+            entity.Property(e => e.SigurnosniPecat).HasDefaultValueSql("(newid())", "DF_Korisnik_SigurnosniPecat");
 
             entity.HasOne(d => d.Grad).WithMany(p => p.Korisniks)
                 .HasForeignKey(d => d.GradId)
@@ -340,6 +347,68 @@ public partial class DogShelterContext : DbContext
                 .HasForeignKey(d => d.VelicinaPsaId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Pas_Velicina");
+
+            entity.HasOne(d => d.NivoAktivnosti).WithMany(p => p.Pas)
+                .HasForeignKey(d => d.NivoAktivnostiId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Pas_NivoAktivnosti");
+        });
+
+        modelBuilder.Entity<Favorit>(entity =>
+        {
+            entity.ToTable("Favorit");
+
+            entity.Property(e => e.DatumDodavanja).HasDefaultValueSql("(sysdatetime())");
+
+            // A user can favorite a given dog once - a second POST toggles/no-ops rather than
+            // creating a duplicate row (see FavoritService).
+            entity.HasIndex(e => new { e.KorisnikId, e.PasId }, "UQ_Favorit_Korisnik_Pas").IsUnique();
+
+            entity.HasOne(d => d.Korisnik).WithMany(p => p.Favoriti)
+                .HasForeignKey(d => d.KorisnikId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Favorit_Korisnik");
+
+            entity.HasOne(d => d.Pas).WithMany(p => p.Favoriti)
+                .HasForeignKey(d => d.PasId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Favorit_Pas");
+        });
+
+        modelBuilder.Entity<NivoAktivnosti>(entity =>
+        {
+            entity.ToTable("NivoAktivnosti");
+
+            entity.HasIndex(e => e.Naziv, "UQ_NivoAktivnosti").IsUnique();
+
+            entity.Property(e => e.Naziv).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<PretragaLog>(entity =>
+        {
+            entity.ToTable("PretragaLog");
+
+            entity.Property(e => e.DatumPretrage).HasDefaultValueSql("(sysdatetime())");
+
+            entity.HasOne(d => d.Korisnik).WithMany(p => p.PretragaLogs)
+                .HasForeignKey(d => d.KorisnikId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PretragaLog_Korisnik");
+
+            entity.HasOne(d => d.Rasa).WithMany()
+                .HasForeignKey(d => d.RasaId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PretragaLog_Rasa");
+
+            entity.HasOne(d => d.VelicinaPsa).WithMany()
+                .HasForeignKey(d => d.VelicinaPsaId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PretragaLog_Velicina");
+
+            entity.HasOne(d => d.NivoAktivnosti).WithMany()
+                .HasForeignKey(d => d.NivoAktivnostiId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PretragaLog_NivoAktivnosti");
         });
 
         modelBuilder.Entity<Posjeta>(entity =>
@@ -348,6 +417,7 @@ public partial class DogShelterContext : DbContext
 
             entity.Property(e => e.Napomena).HasMaxLength(1000);
             entity.Property(e => e.RazlogOtkazivanja).HasMaxLength(1000);
+            entity.Property(e => e.PodsjetnikPoslan).HasDefaultValue(false, "DF_Posjeta_PodsjetnikPoslan");
 
             // Not unique (cancelled/completed visits may legitimately share a slot with a later
             // active one) — but without any index here, the Serializable-isolation slot check in

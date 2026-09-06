@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/core/paged_result.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
 import '../../../core/paged_list_notifier.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 
@@ -69,7 +70,7 @@ class GradListNotifier extends PagedListNotifier<Grad> {
   }
 }
 
-final gradListProvider = StateNotifierProvider<GradListNotifier, AsyncValue<PagedResult<Grad>>>((ref) {
+final gradListProvider = StateNotifierProvider.autoDispose<GradListNotifier, AsyncValue<PagedResult<Grad>>>((ref) {
   return GradListNotifier(ref.watch(gradApiProvider));
 });
 
@@ -111,18 +112,13 @@ class _GradCrudScreenState extends ConsumerState<GradCrudScreen> {
   }
 
   Future<void> _confirmDelete(Grad grad) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text('Da li ste sigurni da želite obrisati grad "${grad.naziv}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li ste sigurni da želite obrisati grad "${grad.naziv}"?',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     try {
       await ref.read(gradListProvider.notifier).remove(grad.id);
       _showMessage('Grad je obrisan.');

@@ -1,5 +1,4 @@
-﻿import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
+﻿import 'package:image_picker/image_picker.dart';
 
 import 'package:dogshelter_shared/auth/domain/korisnik.dart';
 import 'package:dogshelter_shared/core/api_client.dart';
@@ -42,7 +41,7 @@ class ProfileApi {
     final json = await _client.multipart(
       'POST',
       '/api/Korisnik/avatar',
-      files: [await http.MultipartFile.fromPath('slika', file.path)],
+      files: [await imageMultipartFile('slika', file.path)],
     );
     return Korisnik.fromJson(json as Map<String, dynamic>);
   }

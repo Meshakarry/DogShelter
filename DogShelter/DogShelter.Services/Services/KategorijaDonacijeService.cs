@@ -1,6 +1,7 @@
 using AutoMapper;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -51,6 +52,16 @@ namespace DogShelter.Services.Services
             var entity = await _context.KategorijaDonacijes.Include(k => k.DozvoljeneJedinice).FirstOrDefaultAsync(k => k.KategorijaDonacijeId == ID)
                 ?? throw new NotFoundException($"Entity with ID {ID} not found.");
 
+            // "Ostalo" is looked up by exact name in DonacijaService (the free-text
+            // PrilagodjenNaziv field is only allowed for that one category) - renaming it would
+            // silently break that check for every future donation, not just this row. Other
+            // fields (icon, allowed units, ...) can still be edited freely.
+            if (string.Equals(entity.Naziv, KategorijaDonacijeNazivi.Ostalo, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(request.Naziv, KategorijaDonacijeNazivi.Ostalo, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessException("Kategorija 'Ostalo' je dio sistemske logike (donacije sa slobodnim nazivom) i ne može biti preimenovana.");
+            }
+
             _mapper.Map(request, entity);
             entity.DozvoljeneJedinice = await ResolveDozvoljeneJediniceAsync(request);
             await _context.SaveChangesAsync();
@@ -58,7 +69,16 @@ namespace DogShelter.Services.Services
             return _mapper.Map<Model.KategorijaDonacije>(entity);
         }
 
-        public override async Task<bool> Delete(int ID) { var r = await base.Delete(ID); InvalidateCache(); return r; }
+        public override async Task<bool> Delete(int ID)
+        {
+            var entity = await _context.KategorijaDonacijes.FindAsync(ID);
+            if (entity != null && string.Equals(entity.Naziv, KategorijaDonacijeNazivi.Ostalo, StringComparison.OrdinalIgnoreCase))
+                throw new BusinessException("Kategorija 'Ostalo' je dio sistemske logike (donacije sa slobodnim nazivom) i ne može biti obrisana.");
+
+            var r = await base.Delete(ID);
+            InvalidateCache();
+            return r;
+        }
 
         private async Task<List<Database.JedinicaMjere>> ResolveDozvoljeneJediniceAsync(KategorijaDonacijeUpsertRequest request)
         {

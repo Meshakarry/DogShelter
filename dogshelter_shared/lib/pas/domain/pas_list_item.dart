@@ -13,6 +13,8 @@ class PasListItem with AgeLabel {
     this.statusNaziv,
     required this.velicinaPsaId,
     this.velicinaNaziv,
+    required this.nivoAktivnostiId,
+    this.nivoAktivnostiNaziv,
     this.tezina,
     required this.datumPrijema,
     this.slikaNaslovna,
@@ -32,6 +34,8 @@ class PasListItem with AgeLabel {
   final String? statusNaziv;
   final int velicinaPsaId;
   final String? velicinaNaziv;
+  final int nivoAktivnostiId;
+  final String? nivoAktivnostiNaziv;
   final double? tezina;
   final DateTime datumPrijema;
   final String? slikaNaslovna;
@@ -51,6 +55,8 @@ class PasListItem with AgeLabel {
       statusNaziv: json['statusNaziv'] as String?,
       velicinaPsaId: json['velicinaPsaId'] as int,
       velicinaNaziv: json['velicinaNaziv'] as String?,
+      nivoAktivnostiId: json['nivoAktivnostiId'] as int,
+      nivoAktivnostiNaziv: json['nivoAktivnostiNaziv'] as String?,
       tezina: (json['tezina'] as num?)?.toDouble(),
       datumPrijema: DateTime.parse(json['datumPrijema'] as String),
       slikaNaslovna: json['slikaNaslovna'] as String?,

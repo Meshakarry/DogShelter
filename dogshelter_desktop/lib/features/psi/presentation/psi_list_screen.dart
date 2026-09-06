@@ -9,6 +9,7 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../application/psi_providers.dart';
@@ -57,25 +58,15 @@ class _PsiListScreenState extends ConsumerState<PsiListScreen> {
   }
 
   Future<void> _confirmDelete(PasListItem item) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: SizedBox(
-          width: 420,
-          child: Text(
-            'Da li ste sigurni da želite obrisati psa "${item.naziv}"?\n\n'
-            'Pas neće biti trajno obrisan iz baze - biće označen kao neaktivan i uklonjen iz javnog pregleda, '
-            'dok će historijski podaci (prethodni zahtjevi za udomljavanje, posjete i sl.) ostati sačuvani.',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li ste sigurni da želite obrisati psa "${item.naziv}"?\n\n'
+          'Pas neće biti trajno obrisan iz baze - biće označen kao neaktivan i uklonjen iz javnog pregleda, '
+          'dok će historijski podaci (prethodni zahtjevi za udomljavanje, posjete i sl.) ostati sačuvani.',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     try {
       await ref.read(psiListProvider.notifier).remove(item.pasId);

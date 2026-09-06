@@ -9,6 +9,7 @@ import 'package:dogshelter_shared/posjeta/domain/posjeta.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/detail_row.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
@@ -17,85 +18,91 @@ import '../application/posjete_providers.dart';
 const _naCekanju = 'Na čekanju';
 const _potvrdjena = 'Potvrđena';
 
-
 /// Dedicated /posjete/:id page - image+name header, status pill, label/value rows, an
 /// errorContainer callout for the cancellation reason, and potvrdi/otkazi/zavrsi actions.
-class PosjetaDetailScreen extends ConsumerWidget {
+class PosjetaDetailScreen extends ConsumerStatefulWidget {
   const PosjetaDetailScreen({super.key, required this.id});
 
   final int id;
 
-  void _showMessage(BuildContext context, String message, {bool isError = false}) {
+  @override
+  ConsumerState<PosjetaDetailScreen> createState() => _PosjetaDetailScreenState();
+}
+
+class _PosjetaDetailScreenState extends ConsumerState<PosjetaDetailScreen> {
+  // Same double-tap guard as posjete_screen.dart's _processingIds, for this single posjeta.
+  bool _isProcessing = false;
+
+  void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: isError ? Theme.of(context).colorScheme.error : null),
     );
   }
 
-  Future<void> _potvrdi(BuildContext context, WidgetRef ref, Posjeta posjeta) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrdi posjetu'),
-        content: const Text('Da li želite potvrditi ovu posjetu?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Potvrdi')),
-        ],
-      ),
+  Future<void> _potvrdi(Posjeta posjeta) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrdi posjetu',
+      message: 'Da li želite potvrditi ovu posjetu?',
+      confirmLabel: 'Potvrdi',
     );
-    if (confirmed != true) return;
+    if (!confirmed || _isProcessing) return;
 
+    setState(() => _isProcessing = true);
     try {
       await ref.read(posjetaListProvider.notifier).potvrdi(posjeta.posjetaId);
-      ref.invalidate(posjetaDetailProvider(id));
-      if (context.mounted) _showMessage(context, 'Posjeta je potvrđena.');
+      ref.invalidate(posjetaDetailProvider(widget.id));
+      if (mounted) _showMessage('Posjeta je potvrđena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  Future<void> _zavrsi(BuildContext context, WidgetRef ref, Posjeta posjeta) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Označi kao završenu'),
-        content: const Text('Da li želite označiti ovu posjetu kao završenu?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Završi')),
-        ],
-      ),
+  Future<void> _zavrsi(Posjeta posjeta) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Označi kao završenu',
+      message: 'Da li želite označiti ovu posjetu kao završenu?',
+      confirmLabel: 'Završi',
     );
-    if (confirmed != true) return;
+    if (!confirmed || _isProcessing) return;
 
+    setState(() => _isProcessing = true);
     try {
       await ref.read(posjetaListProvider.notifier).zavrsi(posjeta.posjetaId);
-      ref.invalidate(posjetaDetailProvider(id));
-      if (context.mounted) _showMessage(context, 'Posjeta je označena kao završena.');
+      ref.invalidate(posjetaDetailProvider(widget.id));
+      if (mounted) _showMessage('Posjeta je označena kao završena.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  Future<void> _otkazi(BuildContext context, WidgetRef ref, Posjeta posjeta) async {
+  Future<void> _otkazi(Posjeta posjeta) async {
     final razlog = await showDialog<String>(
       context: context,
       builder: (context) => const RazlogDialog(title: 'Otkaži posjetu', label: 'Razlog otkazivanja'),
     );
-    if (razlog == null) return;
+    if (razlog == null || _isProcessing) return;
 
+    setState(() => _isProcessing = true);
     try {
       await ref.read(posjetaListProvider.notifier).otkazi(posjeta.posjetaId, razlog);
-      ref.invalidate(posjetaDetailProvider(id));
-      if (context.mounted) _showMessage(context, 'Posjeta je otkazana.');
+      ref.invalidate(posjetaDetailProvider(widget.id));
+      if (mounted) _showMessage('Posjeta je otkazana.');
     } catch (e) {
-      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
+      if (mounted) _showMessage(describeApiError(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detailAsync = ref.watch(posjetaDetailProvider(id));
+  Widget build(BuildContext context) {
+    final detailAsync = ref.watch(posjetaDetailProvider(widget.id));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -121,6 +128,15 @@ class PosjetaDetailScreen extends ConsumerWidget {
               final naziv = posjeta.statusPosjeteNaziv ?? '';
               final colors = posjetaStatusColors(naziv);
               final imageUrl = resolveImageUrl(posjeta.pasSlikaNaslovna, Environment.apiBaseUrl);
+              // PosjetaService.Zavrsi() rejects this server-side until the scheduled time has
+              // actually passed - disabling it here too so the button doesn't invite a click
+              // that's guaranteed to fail.
+              final terminPassed = !posjeta.datumVrijeme.isAfter(DateTime.now());
+              final canZavrsi = naziv == _potvrdjena && terminPassed && !_isProcessing;
+              // PosjetaService.Potvrdi() rejects a past term server-side - a visit whose slot is
+              // already gone can only be cancelled, not confirmed.
+              final canPotvrdi = naziv == _naCekanju && !terminPassed && !_isProcessing;
+              final canOtkazi = (naziv == _naCekanju || naziv == _potvrdjena) && !_isProcessing;
 
               return Center(
                 child: ConstrainedBox(
@@ -245,18 +261,36 @@ class PosjetaDetailScreen extends ConsumerWidget {
                                       ?.copyWith(color: Theme.of(context).colorScheme.outline),
                                 ),
                               ),
+                            if (naziv == _potvrdjena && !terminPassed)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'Posjeta se može označiti završenom tek nakon zakazanog termina (${formatDateTime(posjeta.datumVrijeme)}).',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                ),
+                              ),
+                            if (naziv == _naCekanju && terminPassed)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'Termin posjete je prošao (${formatDateTime(posjeta.datumVrijeme)}) - posjeta se više ne može potvrditi, ali se može otkazati.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                ),
+                              ),
                             Row(
                               children: [
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    onPressed: (naziv == _naCekanju || naziv == _potvrdjena)
-                                        ? () => _otkazi(context, ref, posjeta)
-                                        : null,
+                                    onPressed: canOtkazi ? () => _otkazi(posjeta) : null,
                                     icon: Icon(
                                       Icons.cancel_outlined,
-                                      color: (naziv == _naCekanju || naziv == _potvrdjena)
-                                          ? posjetaStatusColors('Otkazana').foreground
-                                          : null,
+                                      color: canOtkazi ? posjetaStatusColors('Otkazana').foreground : null,
                                     ),
                                     label: const Text('Otkaži'),
                                   ),
@@ -265,11 +299,17 @@ class PosjetaDetailScreen extends ConsumerWidget {
                                 Expanded(
                                   child: FilledButton.icon(
                                     onPressed: switch (naziv) {
-                                      _naCekanju => () => _potvrdi(context, ref, posjeta),
-                                      _potvrdjena => () => _zavrsi(context, ref, posjeta),
+                                      _naCekanju => canPotvrdi ? () => _potvrdi(posjeta) : null,
+                                      _potvrdjena => canZavrsi ? () => _zavrsi(posjeta) : null,
                                       _ => null,
                                     },
-                                    icon: Icon(naziv == _potvrdjena ? Icons.flag_circle_outlined : Icons.check_circle_outline),
+                                    icon: _isProcessing
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          )
+                                        : Icon(naziv == _potvrdjena ? Icons.flag_circle_outlined : Icons.check_circle_outline),
                                     label: Text(naziv == _potvrdjena ? 'Završi' : 'Potvrdi'),
                                   ),
                                 ),
@@ -289,4 +329,3 @@ class PosjetaDetailScreen extends ConsumerWidget {
     );
   }
 }
-

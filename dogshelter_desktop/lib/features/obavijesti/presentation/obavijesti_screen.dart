@@ -9,6 +9,7 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/status_colors.dart';
@@ -38,22 +39,14 @@ class _ObavijestiScreenState extends ConsumerState<ObavijestiScreen> {
   }
 
   Future<void> _confirmDelete(int id, String naslov) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text('Da li želite trajno obrisati obavijest "$naslov"?\n\nOva radnja je nepovratna.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Obriši'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li želite trajno obrisati obavijest "$naslov"?\n\nOva radnja je nepovratna.',
+      confirmLabel: 'Obriši',
+      destructive: true,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     try {
       await ref.read(obavijestListProvider.notifier).remove(id);

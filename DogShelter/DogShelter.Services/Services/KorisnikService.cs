@@ -54,6 +54,8 @@ namespace DogShelter.Services.Services
             if (await _context.Korisniks.AnyAsync(k => k.Email == request.Email))
                 throw new BusinessException("Email je već u upotrebi.");
 
+            EnsureNoDirectVolonterRoleChange(request.Uloge, []);
+
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -102,11 +104,34 @@ namespace DogShelter.Services.Services
                 await _context.Korisniks.AnyAsync(k => k.Email == request.Email && k.KorisnikId != ID))
                 throw new BusinessException("Email je već u upotrebi.");
 
+            if (request.GradId.HasValue && !await _context.Grads.AnyAsync(g => g.GradId == request.GradId.Value))
+                throw new ValidationException("Odabrani grad ne postoji.", nameof(request.GradId), "Grad ne postoji.");
+
+            EnsureNoDirectVolonterRoleChange(request.Uloge, request.UlogeZaBrisanje);
+
+            // A deactivated account can't log in (Authenticate filters on Aktivan) and any token
+            // it already holds is rejected too (OnTokenValidated re-checks Aktivan), so granting
+            // it a role isn't an active access risk - but it's a confusing state to leave lying
+            // around ("why does this disabled account have Admin"). Adding roles is only allowed
+            // when the account will actually be active once this request applies - reactivating
+            // and assigning a role in the same call is still fine. Removing roles is always fine.
+            var resultingAktivan = request.Status ?? entity.Aktivan;
+            if (!resultingAktivan && request.Uloge.Count > 0)
+                throw new BusinessException("Ne možete dodijeliti ulogu neaktivnom korisniku. Prvo reaktivirajte nalog.");
+
+            // Any of these three invalidate previously issued tokens (see Program.cs
+            // OnTokenValidated) - a stale token must not keep working with a stale password, a
+            // role it no longer holds, or on an account that just got deactivated.
+            var securityRelevantChange = !string.IsNullOrWhiteSpace(request.Lozinka)
+                || request.Uloge.Count > 0
+                || request.UlogeZaBrisanje.Count > 0
+                || (request.Status.HasValue && request.Status.Value != entity.Aktivan);
+
+            // Length and confirmation-match are already enforced by KorisnikUpdateRequest's
+            // MinLength/Compare attributes (checked by [ApiController] before this method ever
+            // runs) - the same rules Register/Insert apply, just via the same route on this DTO.
             if (!string.IsNullOrWhiteSpace(request.Lozinka))
             {
-                if (request.Lozinka != request.LozinkaPotvrda)
-                    throw new BusinessException("Lozinke se ne podudaraju.");
-
                 entity.LozinkaHash = HashPassword(request.Lozinka);
                 entity.LozinkaSalt = string.Empty;
             }
@@ -121,8 +146,8 @@ namespace DogShelter.Services.Services
                 if (request.Telefon != null) entity.Telefon = request.Telefon;
                 if (request.GradId.HasValue) entity.GradId = request.GradId;
                 if (request.Adresa != null) entity.Adresa = request.Adresa;
-                if (!string.IsNullOrWhiteSpace(request.SlikaPutanja)) entity.SlikaPutanja = request.SlikaPutanja;
                 if (request.Status.HasValue) entity.Aktivan = request.Status.Value;
+                if (securityRelevantChange) entity.SigurnosniPecat = Guid.NewGuid();
 
                 await _context.SaveChangesAsync();
 
@@ -181,6 +206,7 @@ namespace DogShelter.Services.Services
                 entity.LozinkaHash = string.Empty;
                 entity.LozinkaSalt = string.Empty;
                 entity.Aktivan = false;
+                entity.SigurnosniPecat = Guid.NewGuid();
 
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -224,7 +250,6 @@ namespace DogShelter.Services.Services
                     Email = request.Email,
                     Telefon = request.Telefon,
                     KorisnickoIme = request.KorisnickoIme,
-                    SlikaPutanja = request.SlikaPutanja,
                     LozinkaHash = HashPassword(request.Lozinka),
                     LozinkaSalt = string.Empty,
                     Aktivan = true
@@ -269,8 +294,6 @@ namespace DogShelter.Services.Services
             entity.Email = request.Email;
             entity.Telefon = request.Telefon;
             entity.KorisnickoIme = request.KorisnickoIme;
-            if (!string.IsNullOrEmpty(request.SlikaPutanja))
-                entity.SlikaPutanja = request.SlikaPutanja;
 
             await _context.SaveChangesAsync();
             return await GetById(userId);
@@ -287,6 +310,7 @@ namespace DogShelter.Services.Services
 
             entity.LozinkaHash = HashPassword(request.NovaLozinka);
             entity.LozinkaSalt = string.Empty;
+            entity.SigurnosniPecat = Guid.NewGuid();
             await _context.SaveChangesAsync();
         }
 
@@ -316,6 +340,20 @@ namespace DogShelter.Services.Services
                 ?? throw new NotFoundException("Korisnik nema postavljenu sliku.");
 
             return (fullPath, _fileUpload.GetContentType(fullPath));
+        }
+
+        // The generic Uloge/UlogeZaBrisanje lists let an admin assign or remove ANY role by name -
+        // including "Volonter", bypassing the profile<->role sync VolonterService.Update()
+        // maintains. Blocking it here entirely keeps VolonterService the single place that
+        // mutates that role, instead of re-checking Volonter.Aktivan in two places.
+        private static void EnsureNoDirectVolonterRoleChange(IEnumerable<string> uloge, IEnumerable<string> ulogeZaBrisanje)
+        {
+            var touchesVolonter = uloge.Any(u => string.Equals(u, RoleNames.Volonter, StringComparison.OrdinalIgnoreCase))
+                || ulogeZaBrisanje.Any(u => string.Equals(u, RoleNames.Volonter, StringComparison.OrdinalIgnoreCase));
+
+            if (touchesVolonter)
+                throw new BusinessException(
+                    "Uloga 'Volonter' se ne može dodijeliti niti ukloniti odavde. Upravljajte volonterskim statusom kroz sekciju Volonteri (kreiranje/aktivacija/deaktivacija profila).");
         }
 
         public static string HashPassword(string password)

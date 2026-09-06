@@ -35,6 +35,11 @@ class UdomljavanjeReportContent extends StatelessWidget {
             children: [
               for (final r in data.najcescePoRasi.take(8))
                 Chip(label: Text('${r.rasa} (${r.broj})'), backgroundColor: const Color(0xFFF3F4F6)),
+              if (data.najcescePoRasi.length > 8)
+                Chip(
+                  label: Text('+${data.najcescePoRasi.length - 8} ostalih'),
+                  backgroundColor: const Color(0xFFF3F4F6),
+                ),
             ],
           ),
         const SizedBox(height: 12),

@@ -16,6 +16,7 @@ import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/cover_image_picker.dart';
 import '../../../widgets/dashed_dropzone.dart';
 import '../../../widgets/date_input_field.dart';
@@ -81,6 +82,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
   int? _rasaId;
   int? _statusPsaId;
   int? _velicinaPsaId;
+  int? _nivoAktivnostiId;
   Spol _spol = Spol.muzjak;
   DateTime? _datumRodjenja;
   late DateTime _datumPrijema;
@@ -100,7 +102,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
 
   @override
   List<String> get fieldOrder =>
-      const ['naziv', 'rasaId', 'statusPsaId', 'velicinaPsaId', 'datumPrijema', 'coverImage'];
+      const ['naziv', 'rasaId', 'statusPsaId', 'velicinaPsaId', 'nivoAktivnostiId', 'datumPrijema', 'coverImage'];
 
   bool get _isEdit => widget.pasId != null;
 
@@ -111,6 +113,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
     _rasaId = initial?.rasaId;
     _statusPsaId = initial?.statusPsaId;
     _velicinaPsaId = initial?.velicinaPsaId;
+    _nivoAktivnostiId = initial?.nivoAktivnostiId;
     _spol = initial?.spol ?? Spol.muzjak;
     _datumRodjenja = initial?.datumRodjenja;
     _datumPrijema = initial?.datumPrijema ?? DateTime.now();
@@ -133,14 +136,20 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
     final path = result?.files.single.path;
     if (path == null) return;
     clearFieldError('coverImage');
-    setState(() => _newCoverImage = File(path));
+    setState(() {
+      _newCoverImage = File(path);
+      _submitError = null;
+    });
   }
 
   Future<void> _pickPendingGalleryImage() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     final path = result?.files.single.path;
     if (path == null) return;
-    setState(() => _pendingGalleryImages.add(File(path)));
+    setState(() {
+      _pendingGalleryImages.add(File(path));
+      _submitError = null;
+    });
   }
 
   Future<void> _pickDate({required bool isDatumRodjenja}) async {
@@ -168,6 +177,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
     if (_rasaId == null) errors['rasaId'] = 'Rasa je obavezna.';
     if (_statusPsaId == null) errors['statusPsaId'] = 'Status je obavezan.';
     if (_velicinaPsaId == null) errors['velicinaPsaId'] = 'Veličina je obavezna.';
+    if (_nivoAktivnostiId == null) errors['nivoAktivnostiId'] = 'Nivo aktivnosti je obavezan.';
     if (!_isEdit && _newCoverImage == null) errors['coverImage'] = 'Naslovna slika je obavezna.';
 
     if (errors.isNotEmpty) {
@@ -185,6 +195,7 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
       opis: _opisController.text.trim(),
       statusPsaId: _statusPsaId!,
       velicinaPsaId: _velicinaPsaId!,
+      nivoAktivnostiId: _nivoAktivnostiId!,
       tezina: tezinaText.isEmpty ? null : double.tryParse(tezinaText),
       datumPrijema: _datumPrijema,
       vakcinisan: _vakcinisan,
@@ -389,6 +400,33 @@ class _PsiFormBodyState extends ConsumerState<_PsiFormBody> with FormErrorScroll
                 ],
               ),
               const SizedBox(height: 12),
+              LabeledField(
+                key: keyFor('nivoAktivnostiId'),
+                label: 'Nivo aktivnosti',
+                errorText: fieldErrors['nivoAktivnostiId'],
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final lookupsAsync = ref.watch(psiFormLookupsProvider);
+                    return lookupsAsync.when(
+                      loading: () => const LinearProgressIndicator(),
+                      error: (e, _) => Text('Greška: $e'),
+                      data: (lookups) => DropdownButtonFormField<int>(
+                        initialValue: _nivoAktivnostiId,
+                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                        items: [
+                          for (final nivo in lookups.nivoiAktivnosti)
+                            DropdownMenuItem(value: nivo.nivoAktivnostiId, child: Text(nivo.naziv)),
+                        ],
+                        onChanged: (value) => setState(() {
+                          _nivoAktivnostiId = value;
+                          clearFieldError('nivoAktivnostiId');
+                        }),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -510,18 +548,13 @@ class _GallerySection extends ConsumerWidget {
   }
 
   Future<void> _removeImage(BuildContext context, WidgetRef ref, SlikaPsa slika) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: const Text('Da li želite obrisati ovu sliku iz galerije?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li želite obrisati ovu sliku iz galerije?',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     await ref.read(psiGalleryProvider(pasId).notifier).remove(slika.slikaPsaId);
   }
 
