@@ -23,6 +23,9 @@ public class PasUpdateRequest
     [Required]
     public int VelicinaPsaId { get; set; }
 
+    [Required]
+    public int NivoAktivnostiId { get; set; }
+
     [Range(0.1, 200)]
     public decimal? Tezina { get; set; }
 

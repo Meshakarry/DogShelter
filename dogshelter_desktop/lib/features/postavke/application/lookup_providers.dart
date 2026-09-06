@@ -36,7 +36,7 @@ class LookupListNotifier extends PagedListNotifier<LookupItem> {
 }
 
 final lookupListProvider =
-    StateNotifierProvider.family<LookupListNotifier, AsyncValue<PagedResult<LookupItem>>, LookupTableConfig>(
+    StateNotifierProvider.autoDispose.family<LookupListNotifier, AsyncValue<PagedResult<LookupItem>>, LookupTableConfig>(
         (ref, config) {
   return LookupListNotifier(ref.watch(lookupApiProvider(config)));
 });

@@ -128,7 +128,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const LookupDetailPage(
               title: 'Status psa',
               child: SimpleLookupCrudScreen(
-                config: LookupTableConfig(path: '/api/StatusPsa', idKey: 'statusPsaId', label: 'status psa'),
+                config: LookupTableConfig(
+                  path: '/api/StatusPsa',
+                  idKey: 'statusPsaId',
+                  label: 'status psa',
+                  protectedNazivi: {'Dostupan', 'Rezervisan', 'Udomljen'},
+                ),
               ),
             ),
           ),
@@ -142,11 +147,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/postavke/nivo-aktivnosti',
+            builder: (context, state) => const LookupDetailPage(
+              title: 'Nivo aktivnosti',
+              child: SimpleLookupCrudScreen(
+                config: LookupTableConfig(path: '/api/NivoAktivnosti', idKey: 'nivoAktivnostiId', label: 'nivo aktivnosti'),
+              ),
+            ),
+          ),
+          GoRoute(
             path: '/postavke/tip-donacije',
             builder: (context, state) => const LookupDetailPage(
               title: 'Tip donacije',
               child: SimpleLookupCrudScreen(
-                config: LookupTableConfig(path: '/api/TipDonacije', idKey: 'tipDonacijeId', label: 'tip donacije'),
+                config: LookupTableConfig(
+                  path: '/api/TipDonacije',
+                  idKey: 'tipDonacijeId',
+                  label: 'tip donacije',
+                  protectedNazivi: {'Novčana', 'Materijalna'},
+                ),
               ),
             ),
           ),
@@ -195,7 +214,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const LookupDetailPage(
               title: 'Status zahtjeva za udomljavanje',
               child: SimpleLookupCrudScreen(
-                config: LookupTableConfig(path: '/api/StatusZahtjeva', idKey: 'statusZahtjevaId', label: 'status zahtjeva'),
+                config: LookupTableConfig(
+                  path: '/api/StatusZahtjeva',
+                  idKey: 'statusZahtjevaId',
+                  label: 'status zahtjeva',
+                  protectedNazivi: {'Na čekanju', 'Odobren', 'Odbijen', 'Otkazan'},
+                ),
               ),
             ),
           ),
@@ -204,7 +228,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const LookupDetailPage(
               title: 'Status posjete',
               child: SimpleLookupCrudScreen(
-                config: LookupTableConfig(path: '/api/StatusPosjete', idKey: 'statusPosjeteId', label: 'status posjete'),
+                config: LookupTableConfig(
+                  path: '/api/StatusPosjete',
+                  idKey: 'statusPosjeteId',
+                  label: 'status posjete',
+                  protectedNazivi: {'Na čekanju', 'Potvrđena', 'Otkazana', 'Završena'},
+                ),
               ),
             ),
           ),
@@ -213,7 +242,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const LookupDetailPage(
               title: 'Status donacije',
               child: SimpleLookupCrudScreen(
-                config: LookupTableConfig(path: '/api/StatusDonacije', idKey: 'statusDonacijeId', label: 'status donacije'),
+                config: LookupTableConfig(
+                  path: '/api/StatusDonacije',
+                  idKey: 'statusDonacijeId',
+                  label: 'status donacije',
+                  protectedNazivi: {'Na čekanju', 'Uspješna', 'Neuspješna', 'Vraćena'},
+                ),
               ),
             ),
           ),
@@ -222,7 +256,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const LookupDetailPage(
               title: 'Uloge korisnika',
               child: SimpleLookupCrudScreen(
-                config: LookupTableConfig(path: '/api/Uloga', idKey: 'ulogaId', label: 'uloga'),
+                config: LookupTableConfig(
+                  path: '/api/Uloga',
+                  idKey: 'ulogaId',
+                  label: 'uloga',
+                  protectedNazivi: {'Admin', 'Volonter', 'Korisnik'},
+                ),
               ),
             ),
           ),

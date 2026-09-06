@@ -41,10 +41,18 @@ class ZahtjevZaUdomljavanjeApi {
     return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
   }
 
-  /// Admin-only: flips the request to Odobren, the dog to Udomljen, and creates the
-  /// resulting Udomljavanje row - all server-side, atomically.
+  /// Admin-only: flips the request to Odobren and reserves the dog (StatusPsa -> Rezervisan) -
+  /// the dog isn't marked Udomljen yet. Call finalizirajUdomljenje separately to complete the
+  /// adoption once it's actually finalized.
   Future<ZahtjevZaUdomljavanje> odobri(int id) async {
     final json = await _client.post('/api/ZahtjevZaUdomljavanje/$id/odobri');
+    return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
+  }
+
+  /// Admin-only, second step after odobri(): moves the reserved dog to Udomljen and creates the
+  /// Udomljavanje record. Only valid while the request is Odobren and the dog is Rezervisan.
+  Future<ZahtjevZaUdomljavanje> finalizirajUdomljenje(int id) async {
+    final json = await _client.post('/api/ZahtjevZaUdomljavanje/$id/finalizuj');
     return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
   }
 

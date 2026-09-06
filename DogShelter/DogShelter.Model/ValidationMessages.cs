@@ -42,7 +42,6 @@ namespace DogShelter.Model
         public const string PrilagodjenNazivMaxLength = "Naziv stavke može imati najviše 200 karaktera.";
         public const string KolicinaRange = "Količina mora biti veća od 0.";
         public const string AdresaPreuzimanjaMaxLength = "Adresa može imati najviše 255 karaktera.";
-        public const string TelefonPreuzimanjaMaxLength = "Broj telefona može imati najviše 30 karaktera.";
         // Volonter
         public const string DatumPridruzivanjaRequired = "Datum pridruživanja je obavezan.";
         public const string VolonterNapomenaMaxLength = "Napomena može imati najviše 500 karaktera.";

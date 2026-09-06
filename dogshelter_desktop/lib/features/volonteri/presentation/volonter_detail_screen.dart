@@ -10,6 +10,7 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/detail_row.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/status_colors.dart';
@@ -51,18 +52,13 @@ class VolonterDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _removeAktivnost(BuildContext context, WidgetRef ref, AktivnostVolontera aktivnost) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: const Text('Da li želite obrisati ovu aktivnost?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li želite obrisati ovu aktivnost?',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await ref.read(volonterAktivnostiProvider(id).notifier).remove(aktivnost.aktivnostVolonteraId);

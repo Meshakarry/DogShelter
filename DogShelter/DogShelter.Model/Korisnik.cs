@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace DogShelter.Model;
 
 public class Korisnik
@@ -14,4 +16,9 @@ public class Korisnik
     public string? SlikaPutanja { get; set; }
     public DateTime DatumRegistracije { get; set; }
     public ICollection<KorisnikUloga> KorisnikUloge { get; set; } = null!;
+
+    // Server-internal only (JwtTokenGenerator embeds it in the "sst" claim) - never serialized
+    // into an API response.
+    [JsonIgnore]
+    public Guid SigurnosniPecat { get; set; }
 }

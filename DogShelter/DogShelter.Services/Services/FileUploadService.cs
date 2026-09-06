@@ -11,6 +11,9 @@ public class FileUploadService : IFileUploadService
 
     private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
 
+    private static readonly string[] AllowedContentTypes =
+        ["image/jpeg", "image/pjpeg", "image/png", "image/webp"];
+
     // Magic byte signatures: (offset, bytes)
     private static readonly (int Offset, byte[] Signature, string Type)[] Signatures =
     [
@@ -43,8 +46,9 @@ public class FileUploadService : IFileUploadService
         if (string.IsNullOrWhiteSpace(relativePath)) return;
 
         // relativePath is like /images/psi/abc.jpg
-        var fullPath = Path.Combine(_env.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        if (File.Exists(fullPath))
+        var combined = Path.Combine(_env.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        var fullPath = ResolveWithinRoot(_env.WebRootPath, combined);
+        if (fullPath != null && File.Exists(fullPath))
             File.Delete(fullPath);
     }
 
@@ -73,8 +77,22 @@ public class FileUploadService : IFileUploadService
     {
         if (string.IsNullOrWhiteSpace(relativePath)) return null;
 
-        var fullPath = Path.Combine(_env.ContentRootPath, "PrivateFiles", relativePath.Replace('/', Path.DirectorySeparatorChar));
-        return File.Exists(fullPath) ? fullPath : null;
+        var root = Path.Combine(_env.ContentRootPath, "PrivateFiles");
+        var combined = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        var fullPath = ResolveWithinRoot(root, combined);
+        return fullPath != null && File.Exists(fullPath) ? fullPath : null;
+    }
+
+    // relativePath ultimately comes from a database column (Korisnik.SlikaPutanja) that, while no
+    // longer directly client-settable (see RegisterRequest/KorisnikUpdateRequest etc.), is still
+    // worth defending in depth here: Path.GetFullPath collapses any "../" segments, and the result
+    // is only accepted if it's still inside root - so a crafted or corrupted value can't be used to
+    // read or delete a file anywhere else on disk.
+    private static string? ResolveWithinRoot(string root, string combinedPath)
+    {
+        var normalizedRoot = Path.GetFullPath(root + Path.DirectorySeparatorChar);
+        var fullPath = Path.GetFullPath(combinedPath);
+        return fullPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase) ? fullPath : null;
     }
 
     public string GetContentType(string relativePath) => Path.GetExtension(relativePath).ToLowerInvariant() switch
@@ -92,6 +110,11 @@ public class FileUploadService : IFileUploadService
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(ext))
             throw new ValidationException($"Dozvoljeni formati: {string.Join(", ", AllowedExtensions)}.");
+
+        // Declared Content-Type is trivially spoofable on its own, same as the extension - it's
+        // checked alongside (not instead of) the magic-byte sniff below, as a cheap extra layer.
+        if (string.IsNullOrWhiteSpace(file.ContentType) || !AllowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+            throw new ValidationException("Nevažeći MIME tip datoteke.");
 
         await ValidateMagicBytesAsync(file);
 

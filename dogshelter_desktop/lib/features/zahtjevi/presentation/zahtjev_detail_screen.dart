@@ -9,12 +9,14 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/zahtjev_za_udomljavanje.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/detail_row.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/zahtjevi_providers.dart';
 
 const _naCekanju = 'Na čekanju';
+const _odobren = 'Odobren';
 
 
 /// Dedicated /zahtjevi/:id page - image+name header, status pill, label/value rows, and an
@@ -31,25 +33,37 @@ class ZahtjevDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _odobri(BuildContext context, WidgetRef ref, ZahtjevZaUdomljavanje zahtjev) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Odobri zahtjev'),
-        content: Text(
-          'Zahtjev za udomljavanje psa "${zahtjev.pasNaziv}" će biti odobren, a pas označen kao udomljen. Nastaviti?',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Odobri')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Odobri zahtjev',
+      message:
+          'Zahtjev za udomljavanje psa "${zahtjev.pasNaziv}" će biti odobren, a pas rezervisan za ovog korisnika. Udomljenje se finalizira posebnim korakom kada bude spremno. Nastaviti?',
+      confirmLabel: 'Odobri',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await ref.read(zahtjevListProvider.notifier).odobri(zahtjev.zahtjevZaUdomljavanjeId);
       ref.invalidate(zahtjevDetailProvider(id));
       if (context.mounted) _showMessage(context, 'Zahtjev je odobren.');
+    } catch (e) {
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
+    }
+  }
+
+  Future<void> _finalizirajUdomljenje(BuildContext context, WidgetRef ref, ZahtjevZaUdomljavanje zahtjev) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Finaliziraj udomljenje',
+      message: 'Pas "${zahtjev.pasNaziv}" će biti označen kao udomljen, a udomljavanje zabilježeno. Nastaviti?',
+      confirmLabel: 'Finaliziraj',
+    );
+    if (!confirmed) return;
+
+    try {
+      await ref.read(zahtjevListProvider.notifier).finalizirajUdomljenje(zahtjev.zahtjevZaUdomljavanjeId);
+      ref.invalidate(zahtjevDetailProvider(id));
+      if (context.mounted) _showMessage(context, 'Udomljavanje je finalizovano.');
     } catch (e) {
       if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
     }
@@ -98,6 +112,10 @@ class ZahtjevDetailScreen extends ConsumerWidget {
             data: (zahtjev) {
               final colors = zahtjevStatusColors(zahtjev.statusZahtjevaNaziv ?? '');
               final isPending = zahtjev.statusZahtjevaNaziv == _naCekanju;
+              final isApproved = zahtjev.statusZahtjevaNaziv == _odobren;
+              final needsFinalizing = isApproved && !zahtjev.udomljenjeFinalizovano;
+              final pasOk = zahtjev.pasAktivan && zahtjev.pasStatusNaziv == 'Dostupan';
+              final canApprove = isPending && pasOk;
               final imageUrl = resolveImageUrl(zahtjev.pasSlikaNaslovna, Environment.apiBaseUrl);
 
               return Center(
@@ -208,39 +226,73 @@ class ZahtjevDetailScreen extends ConsumerWidget {
                               ],
                             ],
                             const SizedBox(height: 28),
-                            if (!isPending)
+                            if (isPending && !pasOk)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Text(
-                                  'Zahtjev je već obrađen (status: ${zahtjev.statusZahtjevaNaziv}) i ne može se ponovo odobriti niti odbiti.',
+                                  'Pas "${zahtjev.pasNaziv}" trenutno nije dostupan (status: ${zahtjev.pasStatusNaziv ?? "nepoznat"}) - zahtjev se ne može odobriti, ali se i dalje može odbiti.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Theme.of(context).colorScheme.error),
+                                ),
+                              ),
+                            if (!isPending && !isApproved)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'Zahtjev je već obrađen (status: ${zahtjev.statusZahtjevaNaziv}) i ne može se ponovo obrađivati.',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
                                       ?.copyWith(color: Theme.of(context).colorScheme.outline),
                                 ),
                               ),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: isPending ? () => _odbij(context, ref, zahtjev) : null,
-                                    icon: Icon(
-                                      Icons.cancel_outlined,
-                                      color: isPending ? zahtjevStatusColors('Odbijen').foreground : null,
+                            if (isApproved)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  needsFinalizing
+                                      ? 'Zahtjev je odobren, pas "${zahtjev.pasNaziv}" je rezervisan. Finalizirajte udomljenje kad je stvarno preuzeto.'
+                                      : 'Udomljavanje psa "${zahtjev.pasNaziv}" je finalizovano.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                ),
+                              ),
+                            if (needsFinalizing)
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  onPressed: () => _finalizirajUdomljenje(context, ref, zahtjev),
+                                  icon: const Icon(Icons.home_outlined),
+                                  label: const Text('Finaliziraj udomljenje'),
+                                ),
+                              )
+                            else if (!isApproved)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: isPending ? () => _odbij(context, ref, zahtjev) : null,
+                                      icon: Icon(
+                                        Icons.cancel_outlined,
+                                        color: isPending ? zahtjevStatusColors('Odbijen').foreground : null,
+                                      ),
+                                      label: const Text('Odbij'),
                                     ),
-                                    label: const Text('Odbij'),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: FilledButton.icon(
-                                    onPressed: isPending ? () => _odobri(context, ref, zahtjev) : null,
-                                    icon: const Icon(Icons.check_circle_outline),
-                                    label: const Text('Odobri'),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: canApprove ? () => _odobri(context, ref, zahtjev) : null,
+                                      icon: const Icon(Icons.check_circle_outline),
+                                      label: const Text('Odobri'),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                           ],
                         ),
                       ),

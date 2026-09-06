@@ -32,7 +32,8 @@ namespace DogShelter.Security
             {
                 new Claim(ClaimTypes.NameIdentifier, user.KorisnikId.ToString()),
                 new Claim(ClaimTypes.Name, user.KorisnickoIme),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("sst", user.SigurnosniPecat.ToString())
             };
 
             if (user.KorisnikUloge != null)

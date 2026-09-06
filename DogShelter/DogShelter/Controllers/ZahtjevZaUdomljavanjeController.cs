@@ -49,6 +49,11 @@ public class ZahtjevZaUdomljavanjeController : ControllerBase
     public async Task<ZahtjevZaUdomljavanje> Odobri(int ID)
         => await _service.Odobri(ID, GetCurrentKorisnikId());
 
+    [HttpPost("{ID:int}/finalizuj")]
+    [Authorize(Roles = RoleNames.Admin)]
+    public async Task<ZahtjevZaUdomljavanje> FinalizirajUdomljenje(int ID)
+        => await _service.FinalizirajUdomljenje(ID, GetCurrentKorisnikId());
+
     [HttpPost("{ID:int}/odbij")]
     [Authorize(Roles = RoleNames.Admin)]
     public async Task<ZahtjevZaUdomljavanje> Odbij(int ID, [FromBody] ZahtjevZaUdomljavanjeOdbijRequest request)

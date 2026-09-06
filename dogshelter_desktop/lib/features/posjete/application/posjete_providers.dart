@@ -35,10 +35,15 @@ final posjetaKorisnikOptionsProvider = FutureProvider.autoDispose<List<Korisnik>
       .toList();
 });
 
-/// Backs the walk-in booking dialog's optional Pas dropdown.
+/// Backs the walk-in booking dialog's optional Pas dropdown. Filtered to Aktivan+Dostupan for the
+/// same reason PosjetaService.EnsurePasAvailableForVisitAsync only accepts a Dostupan dog
+/// server-side (see that method's comment) - a walk-in visit shouldn't be booked for a dog
+/// that's reserved, adopted, in treatment, or deactivated, and the picker shouldn't offer one
+/// only to have the booking rejected server-side. The endpoint is called as Admin, so the
+/// server doesn't apply its own non-admin Aktivan filter here - this has to filter client-side.
 final posjetaDogOptionsProvider = FutureProvider.autoDispose<List<PasListItem>>((ref) async {
   final result = await ref.watch(posjetaPasApiProvider).getDogs(page: 1, pageSize: 100);
-  return result.items;
+  return result.items.where((p) => p.aktivan && p.statusNaziv == 'Dostupan').toList();
 });
 
 /// Exact taken DatumVrijeme values for a given day - backs the walk-in booking dialog's time

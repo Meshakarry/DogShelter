@@ -9,6 +9,7 @@ import '../../../core/app_theme.dart';
 import '../../../core/paged_list_notifier.dart';
 import '../data/lookup_api.dart';
 import '../domain/lookup_item.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 
@@ -113,7 +114,7 @@ class PotrebaAzilaListNotifier extends PagedListNotifier<PotrebaAzila> {
 }
 
 final potrebaAzilaListProvider =
-    StateNotifierProvider<PotrebaAzilaListNotifier, AsyncValue<PagedResult<PotrebaAzila>>>((ref) {
+    StateNotifierProvider.autoDispose<PotrebaAzilaListNotifier, AsyncValue<PagedResult<PotrebaAzila>>>((ref) {
   return PotrebaAzilaListNotifier(ref.watch(potrebaAzilaApiProvider));
 });
 
@@ -162,18 +163,13 @@ class _PotrebaAzilaCrudScreenState extends ConsumerState<PotrebaAzilaCrudScreen>
   }
 
   Future<void> _confirmDelete(PotrebaAzila item) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text('Da li ste sigurni da želite obrisati potrebu "${item.naziv}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Obriši')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li ste sigurni da želite obrisati potrebu "${item.naziv}"?',
+      confirmLabel: 'Obriši',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     try {
       await ref.read(potrebaAzilaListProvider.notifier).remove(item.id);
       _showMessage('Potreba azila je obrisana.');

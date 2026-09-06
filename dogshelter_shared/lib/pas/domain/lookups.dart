@@ -30,3 +30,14 @@ class VelicinaPsa {
     return VelicinaPsa(velicinaPsaId: json['velicinaPsaId'] as int, naziv: json['naziv'] as String);
   }
 }
+
+class NivoAktivnosti {
+  NivoAktivnosti({required this.nivoAktivnostiId, required this.naziv});
+
+  final int nivoAktivnostiId;
+  final String naziv;
+
+  factory NivoAktivnosti.fromJson(Map<String, dynamic> json) {
+    return NivoAktivnosti(nivoAktivnostiId: json['nivoAktivnostiId'] as int, naziv: json['naziv'] as String);
+  }
+}

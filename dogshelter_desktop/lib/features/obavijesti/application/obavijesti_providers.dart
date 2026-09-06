@@ -45,7 +45,7 @@ class ObavijestListNotifier extends PagedListNotifier<ObavijestListItem> {
 }
 
 final obavijestListProvider =
-    StateNotifierProvider<ObavijestListNotifier, AsyncValue<PagedResult<ObavijestListItem>>>((ref) {
+    StateNotifierProvider.autoDispose<ObavijestListNotifier, AsyncValue<PagedResult<ObavijestListItem>>>((ref) {
   return ObavijestListNotifier(ref.watch(obavijestApiProvider));
 });
 

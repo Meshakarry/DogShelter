@@ -26,6 +26,11 @@ public partial class Korisnik
 
     public string? SlikaPutanja { get; set; }
 
+    // Bumped on any security-sensitive change (password change, role change, deactivation) so
+    // JWTs issued before that change stop validating even though they haven't expired yet - see
+    // Program.cs OnTokenValidated. Not client-readable/writable through any request DTO.
+    public Guid SigurnosniPecat { get; set; } = Guid.NewGuid();
+
     public DateTime DatumRegistracije { get; set; }
 
     public virtual ICollection<Donacija> DonacijaKorisniks { get; set; } = new List<Donacija>();
@@ -47,6 +52,10 @@ public partial class Korisnik
     public virtual ICollection<Posjeta> PosjetaObradioKorisniks { get; set; } = new List<Posjeta>();
 
     public virtual ICollection<PregledPsa> PregledPsas { get; set; } = new List<PregledPsa>();
+
+    public virtual ICollection<Favorit> Favoriti { get; set; } = new List<Favorit>();
+
+    public virtual ICollection<PretragaLog> PretragaLogs { get; set; } = new List<PretragaLog>();
 
     public virtual ICollection<RevokedToken> RevokedTokens { get; set; } = new List<RevokedToken>();
 

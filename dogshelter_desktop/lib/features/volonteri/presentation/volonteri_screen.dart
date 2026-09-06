@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:dogshelter_shared/auth/domain/korisnik.dart';
 import 'package:dogshelter_shared/core/api_exception.dart';
+import 'package:dogshelter_shared/core/validators.dart';
 import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/volonter/domain/volonter.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
@@ -40,16 +42,21 @@ class _VolonteriScreenState extends ConsumerState<VolonteriScreen> {
   }
 
   Future<void> _openCreateDialog() async {
+    final korisnikOptions = await ref.read(volonterKorisnikOptionsProvider.future);
+    if (!mounted) return;
+
     final result = await showDialog<_VolonterFormResult>(
       context: context,
-      builder: (context) => const _VolonterFormDialog(existing: null),
+      builder: (context) => _VolonterFormDialog(existing: null, korisnikOptions: korisnikOptions),
     );
     if (result == null || !mounted) return;
 
     try {
-      final korisnik = await ref.read(volonterFormApiProvider).insert(result.korisnik!);
+      // "Postojeći korisnik" mode already has a KorisnikId - only "Novi korisnik" mode needs the
+      // account created first.
+      final korisnikId = result.existingKorisnikId ?? (await ref.read(volonterFormApiProvider).insert(result.korisnik!)).korisnikId;
       await ref.read(volonterListProvider.notifier).create(
-            korisnikId: korisnik.korisnikId,
+            korisnikId: korisnikId,
             datumPridruzivanja: result.datumPridruzivanja,
             napomena: result.napomena,
           );
@@ -62,7 +69,7 @@ class _VolonteriScreenState extends ConsumerState<VolonteriScreen> {
   Future<void> _openEditDialog(Volonter volonter) async {
     final result = await showDialog<_VolonterFormResult>(
       context: context,
-      builder: (context) => _VolonterFormDialog(existing: volonter),
+      builder: (context) => _VolonterFormDialog(existing: volonter, korisnikOptions: const []),
     );
     if (result == null || !mounted) return;
 
@@ -190,18 +197,34 @@ class _VolonteriScreenState extends ConsumerState<VolonteriScreen> {
 }
 
 class _VolonterFormResult {
-  const _VolonterFormResult({this.korisnik, required this.datumPridruzivanja, required this.aktivan, this.napomena});
+  const _VolonterFormResult({
+    this.korisnik,
+    this.existingKorisnikId,
+    required this.datumPridruzivanja,
+    required this.aktivan,
+    this.napomena,
+  });
 
+  /// Set in "Novi korisnik" mode - a brand-new account is created first.
   final KorisnikFormData? korisnik;
+
+  /// Set in "Postojeći korisnik" mode - an existing account is promoted directly, no new
+  /// Korisnik row.
+  final int? existingKorisnikId;
+
   final DateTime datumPridruzivanja;
   final bool aktivan;
   final String? napomena;
 }
 
 class _VolonterFormDialog extends StatefulWidget {
-  const _VolonterFormDialog({required this.existing});
+  const _VolonterFormDialog({required this.existing, required this.korisnikOptions});
 
   final Volonter? existing;
+
+  /// Active, non-Admin, not-already-Volonter users - only meaningful (and only fetched) when
+  /// `existing` is null, i.e. the "Dodaj volontera" dialog.
+  final List<Korisnik> korisnikOptions;
 
   @override
   State<_VolonterFormDialog> createState() => _VolonterFormDialogState();
@@ -219,12 +242,15 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> with FormError
 
   late DateTime _datumPridruzivanja;
   late bool _aktivan;
+  bool _existingMode = false;
+  int? _selectedKorisnikId;
 
   @override
   final errorScrollController = ScrollController();
 
   @override
-  List<String> get fieldOrder => const ['ime', 'prezime', 'email', 'korisnickoIme', 'lozinka', 'lozinkaPotvrda'];
+  List<String> get fieldOrder =>
+      const ['korisnik', 'ime', 'prezime', 'email', 'korisnickoIme', 'telefon', 'lozinka', 'lozinkaPotvrda'];
 
   bool get _isEdit => widget.existing != null;
 
@@ -271,18 +297,41 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> with FormError
       return;
     }
 
+    if (_existingMode) {
+      if (_selectedKorisnikId == null) {
+        applyValidationErrors({'korisnik': 'Odaberite korisnika.'});
+        return;
+      }
+      clearAllFieldErrors();
+      Navigator.of(context).pop(_VolonterFormResult(
+        existingKorisnikId: _selectedKorisnikId,
+        datumPridruzivanja: _datumPridruzivanja,
+        aktivan: true,
+        napomena: napomena.isEmpty ? null : napomena,
+      ));
+      return;
+    }
+
     final ime = _imeController.text.trim();
     final prezime = _prezimeController.text.trim();
     final email = _emailController.text.trim();
+    final telefon = _telefonController.text.trim();
     final korisnickoIme = _korisnickoImeController.text.trim();
     final lozinka = _lozinkaController.text;
 
     final errors = <String, String>{};
     if (ime.isEmpty) errors['ime'] = 'Ime je obavezno.';
     if (prezime.isEmpty) errors['prezime'] = 'Prezime je obavezno.';
-    if (email.isEmpty) errors['email'] = 'Email je obavezan.';
+    final emailError = Validators.email(email);
+    if (emailError != null) errors['email'] = emailError;
+    final telefonError = Validators.phone(telefon);
+    if (telefonError != null) errors['telefon'] = telefonError;
     if (korisnickoIme.isEmpty) errors['korisnickoIme'] = 'Korisničko ime je obavezno.';
-    if (lozinka.isEmpty) errors['lozinka'] = 'Lozinka je obavezna.';
+    if (lozinka.isEmpty) {
+      errors['lozinka'] = 'Lozinka je obavezna.';
+    } else if (lozinka.length < 6) {
+      errors['lozinka'] = 'Lozinka mora imati najmanje 6 znakova.';
+    }
     if (lozinka.isNotEmpty && lozinka != _lozinkaPotvrdaController.text) {
       errors['lozinkaPotvrda'] = 'Lozinke se ne podudaraju.';
     }
@@ -297,11 +346,15 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> with FormError
         ime: ime,
         prezime: prezime,
         email: email,
-        telefon: _telefonController.text.trim().isEmpty ? null : _telefonController.text.trim(),
+        telefon: telefon.isEmpty ? null : telefon,
         korisnickoIme: korisnickoIme,
         lozinka: lozinka,
         lozinkaPotvrda: _lozinkaPotvrdaController.text,
-        uloge: const ['Volonter'],
+        // Not 'Volonter' here - KorisnikService.Insert() (this creates the bare account) rejects
+        // that role outright (see KorisnikService.EnsureNoDirectVolonterRoleChange); the caller's
+        // follow-up volonterListProvider.create() call is what actually attaches the role, via
+        // VolonterService.Insert()'s own dedicated path.
+        uloge: const [],
       ),
       datumPridruzivanja: _datumPridruzivanja,
       aktivan: true,
@@ -328,6 +381,50 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> with FormError
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!isEdit) ...[
+                // Previously this dialog always created a brand-new Korisnik - no way to
+                // promote an existing one. The toggle below picks which mode applies.
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Novi korisnik'), icon: Icon(Icons.person_add_outlined)),
+                    ButtonSegment(
+                        value: true, label: Text('Postojeći korisnik'), icon: Icon(Icons.person_search_outlined)),
+                  ],
+                  selected: {_existingMode},
+                  onSelectionChanged: (selection) => setState(() {
+                    _existingMode = selection.first;
+                    clearAllFieldErrors();
+                  }),
+                ),
+                const SizedBox(height: 12),
+                if (_existingMode) ...[
+                  LabeledField(
+                    label: 'Korisnik',
+                    key: keyFor('korisnik'),
+                    errorText: fieldErrors['korisnik'],
+                    child: widget.korisnikOptions.isEmpty
+                        ? const Text(
+                            'Nema dostupnih korisnika za promociju u volontera (svi aktivni korisnici su već '
+                            'volonteri/admini, ili nema aktivnih korisnika).',
+                          )
+                        : DropdownButtonFormField<int>(
+                            initialValue: _selectedKorisnikId,
+                            decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Odaberite korisnika'),
+                            items: [
+                              for (final korisnik in widget.korisnikOptions)
+                                DropdownMenuItem(
+                                  value: korisnik.korisnikId,
+                                  child: Text('${korisnik.ime} ${korisnik.prezime} (${korisnik.korisnickoIme})'),
+                                ),
+                            ],
+                            onChanged: (value) => setState(() {
+                              _selectedKorisnikId = value;
+                              clearFieldError('korisnik');
+                            }),
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (!_existingMode) ...[
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -372,10 +469,13 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> with FormError
                 ),
                 const SizedBox(height: 12),
                 LabeledField(
+                  key: keyFor('telefon'),
                   label: 'Telefon',
                   required: false,
+                  errorText: fieldErrors['telefon'],
                   child: TextField(
                     controller: _telefonController,
+                    onChanged: (_) => clearFieldError('telefon'),
                     decoration: const InputDecoration(border: OutlineInputBorder()),
                   ),
                 ),
@@ -424,6 +524,7 @@ class _VolonterFormDialogState extends State<_VolonterFormDialog> with FormError
                   ],
                 ),
                 const SizedBox(height: 12),
+                ],
               ],
               LabeledField(
                 label: 'Datum pridruživanja',

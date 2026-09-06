@@ -1,8 +1,21 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart' show lookupMimeType;
 
 import 'api_exception.dart';
+
+/// Builds a multipart file part with its content-type set from the file's extension.
+///
+/// `http.MultipartFile.fromPath` does NOT do this itself - per its own doc comment, it defaults
+/// to `application/octet-stream` unless `contentType` is passed explicitly. The backend's upload
+/// validation (`FileUploadService`) rejects anything outside image/jpeg|png|webp, so every image
+/// upload call site must use this helper instead of calling `MultipartFile.fromPath` directly.
+Future<http.MultipartFile> imageMultipartFile(String field, String path) {
+  final mimeType = lookupMimeType(path) ?? 'application/octet-stream';
+  return http.MultipartFile.fromPath(field, path, contentType: MediaType.parse(mimeType));
+}
 
 class ApiClient {
   ApiClient({required this.baseUrl, required this.getToken, required this.onUnauthorized}) : _client = http.Client();

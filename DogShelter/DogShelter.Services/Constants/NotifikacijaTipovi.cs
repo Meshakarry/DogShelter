@@ -6,6 +6,7 @@ public static class NotifikacijaTipovi
     public const string ZahtjevOdobren = "ZahtjevOdobren";
     public const string ZahtjevOdbijen = "ZahtjevOdbijen";
     public const string ZahtjevOtkazan = "ZahtjevOtkazan";
+    public const string UdomljenjeFinalizovano = "UdomljenjeFinalizovano";
     public const string PosjetaZakazana = "PosjetaZakazana";
     public const string PosjetaPotvrdjena = "PosjetaPotvrdjena";
     public const string PosjetaOtkazana = "PosjetaOtkazana";

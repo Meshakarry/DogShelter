@@ -16,6 +16,7 @@ class _DogFilterSheetState extends ConsumerState<DogFilterSheet> {
   int? _rasaId;
   int? _statusPsaId;
   int? _velicinaPsaId;
+  int? _nivoAktivnostiId;
 
   @override
   void initState() {
@@ -24,6 +25,7 @@ class _DogFilterSheetState extends ConsumerState<DogFilterSheet> {
     _rasaId = current.rasaId;
     _statusPsaId = current.statusPsaId;
     _velicinaPsaId = current.velicinaPsaId;
+    _nivoAktivnostiId = current.nivoAktivnostiId;
   }
 
   @override
@@ -97,6 +99,21 @@ class _DogFilterSheetState extends ConsumerState<DogFilterSheet> {
                   onChanged: (value) => setState(() => _velicinaPsaId = value),
                 ),
               ),
+              const SizedBox(height: 16),
+              LabeledField(
+                label: 'Nivo aktivnosti',
+                required: false,
+                child: DropdownButtonFormField<int>(
+                  initialValue: _nivoAktivnostiId,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Svi nivoi')),
+                    for (final nivo in lookups.nivoiAktivnosti)
+                      DropdownMenuItem(value: nivo.nivoAktivnostiId, child: Text(nivo.naziv)),
+                  ],
+                  onChanged: (value) => setState(() => _nivoAktivnostiId = value),
+                ),
+              ),
               const SizedBox(height: 24),
               Row(
                 children: [
@@ -106,6 +123,7 @@ class _DogFilterSheetState extends ConsumerState<DogFilterSheet> {
                         _rasaId = null;
                         _statusPsaId = null;
                         _velicinaPsaId = null;
+                        _nivoAktivnostiId = null;
                       }),
                       child: const Text('Poništi'),
                     ),
@@ -118,6 +136,7 @@ class _DogFilterSheetState extends ConsumerState<DogFilterSheet> {
                               rasaId: _rasaId,
                               statusPsaId: _statusPsaId,
                               velicinaPsaId: _velicinaPsaId,
+                              nivoAktivnostiId: _nivoAktivnostiId,
                             ));
                         Navigator.of(context).pop();
                       },

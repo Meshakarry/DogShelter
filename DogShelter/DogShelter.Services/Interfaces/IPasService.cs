@@ -6,8 +6,8 @@ namespace DogShelter.Services.Interfaces;
 
 public interface IPasService
 {
-    Task<PagedResult<Model.PasListItem>> Get(PasSearchRequest search);
-    Task<Model.Pas> GetById(int id);
+    Task<PagedResult<Model.PasListItem>> Get(PasSearchRequest search, bool isAdmin);
+    Task<Model.Pas> GetById(int id, bool isAdmin);
     Task<bool> Delete(int id);
     Task<Model.Pas> InsertWithImage(PasInsertRequest request, IFormFile? cover);
     Task<Model.Pas> UpdateWithImage(int id, PasUpdateRequest request, IFormFile? cover);

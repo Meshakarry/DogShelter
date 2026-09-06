@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
 import 'package:dogshelter_shared/auth/domain/korisnik.dart';
 import 'package:dogshelter_shared/core/api_exception.dart';
+import 'package:dogshelter_shared/core/validators.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/required_label.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../../postavke/data/lookup_api.dart';
@@ -84,25 +86,15 @@ class _KorisniciScreenState extends ConsumerState<KorisniciScreen> {
   }
 
   Future<void> _confirmDelete(Korisnik korisnik) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrda brisanja'),
-        content: Text(
-          'Da li ste sigurni da želite obrisati korisnika "${korisnik.korisnickoIme}"?\n\n'
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrda brisanja',
+      message: 'Da li ste sigurni da želite obrisati korisnika "${korisnik.korisnickoIme}"?\n\n'
           'Ova radnja je nepovratna - lični podaci (ime, email, adresa, itd.) će biti trajno anonimizirani, a korisnik neće moći koristiti ovaj nalog.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Obriši'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Obriši',
+      destructive: true,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     try {
       await ref.read(korisnikListProvider.notifier).remove(korisnik.korisnikId);
@@ -286,7 +278,7 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
 
   @override
   List<String> get fieldOrder =>
-      const ['ime', 'prezime', 'email', 'korisnickoIme', 'lozinka', 'lozinkaPotvrda', 'uloge'];
+      const ['ime', 'prezime', 'email', 'korisnickoIme', 'telefon', 'lozinka', 'lozinkaPotvrda', 'uloge'];
 
   bool get _isEdit => widget.existing != null;
 
@@ -318,6 +310,7 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
     final ime = _imeController.text.trim();
     final prezime = _prezimeController.text.trim();
     final email = _emailController.text.trim();
+    final telefon = _telefonController.text.trim();
     final korisnickoIme = _korisnickoImeController.text.trim();
     final lozinka = _promijeniLozinku ? _lozinkaController.text : '';
     final lozinkaPotvrda = _promijeniLozinku ? _lozinkaPotvrdaController.text : '';
@@ -325,9 +318,16 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
     final errors = <String, String>{};
     if (ime.isEmpty) errors['ime'] = 'Ime je obavezno.';
     if (prezime.isEmpty) errors['prezime'] = 'Prezime je obavezno.';
-    if (email.isEmpty) errors['email'] = 'Email je obavezan.';
+    final emailError = Validators.email(email);
+    if (emailError != null) errors['email'] = emailError;
+    final telefonError = Validators.phone(telefon);
+    if (telefonError != null) errors['telefon'] = telefonError;
     if (korisnickoIme.isEmpty) errors['korisnickoIme'] = 'Korisničko ime je obavezno.';
-    if (_promijeniLozinku && lozinka.isEmpty) errors['lozinka'] = 'Lozinka je obavezna.';
+    if (_promijeniLozinku && lozinka.isEmpty) {
+      errors['lozinka'] = 'Lozinka je obavezna.';
+    } else if (lozinka.isNotEmpty && lozinka.length < 6) {
+      errors['lozinka'] = 'Lozinka mora imati najmanje 6 znakova.';
+    }
     if (lozinka.isNotEmpty && lozinka != lozinkaPotvrda) {
       errors['lozinkaPotvrda'] = 'Lozinke se ne podudaraju.';
     }
@@ -346,7 +346,7 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
       ime: ime,
       prezime: prezime,
       email: email,
-      telefon: _telefonController.text.trim().isEmpty ? null : _telefonController.text.trim(),
+      telefon: telefon.isEmpty ? null : telefon,
       gradId: _gradId,
       adresa: _adresaController.text.trim().isEmpty ? null : _adresaController.text.trim(),
       korisnickoIme: korisnickoIme,
@@ -431,13 +431,17 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
               ),
               const SizedBox(height: 12),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: LabeledField(
+                      key: keyFor('telefon'),
                       label: 'Telefon',
                       required: false,
+                      errorText: fieldErrors['telefon'],
                       child: TextField(
                         controller: _telefonController,
+                        onChanged: (_) => clearFieldError('telefon'),
                         decoration: const InputDecoration(border: OutlineInputBorder()),
                       ),
                     ),
@@ -527,18 +531,36 @@ class _KorisnikFormDialogState extends State<_KorisnikFormDialog> with FormError
                 spacing: 8,
                 children: [
                   for (final role in widget.roleNames)
-                    FilterChip(
-                      label: Text(role),
-                      selected: _selectedRoles.contains(role),
-                      onSelected: (selected) => setState(() {
-                        if (selected) {
-                          _selectedRoles.add(role);
-                        } else {
-                          _selectedRoles.remove(role);
-                        }
-                        clearFieldError('uloge');
-                      }),
-                    ),
+                    Builder(builder: (context) {
+                      final isSelected = _selectedRoles.contains(role);
+                      // "Volonter" is only assigned/removed via the Volonteri screen (see
+                      // KorisnikService.EnsureNoDirectVolonterRoleChange). Adding any role to a
+                      // deactivated account is also blocked server-side; removing one stays fine.
+                      // Both are disabled here too, just to avoid a round-trip error.
+                      final blockedAdd = _isEdit && !_aktivan && !isSelected;
+                      final disabled = role == 'Volonter' || blockedAdd;
+                      return Tooltip(
+                        message: role == 'Volonter'
+                            ? 'Uloga \'Volonter\' se dodjeljuje kroz sekciju Volonteri, ne odavde.'
+                            : blockedAdd
+                                ? 'Reaktivirajte nalog da biste dodijelili ulogu.'
+                                : '',
+                        child: FilterChip(
+                          label: Text(role),
+                          selected: isSelected,
+                          onSelected: disabled
+                              ? null
+                              : (selected) => setState(() {
+                                    if (selected) {
+                                      _selectedRoles.add(role);
+                                    } else {
+                                      _selectedRoles.remove(role);
+                                    }
+                                    clearFieldError('uloge');
+                                  }),
+                        ),
+                      );
+                    }),
                 ],
               ),
               if (fieldErrors['uloge'] != null)

@@ -6,6 +6,9 @@ import '../domain/preporuceni_pas.dart';
 
 final preporukeApiProvider = Provider<PreporukeApi>((ref) => PreporukeApi(ref.watch(apiClientProvider)));
 
-final preporuceniPsiProvider = FutureProvider<List<PreporuceniPas>>((ref) async {
+// autoDispose so returning to Početna always refetches - the recommender's signals (pregledi,
+// favoriti, zahtjevi, posjete, pretrage) change with nearly everything the user does elsewhere
+// in the app, so a cached-forever result would go stale almost immediately.
+final preporuceniPsiProvider = FutureProvider.autoDispose<List<PreporuceniPas>>((ref) async {
   return ref.watch(preporukeApiProvider).getPreporuceniPsi(take: 5);
 });

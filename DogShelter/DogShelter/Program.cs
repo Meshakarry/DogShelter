@@ -130,6 +130,7 @@ builder.Services.AddScoped<IKorisnikService, KorisnikService>();
 builder.Services.AddScoped<IGradService, GradService>();
 builder.Services.AddScoped<IRasaService, RasaService>();
 builder.Services.AddScoped<IVelicinaPsaService, VelicinaPsaService>();
+builder.Services.AddScoped<INivoAktivnostiService, NivoAktivnostiService>();
 builder.Services.AddScoped<IStatusPsaService, StatusPsaService>();
 builder.Services.AddScoped<IStatusDonacijeService, StatusDonacijeService>();
 builder.Services.AddScoped<IStatusPosjeteService, StatusPosjeteService>();
@@ -143,6 +144,8 @@ builder.Services.AddScoped<IPotrebaAzilaService, PotrebaAzilaService>();
 builder.Services.AddScoped<ITipAktivnostiService, TipAktivnostiService>();
 builder.Services.AddScoped<IPasService, PasService>();
 builder.Services.AddScoped<IPregledPsaService, PregledPsaService>();
+builder.Services.AddScoped<IPretragaLogService, PretragaLogService>();
+builder.Services.AddScoped<IFavoritService, FavoritService>();
 builder.Services.AddScoped<IZahtjevZaUdomljavanjeService, ZahtjevZaUdomljavanjeService>();
 builder.Services.AddScoped<IUdomljavanjeService, UdomljavanjeService>();
 builder.Services.AddScoped<IPosjetaService, PosjetaService>();
@@ -215,7 +218,11 @@ builder.Services.AddAuthentication(options =>
         OnTokenValidated = async context =>
         {
             var jti = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Jti);
-            if (string.IsNullOrEmpty(jti))
+            var korisnikIdClaim = context.Principal?.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var sstClaim = context.Principal?.FindFirstValue("sst");
+
+            if (string.IsNullOrEmpty(jti) || !int.TryParse(korisnikIdClaim, out var korisnikId) ||
+                !Guid.TryParse(sstClaim, out var tokenStamp))
             {
                 context.Fail("Token je nevažeći.");
                 return;
@@ -225,6 +232,15 @@ builder.Services.AddAuthentication(options =>
             if (await revocationService.IsRevokedAsync(jti))
             {
                 context.Fail("Token je opozvan.");
+                return;
+            }
+
+            // Catches everything logout doesn't: password changed, role changed, or the account
+            // was deactivated after this token was issued. Without this, a token stays fully
+            // valid - with its original roles - until it naturally expires.
+            if (!await revocationService.IsSecurityStampValidAsync(korisnikId, tokenStamp))
+            {
+                context.Fail("Token je nevažeći zbog sigurnosno bitne promjene na nalogu.");
             }
         }
     };

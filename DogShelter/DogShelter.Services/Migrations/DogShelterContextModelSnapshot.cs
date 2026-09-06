@@ -242,6 +242,35 @@ namespace DogShelter.Services.Migrations
                     b.ToTable("DonacijaStavka", (string)null);
                 });
 
+            modelBuilder.Entity("DogShelter.Services.Database.Favorit", b =>
+                {
+                    b.Property<int>("FavoritId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FavoritId"));
+
+                    b.Property<DateTime>("DatumDodavanja")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysdatetime())");
+
+                    b.Property<int>("KorisnikId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PasId")
+                        .HasColumnType("int");
+
+                    b.HasKey("FavoritId");
+
+                    b.HasIndex("PasId");
+
+                    b.HasIndex(new[] { "KorisnikId", "PasId" }, "UQ_Favorit_Korisnik_Pas")
+                        .IsUnique();
+
+                    b.ToTable("Favorit", (string)null);
+                });
+
             modelBuilder.Entity("DogShelter.Services.Database.Grad", b =>
                 {
                     b.Property<int>("GradId")
@@ -372,6 +401,11 @@ namespace DogShelter.Services.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid>("SigurnosniPecat")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())", "DF_Korisnik_SigurnosniPecat");
+
                     b.Property<string>("SlikaPutanja")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -451,6 +485,27 @@ namespace DogShelter.Services.Migrations
                     b.HasIndex(new[] { "KorisnikId" }, "IX_LozinkaResetToken_KorisnikId");
 
                     b.ToTable("LozinkaResetToken", (string)null);
+                });
+
+            modelBuilder.Entity("DogShelter.Services.Database.NivoAktivnosti", b =>
+                {
+                    b.Property<int>("NivoAktivnostiId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NivoAktivnostiId"));
+
+                    b.Property<string>("Naziv")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("NivoAktivnostiId");
+
+                    b.HasIndex(new[] { "Naziv" }, "UQ_NivoAktivnosti")
+                        .IsUnique();
+
+                    b.ToTable("NivoAktivnosti", (string)null);
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.Notifikacija", b =>
@@ -565,6 +620,9 @@ namespace DogShelter.Services.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("NivoAktivnostiId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Opis")
                         .HasColumnType("nvarchar(max)");
 
@@ -595,6 +653,8 @@ namespace DogShelter.Services.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("PasId");
+
+                    b.HasIndex("NivoAktivnostiId");
 
                     b.HasIndex("RasaId");
 
@@ -634,6 +694,11 @@ namespace DogShelter.Services.Migrations
 
                     b.Property<int?>("PasId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("PodsjetnikPoslan")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_Posjeta_PodsjetnikPoslan");
 
                     b.Property<string>("RazlogOtkazivanja")
                         .HasMaxLength(1000)
@@ -726,6 +791,47 @@ namespace DogShelter.Services.Migrations
                     b.HasIndex("PasId");
 
                     b.ToTable("PregledPsa", (string)null);
+                });
+
+            modelBuilder.Entity("DogShelter.Services.Database.PretragaLog", b =>
+                {
+                    b.Property<int>("PretragaLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PretragaLogId"));
+
+                    b.Property<DateTime>("DatumPretrage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysdatetime())");
+
+                    b.Property<int>("KorisnikId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NivoAktivnostiId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RasaId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Spol")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VelicinaPsaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PretragaLogId");
+
+                    b.HasIndex("KorisnikId");
+
+                    b.HasIndex("NivoAktivnostiId");
+
+                    b.HasIndex("RasaId");
+
+                    b.HasIndex("VelicinaPsaId");
+
+                    b.ToTable("PretragaLog", (string)null);
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.PrioritetPotrebe", b =>
@@ -1223,6 +1329,25 @@ namespace DogShelter.Services.Migrations
                     b.Navigation("KategorijaDonacije");
                 });
 
+            modelBuilder.Entity("DogShelter.Services.Database.Favorit", b =>
+                {
+                    b.HasOne("DogShelter.Services.Database.Korisnik", "Korisnik")
+                        .WithMany("Favoriti")
+                        .HasForeignKey("KorisnikId")
+                        .IsRequired()
+                        .HasConstraintName("FK_Favorit_Korisnik");
+
+                    b.HasOne("DogShelter.Services.Database.Pas", "Pas")
+                        .WithMany("Favoriti")
+                        .HasForeignKey("PasId")
+                        .IsRequired()
+                        .HasConstraintName("FK_Favorit_Pas");
+
+                    b.Navigation("Korisnik");
+
+                    b.Navigation("Pas");
+                });
+
             modelBuilder.Entity("DogShelter.Services.Database.KategorijaDonacije", b =>
                 {
                     b.HasOne("DogShelter.Services.Database.JedinicaMjere", "PodrazumijevanaJedinicaMjere")
@@ -1298,6 +1423,12 @@ namespace DogShelter.Services.Migrations
 
             modelBuilder.Entity("DogShelter.Services.Database.Pas", b =>
                 {
+                    b.HasOne("DogShelter.Services.Database.NivoAktivnosti", "NivoAktivnosti")
+                        .WithMany("Pas")
+                        .HasForeignKey("NivoAktivnostiId")
+                        .IsRequired()
+                        .HasConstraintName("FK_Pas_NivoAktivnosti");
+
                     b.HasOne("DogShelter.Services.Database.Rasa", "Rasa")
                         .WithMany("Pas")
                         .HasForeignKey("RasaId")
@@ -1315,6 +1446,8 @@ namespace DogShelter.Services.Migrations
                         .HasForeignKey("VelicinaPsaId")
                         .IsRequired()
                         .HasConstraintName("FK_Pas_Velicina");
+
+                    b.Navigation("NivoAktivnosti");
 
                     b.Navigation("Rasa");
 
@@ -1384,6 +1517,38 @@ namespace DogShelter.Services.Migrations
                     b.Navigation("Korisnik");
 
                     b.Navigation("Pas");
+                });
+
+            modelBuilder.Entity("DogShelter.Services.Database.PretragaLog", b =>
+                {
+                    b.HasOne("DogShelter.Services.Database.Korisnik", "Korisnik")
+                        .WithMany("PretragaLogs")
+                        .HasForeignKey("KorisnikId")
+                        .IsRequired()
+                        .HasConstraintName("FK_PretragaLog_Korisnik");
+
+                    b.HasOne("DogShelter.Services.Database.NivoAktivnosti", "NivoAktivnosti")
+                        .WithMany()
+                        .HasForeignKey("NivoAktivnostiId")
+                        .HasConstraintName("FK_PretragaLog_NivoAktivnosti");
+
+                    b.HasOne("DogShelter.Services.Database.Rasa", "Rasa")
+                        .WithMany()
+                        .HasForeignKey("RasaId")
+                        .HasConstraintName("FK_PretragaLog_Rasa");
+
+                    b.HasOne("DogShelter.Services.Database.VelicinaPsa", "VelicinaPsa")
+                        .WithMany()
+                        .HasForeignKey("VelicinaPsaId")
+                        .HasConstraintName("FK_PretragaLog_Velicina");
+
+                    b.Navigation("Korisnik");
+
+                    b.Navigation("NivoAktivnosti");
+
+                    b.Navigation("Rasa");
+
+                    b.Navigation("VelicinaPsa");
                 });
 
             modelBuilder.Entity("DogShelter.Services.Database.RevokedToken", b =>
@@ -1510,6 +1675,8 @@ namespace DogShelter.Services.Migrations
 
                     b.Navigation("DonacijaObradioKorisniks");
 
+                    b.Navigation("Favoriti");
+
                     b.Navigation("KorisnikUlogas");
 
                     b.Navigation("LozinkaResetTokens");
@@ -1524,6 +1691,8 @@ namespace DogShelter.Services.Migrations
 
                     b.Navigation("PregledPsas");
 
+                    b.Navigation("PretragaLogs");
+
                     b.Navigation("RevokedTokens");
 
                     b.Navigation("Volonter");
@@ -1533,8 +1702,15 @@ namespace DogShelter.Services.Migrations
                     b.Navigation("ZahtjevZaUdomljavanjeObradioKorisniks");
                 });
 
+            modelBuilder.Entity("DogShelter.Services.Database.NivoAktivnosti", b =>
+                {
+                    b.Navigation("Pas");
+                });
+
             modelBuilder.Entity("DogShelter.Services.Database.Pas", b =>
                 {
+                    b.Navigation("Favoriti");
+
                     b.Navigation("Posjetas");
 
                     b.Navigation("PregledPsas");

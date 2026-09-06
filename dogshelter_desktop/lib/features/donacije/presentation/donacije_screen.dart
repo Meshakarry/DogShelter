@@ -7,6 +7,7 @@ import 'package:dogshelter_shared/core/date_format.dart';
 import 'package:dogshelter_shared/donacija/domain/donacija.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/date_input_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/razlog_dialog.dart';
@@ -32,18 +33,13 @@ class _DonacijeScreenState extends ConsumerState<DonacijeScreen> {
   }
 
   Future<void> _potvrdi(Donacija donacija) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrdi donaciju'),
-        content: const Text('Da li želite potvrditi ovu materijalnu donaciju?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Potvrdi')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrdi donaciju',
+      message: 'Da li želite potvrditi ovu materijalnu donaciju?',
+      confirmLabel: 'Potvrdi',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     try {
       await ref.read(donacijaListProvider.notifier).potvrdi(donacija.donacijaId);

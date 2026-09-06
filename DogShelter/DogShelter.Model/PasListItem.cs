@@ -12,6 +12,8 @@ public class PasListItem
     public string? StatusNaziv { get; set; }
     public int VelicinaPsaId { get; set; }
     public string? VelicinaNaziv { get; set; }
+    public int NivoAktivnostiId { get; set; }
+    public string? NivoAktivnostiNaziv { get; set; }
     public decimal? Tezina { get; set; }
     public DateOnly DatumPrijema { get; set; }
     public string SlikaNaslovna { get; set; } = null!;

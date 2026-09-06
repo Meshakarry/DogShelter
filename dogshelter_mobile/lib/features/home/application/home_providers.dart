@@ -8,14 +8,20 @@ import '../data/home_api.dart';
 
 final Provider<HomeApi> homeApiProvider = Provider<HomeApi>((ref) => HomeApi(ref.watch(apiClientProvider)));
 
-final latestObavijestiProvider = FutureProvider<List<ObavijestListItem>>((ref) async {
+// autoDispose for the same reason as volonterDashboardProvider below - a newly-posted Obavijest
+// should show up next time the user lands on Početna, not just after a full app restart.
+final latestObavijestiProvider = FutureProvider.autoDispose<List<ObavijestListItem>>((ref) async {
   final result = await ref.watch(newsApiProvider).getObavijesti(page: 1, pageSize: 3);
   return result.items;
 });
 
 typedef VolonterDashboard = ({Volonter? profile, int activityCount});
 
-final volonterDashboardProvider = FutureProvider<VolonterDashboard>((ref) async {
+// autoDispose so returning to Početna always refetches instead of showing a cached "Ukupno
+// sati"/"Aktivnosti" total from whenever this screen was first visited this session - logging a
+// new activity (or an admin editing one on desktop) changes this data from a completely
+// different screen, with no shared state this provider would otherwise pick up.
+final volonterDashboardProvider = FutureProvider.autoDispose<VolonterDashboard>((ref) async {
   final api = ref.watch(homeApiProvider);
   // Issued together via Future.wait rather than sequentially, since the two calls are
   // independent.

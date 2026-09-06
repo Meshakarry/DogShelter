@@ -76,6 +76,15 @@ services:
         condition: service_healthy
       dogshelter_rabbitmq:
         condition: service_started
+    healthcheck:
+      # No curl/wget in the aspnet base image - a bare TCP connect is enough here, since
+      # Kestrel only starts listening after EF migrations + seeding finish in Program.cs,
+      # so "port is open" already implies "schema is ready" for dependents like the Worker.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   dogshelter_worker:
     restart: unless-stopped
@@ -84,6 +93,7 @@ services:
       dockerfile: DogShelter.Worker/Dockerfile
     container_name: dogshelter_worker
     environment:
+      ConnectionStrings__DogShelter: "Server=dogshelter_sqlserver;Database=180026;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true;"
       RabbitMQ__Host: dogshelter_rabbitmq
       RabbitMQ__Port: "5672"
       RabbitMQ__Username: ${RabbitMQ__Username}
@@ -95,10 +105,12 @@ services:
       SMTP__UseSsl: ${SMTP__UseSsl}
       SMTP__SenderName: ${SMTP__SenderName}
     depends_on:
+      dogshelter_sqlserver:
+        condition: service_healthy
       dogshelter_rabbitmq:
         condition: service_started
       dogshelter_api:
-        condition: service_started
+        condition: service_healthy
     networks:
       - dogshelter_network
 

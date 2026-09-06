@@ -14,6 +14,7 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/reset_password_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/dogs/presentation/dog_detail_screen.dart';
+import '../features/dogs/presentation/favoriti_list_screen.dart';
 import '../features/donations/presentation/donation_detail_screen.dart';
 import '../features/donations/presentation/donations_list_screen.dart';
 import '../features/donations/presentation/new_donation_screen.dart';
@@ -73,6 +74,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/pocetna', builder: (context, state) => const HomeScreen()),
           GoRoute(path: '/dogs', builder: (context, state) => const DogListScreen()),
           GoRoute(path: '/zahtjevi', builder: (context, state) => const AdoptionRequestsListScreen()),
+          GoRoute(path: '/favoriti', builder: (context, state) => const FavoritiListScreen()),
           GoRoute(path: '/posjete', builder: (context, state) => const VisitsListScreen()),
           GoRoute(path: '/donacije', builder: (context, state) => const DonationsListScreen()),
           GoRoute(path: '/obavijesti', builder: (context, state) => const NewsListScreen()),

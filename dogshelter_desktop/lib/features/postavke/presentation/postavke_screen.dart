@@ -20,6 +20,7 @@ class PostavkeScreen extends StatelessWidget {
     _PostavkeEntry(path: '/postavke/rase', icon: Icons.pets_outlined, label: 'Rase pasa'),
     _PostavkeEntry(path: '/postavke/status-psa', icon: Icons.health_and_safety_outlined, label: 'Status psa'),
     _PostavkeEntry(path: '/postavke/velicina-psa', icon: Icons.straighten_outlined, label: 'Veličina psa'),
+    _PostavkeEntry(path: '/postavke/nivo-aktivnosti', icon: Icons.bolt_outlined, label: 'Nivo aktivnosti psa'),
     _PostavkeEntry(path: '/postavke/tip-donacije', icon: Icons.category_outlined, label: 'Tip donacije'),
     _PostavkeEntry(
       path: '/postavke/kategorija-donacije',

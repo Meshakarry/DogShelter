@@ -26,7 +26,6 @@ namespace DogShelter.Model.Requests
         [Required(ErrorMessage = ValidationMessages.UsernameRequired)]
         [MinLength(3, ErrorMessage = ValidationMessages.UsernameMinLength)]
         public string KorisnickoIme { get; set; } = null!;
-        public string? SlikaPutanja { get; set; }
 
         [Required(ErrorMessage = ValidationMessages.PasswordRequired)]
         [MinLength(6, ErrorMessage = ValidationMessages.PasswordMinLength)]

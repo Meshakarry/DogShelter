@@ -9,12 +9,14 @@ import 'package:dogshelter_shared/widgets/status_pill.dart';
 import 'package:dogshelter_shared/zahtjev_za_udomljavanje/domain/zahtjev_za_udomljavanje.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/razlog_dialog.dart';
 import '../../../widgets/status_colors.dart';
 import '../application/zahtjevi_providers.dart';
 
 const _naCekanju = 'Na čekanju';
+const _odobren = 'Odobren';
 
 
 class ZahtjeviScreen extends ConsumerWidget {
@@ -27,20 +29,14 @@ class ZahtjeviScreen extends ConsumerWidget {
   }
 
   Future<void> _odobri(BuildContext context, WidgetRef ref, ZahtjevZaUdomljavanje zahtjev) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Odobri zahtjev'),
-        content: Text(
-          'Zahtjev za udomljavanje psa "${zahtjev.pasNaziv}" će biti odobren, a pas označen kao udomljen. Nastaviti?',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Odobri')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Odobri zahtjev',
+      message:
+          'Zahtjev za udomljavanje psa "${zahtjev.pasNaziv}" će biti odobren, a pas rezervisan za ovog korisnika. Udomljenje se finalizira posebnim korakom kada bude spremno. Nastaviti?',
+      confirmLabel: 'Odobri',
     );
-    if (confirmed != true || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
 
     try {
       await ref.read(zahtjevListProvider.notifier).odobri(zahtjev.zahtjevZaUdomljavanjeId);
@@ -119,6 +115,12 @@ class ZahtjeviScreen extends ConsumerWidget {
                       final imageUrl = resolveImageUrl(zahtjev.pasSlikaNaslovna, Environment.apiBaseUrl);
                       final colors = zahtjevStatusColors(zahtjev.statusZahtjevaNaziv ?? '');
                       final isPending = zahtjev.statusZahtjevaNaziv == _naCekanju;
+                      // The dog may have stopped being adoptable since this request was
+                      // submitted (deactivated, or reserved/adopted via a different request in
+                      // the meantime) - Odobri() re-checks this server-side regardless, but
+                      // disabling it here avoids a round-trip error for the obvious case.
+                      final pasOk = zahtjev.pasAktivan && zahtjev.pasStatusNaziv == 'Dostupan';
+                      final canApprove = isPending && pasOk;
                       return ListTile(
                         onTap: () => context.go('/zahtjevi/${zahtjev.zahtjevZaUdomljavanjeId}'),
                         leading: ClipRRect(
@@ -156,12 +158,16 @@ class ZahtjeviScreen extends ConsumerWidget {
                             IconButton(
                               icon: Icon(
                                 Icons.check_circle_outline,
-                                color: isPending ? zahtjevStatusColors('Odobren').foreground : null,
+                                color: canApprove ? zahtjevStatusColors('Odobren').foreground : null,
                               ),
-                              tooltip: isPending
-                                  ? 'Odobri'
-                                  : 'Zahtjev je već obrađen (status: ${zahtjev.statusZahtjevaNaziv}) i ne može se ponovo odobriti.',
-                              onPressed: isPending ? () => _odobri(context, ref, zahtjev) : null,
+                              tooltip: !isPending
+                                  ? (zahtjev.statusZahtjevaNaziv == _odobren
+                                      ? 'Zahtjev je odobren i pas je rezervisan. Otvorite detalje da finalizirate udomljenje.'
+                                      : 'Zahtjev je već obrađen (status: ${zahtjev.statusZahtjevaNaziv}) i ne može se ponovo odobriti.')
+                                  : !pasOk
+                                      ? 'Pas "${zahtjev.pasNaziv}" trenutno nije dostupan (status: ${zahtjev.pasStatusNaziv ?? "nepoznat"}) i zahtjev se ne može odobriti.'
+                                      : 'Odobri',
+                              onPressed: canApprove ? () => _odobri(context, ref, zahtjev) : null,
                             ),
                             IconButton(
                               icon: Icon(

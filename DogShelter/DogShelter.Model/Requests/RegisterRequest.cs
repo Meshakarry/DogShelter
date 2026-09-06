@@ -30,7 +30,5 @@ namespace DogShelter.Model.Requests
 
         [Compare(nameof(Lozinka), ErrorMessage = ValidationMessages.PasswordsDoNotMatch)]
         public string LozinkaPotvrda { get; set; } = null!;
-
-        public string? SlikaPutanja { get; set; }
     }
 }

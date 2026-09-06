@@ -10,6 +10,7 @@ import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/date_input_field.dart';
 import '../../../widgets/debounced_search_field.dart';
 import '../../../widgets/page_footer.dart';
@@ -40,18 +41,13 @@ class _DogadjajiScreenState extends ConsumerState<DogadjajiScreen> {
   }
 
   Future<void> _otkazi(Dogadjaj dogadjaj) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Otkaži događaj'),
-        content: Text('Da li želite otkazati događaj "${dogadjaj.naziv}"? Ova radnja se ne može poništiti.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Otkaži')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Otkaži događaj',
+      message: 'Da li želite otkazati događaj "${dogadjaj.naziv}"? Ova radnja se ne može poništiti.',
+      confirmLabel: 'Otkaži',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     try {
       await ref.read(dogadjajListProvider.notifier).otkazi(dogadjaj.dogadjajId);

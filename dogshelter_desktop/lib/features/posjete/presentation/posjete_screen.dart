@@ -15,6 +15,7 @@ import 'package:dogshelter_shared/widgets/status_pill.dart';
 import 'package:dogshelter_shared/widgets/time_slot_chip.dart';
 import '../../../core/app_theme.dart';
 import '../../../environment.dart';
+import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/date_input_field.dart';
 import '../../../widgets/page_footer.dart';
 import '../../../widgets/razlog_dialog.dart';
@@ -35,6 +36,11 @@ class PosjeteScreen extends ConsumerStatefulWidget {
 }
 
 class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
+  // Per-row in-flight guard - without it a fast double-tap (or a slow first response) fires the
+  // same action twice, and the second one reaches the server after the first already applied,
+  // coming back as a confusing "already confirmed/cancelled" instead of doing nothing.
+  final Set<int> _processingIds = {};
+
   void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: isError ? Theme.of(context).colorScheme.error : null),
@@ -42,46 +48,42 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
   }
 
   Future<void> _potvrdi(Posjeta posjeta) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrdi posjetu'),
-        content: const Text('Da li želite potvrditi ovu posjetu?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Potvrdi')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Potvrdi posjetu',
+      message: 'Da li želite potvrditi ovu posjetu?',
+      confirmLabel: 'Potvrdi',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted || _processingIds.contains(posjeta.posjetaId)) return;
 
+    setState(() => _processingIds.add(posjeta.posjetaId));
     try {
       await ref.read(posjetaListProvider.notifier).potvrdi(posjeta.posjetaId);
       if (mounted) _showMessage('Posjeta je potvrđena.');
     } catch (e) {
       if (mounted) _showMessage(describeApiError(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(posjeta.posjetaId));
     }
   }
 
   Future<void> _zavrsi(Posjeta posjeta) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Označi kao završenu'),
-        content: const Text('Da li želite označiti ovu posjetu kao završenu?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Odustani')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Završi')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Označi kao završenu',
+      message: 'Da li želite označiti ovu posjetu kao završenu?',
+      confirmLabel: 'Završi',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted || _processingIds.contains(posjeta.posjetaId)) return;
 
+    setState(() => _processingIds.add(posjeta.posjetaId));
     try {
       await ref.read(posjetaListProvider.notifier).zavrsi(posjeta.posjetaId);
       if (mounted) _showMessage('Posjeta je označena kao završena.');
     } catch (e) {
       if (mounted) _showMessage(describeApiError(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(posjeta.posjetaId));
     }
   }
 
@@ -90,13 +92,16 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
       context: context,
       builder: (context) => const RazlogDialog(title: 'Otkaži posjetu', label: 'Razlog otkazivanja'),
     );
-    if (razlog == null || !mounted) return;
+    if (razlog == null || !mounted || _processingIds.contains(posjeta.posjetaId)) return;
 
+    setState(() => _processingIds.add(posjeta.posjetaId));
     try {
       await ref.read(posjetaListProvider.notifier).otkazi(posjeta.posjetaId, razlog);
       if (mounted) _showMessage('Posjeta je otkazana.');
     } catch (e) {
       if (mounted) _showMessage(describeApiError(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(posjeta.posjetaId));
     }
   }
 
@@ -226,6 +231,11 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                                 final imageUrl = resolveImageUrl(posjeta.pasSlikaNaslovna, Environment.apiBaseUrl);
                                 final colors = posjetaStatusColors(posjeta.statusPosjeteNaziv ?? '');
                                 final naziv = posjeta.statusPosjeteNaziv;
+                                final terminPassed = !posjeta.datumVrijeme.isAfter(DateTime.now());
+                                final isRowProcessing = _processingIds.contains(posjeta.posjetaId);
+                                final canZavrsi = naziv == _potvrdjena && terminPassed && !isRowProcessing;
+                                final canPotvrdi = naziv == _naCekanju && !isRowProcessing;
+                                final canOtkazi = (naziv == _naCekanju || naziv == _potvrdjena) && !isRowProcessing;
                                 return ListTile(
                                   onTap: () => _showDetail(posjeta),
                                   leading: ClipRRect(
@@ -263,36 +273,46 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       IconButton(
-                                        icon: Icon(
-                                          naziv == _potvrdjena ? Icons.flag_circle_outlined : Icons.check_circle_outline,
-                                          color: (naziv == _naCekanju || naziv == _potvrdjena)
-                                              ? posjetaStatusColors(naziv == _potvrdjena ? _zavrsena : _potvrdjena)
-                                                  .foreground
-                                              : null,
-                                        ),
+                                        icon: isRowProcessing
+                                            ? const SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              )
+                                            : Icon(
+                                                naziv == _potvrdjena ? Icons.flag_circle_outlined : Icons.check_circle_outline,
+                                                color: (canPotvrdi || canZavrsi)
+                                                    ? posjetaStatusColors(naziv == _potvrdjena ? _zavrsena : _potvrdjena)
+                                                        .foreground
+                                                    : null,
+                                              ),
                                         tooltip: switch (naziv) {
+                                          _ when isRowProcessing => 'Obrada u toku...',
                                           _naCekanju => 'Potvrdi',
+                                          _potvrdjena when !terminPassed =>
+                                            'Posjeta se može označiti završenom tek nakon zakazanog termina.',
                                           _potvrdjena => 'Označi kao završenu',
                                           _ => 'Posjeta je već obrađena (status: $naziv) i ne može se dalje mijenjati.',
                                         },
                                         onPressed: switch (naziv) {
-                                          _naCekanju => () => _potvrdi(posjeta),
-                                          _potvrdjena => () => _zavrsi(posjeta),
+                                          _naCekanju when canPotvrdi => () => _potvrdi(posjeta),
+                                          _potvrdjena when canZavrsi => () => _zavrsi(posjeta),
                                           _ => null,
                                         },
                                       ),
                                       IconButton(
                                         icon: Icon(
                                           Icons.cancel_outlined,
-                                          color: (naziv == _naCekanju || naziv == _potvrdjena)
+                                          color: canOtkazi
                                               ? posjetaStatusColors(_otkazana).foreground
                                               : null,
                                         ),
-                                        tooltip: (naziv == _naCekanju || naziv == _potvrdjena)
-                                            ? 'Otkaži'
-                                            : 'Posjeta je već obrađena (status: $naziv) i ne može se otkazati.',
-                                        onPressed:
-                                            (naziv == _naCekanju || naziv == _potvrdjena) ? () => _otkazi(posjeta) : null,
+                                        tooltip: isRowProcessing
+                                            ? 'Obrada u toku...'
+                                            : canOtkazi
+                                                ? 'Otkaži'
+                                                : 'Posjeta je već obrađena (status: $naziv) i ne može se otkazati.',
+                                        onPressed: canOtkazi ? () => _otkazi(posjeta) : null,
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.visibility_outlined),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:dogshelter_shared/core/image_url.dart';
 import '../../../environment.dart';
+import 'package:dogshelter_shared/favorit/application/favorit_providers.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/labeled_field.dart';
 import 'package:dogshelter_shared/widgets/status_pill.dart';
@@ -23,9 +24,27 @@ class DogDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dogAsync = ref.watch(dogDetailProvider(pasId));
+    final favoritState = ref.watch(favoritListProvider);
+    final isFavorited = ref.read(favoritListProvider.notifier).isFavorited(pasId);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalji psa')),
+      appBar: AppBar(
+        title: const Text('Detalji psa'),
+        actions: [
+          IconButton(
+            // Disabled (not hidden) while the favorites list is still loading/updating, so a
+            // fast double-tap can't fire two toggles that race each other.
+            onPressed: favoritState.isLoading
+                ? null
+                : () => ref.read(favoritListProvider.notifier).toggle(pasId),
+            icon: Icon(
+              isFavorited ? Icons.favorite : Icons.favorite_border,
+              color: isFavorited ? const Color(0xFFE53935) : null,
+            ),
+            tooltip: isFavorited ? 'Ukloni iz favorita' : 'Dodaj u favorite',
+          ),
+        ],
+      ),
       body: dogAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: ErrorBanner(error: e)),
@@ -141,6 +160,7 @@ class _DogDetailBodyState extends State<_DogDetailBody> {
                   const SizedBox(height: 16),
                   DetailRow(label: 'Starost', value: dog.ageLabel ?? 'Nepoznato', labelWidth: 120),
                   DetailRow(label: 'Veličina', value: dog.velicinaNaziv ?? 'Nepoznato', labelWidth: 120),
+                  DetailRow(label: 'Nivo aktivnosti', value: dog.nivoAktivnostiNaziv ?? 'Nepoznato', labelWidth: 120),
                   if (dog.tezina != null) DetailRow(label: 'Težina', value: '${dog.tezina} kg', labelWidth: 120),
                   DetailRow(label: 'Vakcinisan', value: dog.vakcinisan ? 'Da' : 'Ne', labelWidth: 120),
                   DetailRow(label: 'Sterilizovan', value: dog.sterilizovan ? 'Da' : 'Ne', labelWidth: 120),
@@ -218,7 +238,7 @@ class _AdoptRequestBar extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Posjeta nije moguća jer je pas već udomljen.',
+                'Posjeta nije moguća jer pas trenutno nije dostupan (status: ${dog.statusNaziv ?? 'nepoznat'}).',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
               ),

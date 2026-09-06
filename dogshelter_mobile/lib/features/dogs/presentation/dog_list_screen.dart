@@ -36,6 +36,11 @@ class _DogListScreenState extends ConsumerState<DogListScreen> {
     // Warm the breed/status/size lookups now, not lazily when Filteri opens - otherwise the very
     // first breed search (before Filteri is ever opened) has nothing to match against yet.
     ref.read(dogLookupsProvider);
+    // dogsListProvider outlives this screen (survives navigating away and back via the bottom
+    // nav, which rebuilds this screen via go() rather than keeping it alive in an IndexedStack) -
+    // reset the filter on every mount so a stale search/filter from a previous visit doesn't
+    // keep narrowing the list while the search box itself shows empty.
+    Future.microtask(() => ref.read(dogsListProvider.notifier).applyFilters(const DogFilters()));
   }
 
   @override

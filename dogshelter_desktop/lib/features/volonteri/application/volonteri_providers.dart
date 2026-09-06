@@ -4,6 +4,7 @@ import 'package:dogshelter_shared/aktivnost_volontera/data/aktivnost_volontera_a
 import 'package:dogshelter_shared/aktivnost_volontera/domain/aktivnost_volontera.dart';
 import 'package:dogshelter_shared/aktivnost_volontera/domain/tip_aktivnosti.dart';
 import 'package:dogshelter_shared/auth/application/auth_notifier.dart';
+import 'package:dogshelter_shared/auth/domain/korisnik.dart';
 import 'package:dogshelter_shared/core/paged_result.dart';
 import 'package:dogshelter_shared/dogadjaj_volonter/data/dogadjaj_volonter_api.dart';
 import 'package:dogshelter_shared/dogadjaj_volonter/domain/dogadjaj_volonter.dart';
@@ -22,6 +23,14 @@ final volonterKorisnikApiProvider =
 
 final tipoviAktivnostiProvider = FutureProvider.autoDispose<List<TipAktivnosti>>((ref) {
   return ref.watch(aktivnostVolonteraApiProvider).getTipoviAktivnosti();
+});
+
+/// Backs "Dodaj volontera"'s "Postojeći korisnik" mode - active users who aren't already a
+/// Volonter (VolonterService.Insert rejects a duplicate anyway, but there's no reason to offer
+/// one) or an Admin. Same filter as posjetaKorisnikOptionsProvider's walk-in booking picker.
+final volonterKorisnikOptionsProvider = FutureProvider.autoDispose<List<Korisnik>>((ref) async {
+  final result = await ref.watch(volonterKorisnikApiProvider).search(page: 1, pageSize: 100);
+  return result.items.where((k) => k.aktivan && !k.hasRole('Admin') && !k.hasRole('Volonter')).toList();
 });
 
 class VolonterListNotifier extends PagedListNotifier<Volonter> {
@@ -53,7 +62,10 @@ class VolonterListNotifier extends PagedListNotifier<Volonter> {
   }
 }
 
-final volonterListProvider = StateNotifierProvider<VolonterListNotifier, AsyncValue<PagedResult<Volonter>>>((ref) {
+// autoDispose: the list's ukupnoSati column changes from a different screen (logging an
+// activity on volonter_detail_screen.dart), so a cached instance would show stale hours.
+final volonterListProvider =
+    StateNotifierProvider.autoDispose<VolonterListNotifier, AsyncValue<PagedResult<Volonter>>>((ref) {
   return VolonterListNotifier(ref.watch(volonterApiProvider));
 });
 

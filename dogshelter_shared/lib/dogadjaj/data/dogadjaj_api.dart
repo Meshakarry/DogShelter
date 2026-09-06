@@ -79,7 +79,7 @@ class DogadjajApi {
       'POST',
       '/api/Dogadjaj',
       fields: data.toFields(),
-      files: [await http.MultipartFile.fromPath('slika', slika.path)],
+      files: [await imageMultipartFile('slika', slika.path)],
     );
     return Dogadjaj.fromJson(json as Map<String, dynamic>);
   }
@@ -87,7 +87,7 @@ class DogadjajApi {
   /// Admin-only: omitting [slika] preserves the existing image server-side.
   Future<Dogadjaj> update(int id, DogadjajFormData data, {File? slika}) async {
     final files = <http.MultipartFile>[
-      if (slika != null) await http.MultipartFile.fromPath('slika', slika.path),
+      if (slika != null) await imageMultipartFile('slika', slika.path),
     ];
     final json = await _client.multipart('PUT', '/api/Dogadjaj/$id', fields: data.toFields(), files: files);
     return Dogadjaj.fromJson(json as Map<String, dynamic>);

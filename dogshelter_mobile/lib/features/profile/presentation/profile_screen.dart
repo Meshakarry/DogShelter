@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:dogshelter_shared/core/image_url.dart';
+import 'package:dogshelter_shared/core/validators.dart';
 import '../../../environment.dart';
 import 'package:dogshelter_shared/widgets/error_banner.dart';
 import 'package:dogshelter_shared/widgets/form_error_scroller.dart';
@@ -35,8 +36,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   bool _showPasswordFields = false;
   bool _isSubmitting = false;
   Object? _apiError;
-
-  static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   static const _passwordFields = [
     'staraLozinka',
@@ -136,11 +135,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     }
 
     final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      errors['email'] = 'Email je obavezan.';
-    } else if (!_emailRegex.hasMatch(email)) {
-      errors['email'] = 'Unesite ispravan email, npr. ime@primjer.com';
-    }
+    final emailError = Validators.email(email);
+    if (emailError != null) errors['email'] = emailError;
+
+    final telefon = _telefonController.text.trim();
+    final telefonError = Validators.phone(telefon);
+    if (telefonError != null) errors['telefon'] = telefonError;
 
     final korisnickoIme = _korisnickoImeController.text.trim();
     if (korisnickoIme.isEmpty) {
@@ -182,9 +182,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ime: ime,
             prezime: prezime,
             email: email,
-            telefon: _telefonController.text.trim().isEmpty
-                ? null
-                : _telefonController.text.trim(),
+            telefon: telefon.isEmpty ? null : telefon,
             korisnickoIme: korisnickoIme,
           );
       await ref.read(authNotifierProvider.notifier).updateKorisnik(updated);
@@ -345,16 +343,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
           const SizedBox(height: 16),
           LabeledField(
+            key: keyFor('telefon'),
             label: 'Telefon (opcionalno)',
             required: false,
             child: TextField(
               controller: _telefonController,
               enabled: _isEditing,
               keyboardType: TextInputType.phone,
-              onChanged: (_) => _clearApiError(),
-              decoration: const InputDecoration(
-                hintText: 'npr. 061 234 567',
-                border: OutlineInputBorder(),
+              onChanged: (_) {
+                _clearApiError();
+                clearFieldError('telefon');
+              },
+              decoration: InputDecoration(
+                hintText: 'npr. 061234567 (9 brojeva, bez razmaka)',
+                border: const OutlineInputBorder(),
+                errorText: fieldErrors['telefon'],
               ),
             ),
           ),
