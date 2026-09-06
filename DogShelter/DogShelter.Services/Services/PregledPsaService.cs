@@ -50,6 +50,8 @@ public class PregledPsaService : IPregledPsaService
         };
     }
 
+    private static readonly TimeSpan DedupWindow = TimeSpan.FromHours(24);
+
     public async Task<Model.PregledPsa> LogPregled(int pasId, int korisnikId)
     {
         if (!await _context.Pas.AnyAsync(p => p.PasId == pasId))
@@ -57,6 +59,19 @@ public class PregledPsaService : IPregledPsaService
 
         if (!await _context.Korisniks.AnyAsync(k => k.KorisnikId == korisnikId))
             throw new NotFoundException($"Korisnik s ID {korisnikId} nije pronađen.");
+
+        // One logged view per user+dog per 24h. Opening the same dog's page repeatedly must not
+        // inflate that dog's popularity (PreporukaService counts these rows) or pile weight onto
+        // the viewer's own breed/size/age preferences. Return the existing recent row so the
+        // explicit POST /api/PregledPsa endpoint still gets a valid response.
+        var cutoff = DateTime.UtcNow.Subtract(DedupWindow);
+        var existing = await _context.PregledPsas
+            .Where(p => p.KorisnikId == korisnikId && p.PasId == pasId && p.DatumPregleda >= cutoff)
+            .OrderByDescending(p => p.DatumPregleda)
+            .FirstOrDefaultAsync();
+
+        if (existing != null)
+            return _mapper.Map<Model.PregledPsa>(existing);
 
         var pregled = new Database.PregledPsa
         {

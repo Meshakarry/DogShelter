@@ -69,6 +69,25 @@ class ZahtjevDetailScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _ponistiOdobravanje(BuildContext context, WidgetRef ref, ZahtjevZaUdomljavanje zahtjev) async {
+    final razlog = await showDialog<String>(
+      context: context,
+      builder: (context) => const RazlogDialog(
+        title: 'Poništi odobravanje',
+        label: 'Razlog poništavanja',
+      ),
+    );
+    if (razlog == null) return;
+
+    try {
+      await ref.read(zahtjevListProvider.notifier).ponistiOdobravanje(zahtjev.zahtjevZaUdomljavanjeId, razlog);
+      ref.invalidate(zahtjevDetailProvider(id));
+      if (context.mounted) _showMessage(context, 'Odobravanje je poništeno, pas je ponovo dostupan.');
+    } catch (e) {
+      if (context.mounted) _showMessage(context, describeApiError(e), isError: true);
+    }
+  }
+
   Future<void> _odbij(BuildContext context, WidgetRef ref, ZahtjevZaUdomljavanje zahtjev) async {
     final razlog = await showDialog<String>(
       context: context,
@@ -253,7 +272,7 @@ class ZahtjevDetailScreen extends ConsumerWidget {
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Text(
                                   needsFinalizing
-                                      ? 'Zahtjev je odobren, pas "${zahtjev.pasNaziv}" je rezervisan. Finalizirajte udomljenje kad je stvarno preuzeto.'
+                                      ? 'Zahtjev je odobren, pas "${zahtjev.pasNaziv}" je rezervisan. Finalizirajte udomljenje kad je stvarno preuzeto, ili poništite odobravanje ako je udomljavanje otpalo (pas se vraća u dostupne).'
                                       : 'Udomljavanje psa "${zahtjev.pasNaziv}" je finalizovano.',
                                   style: Theme.of(context)
                                       .textTheme
@@ -262,13 +281,26 @@ class ZahtjevDetailScreen extends ConsumerWidget {
                                 ),
                               ),
                             if (needsFinalizing)
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton.icon(
-                                  onPressed: () => _finalizirajUdomljenje(context, ref, zahtjev),
-                                  icon: const Icon(Icons.home_outlined),
-                                  label: const Text('Finaliziraj udomljenje'),
-                                ),
+                              Column(
+                                children: [
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton.icon(
+                                      onPressed: () => _finalizirajUdomljenje(context, ref, zahtjev),
+                                      icon: const Icon(Icons.home_outlined),
+                                      label: const Text('Finaliziraj udomljenje'),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _ponistiOdobravanje(context, ref, zahtjev),
+                                      icon: const Icon(Icons.undo),
+                                      label: const Text('Poništi odobravanje'),
+                                    ),
+                                  ),
+                                ],
                               )
                             else if (!isApproved)
                               Row(

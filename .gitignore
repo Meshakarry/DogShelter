@@ -44,6 +44,12 @@ ref/
 # Runtime-generated/uploaded static files (seed images come from SeedData/Images and are copied in at startup)
 wwwroot/
 
+# User-uploaded private files (avatars) - runtime-only, must never be committed
+PrivateFiles/
+
+# Crash dumps (e.g. bash.exe.stackdump from Git Bash)
+*.stackdump
+
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 

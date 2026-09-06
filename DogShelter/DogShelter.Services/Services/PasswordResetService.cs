@@ -123,6 +123,11 @@ public class PasswordResetService : IPasswordResetService
 
             user.LozinkaHash = KorisnikService.HashPassword(request.NovaLozinka);
             user.LozinkaSalt = string.Empty;
+            // Same as ChangeMyPassword/Update/Delete in KorisnikService: a password change must
+            // invalidate every JWT issued before it (see Program.cs OnTokenValidated). The
+            // forgot-password path is exactly when a compromised account gets its password
+            // reset, so a stale token must not keep working here either.
+            user.SigurnosniPecat = Guid.NewGuid();
             token.Iskoristen = true;
 
             var otherTokens = await _context.LozinkaResetTokens

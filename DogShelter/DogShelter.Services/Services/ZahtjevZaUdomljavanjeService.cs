@@ -138,33 +138,48 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
         var statusOdbijen = await _context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Odbijen);
         var statusRezervisan = await _context.StatusPsas.FirstOrDefaultAsync(s => s.Naziv == StatusPsaNazivi.Rezervisan)
             ?? throw new BusinessException("Status 'Rezervisan' nije podešen u sistemu.");
+        var statusDostupan = await _context.StatusPsas.FirstOrDefaultAsync(s => s.Naziv == StatusPsaNazivi.Dostupan)
+            ?? throw new BusinessException("Status 'Dostupan' nije podešen u sistemu.");
 
-        var pas = await _context.Pas.FindAsync(entity.PasId)
+        var pas = await _context.Pas.AsNoTracking().FirstOrDefaultAsync(p => p.PasId == entity.PasId)
             ?? throw new NotFoundException("Pas povezan sa zahtjevom nije pronađen.");
 
-        // Re-validated here, not just at submission time (Insert already checked this when the
-        // request was created) - the dog may have been deactivated in the meantime.
+        // Fast pre-check for a friendly error before opening the transaction; the authoritative
+        // guard is the conditional UPDATE below (Insert already checked this at submission time,
+        // but the dog may have been deactivated or reserved since).
         if (!pas.Aktivan)
             throw new BusinessException($"Pas \"{pas.Naziv}\" više nije aktivan i zahtjev se ne može odobriti.");
 
-        // Other users may have a still-pending request for the same dog — approving this one
-        // means the dog is no longer available, so those are auto-rejected in the same
-        // transaction instead of being silently left "Na čekanju" for a dog that's already gone.
-        var ostaliNaCekanju = await _context.ZahtjevZaUdomljavanjes
-            .Where(z => z.PasId == entity.PasId
-                && z.ZahtjevZaUdomljavanjeId != entity.ZahtjevZaUdomljavanjeId
-                && z.StatusZahtjevaId == statusNaCekanju.StatusZahtjevaId)
-            .ToListAsync();
+        var ostaliNaCekanju = new List<Database.ZahtjevZaUdomljavanje>();
 
         await using var tx = await _context.Database.BeginTransactionAsync();
         try
         {
+            // Atomic guarded transition: flips the dog Dostupan -> Rezervisan only if it's still
+            // Aktivan+Dostupan at this exact moment. If two admins approve two different pending
+            // requests for the same dog concurrently, exactly one UPDATE matches a row - the other
+            // gets 0 and bails, instead of both "succeeding" and leaving inconsistent state. This
+            // is the adoption-approval equivalent of PosjetaService's concurrency-safe booking.
+            var affected = await _context.Pas
+                .Where(p => p.PasId == entity.PasId && p.Aktivan && p.StatusPsaId == statusDostupan.StatusPsaId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.StatusPsaId, statusRezervisan.StatusPsaId));
+
+            if (affected == 0)
+                throw new BusinessException(
+                    $"Pas \"{pas.Naziv}\" više nije dostupan i zahtjev se ne može odobriti (moguće je da je u međuvremenu rezervisan za drugog korisnika).");
+
+            // Read after the guard so the list reflects state the winning approval actually saw.
+            // Other users' still-pending requests for this now-reserved dog are auto-rejected in
+            // the same transaction instead of being left "Na čekanju" for a dog that's gone.
+            ostaliNaCekanju = await _context.ZahtjevZaUdomljavanjes
+                .Where(z => z.PasId == entity.PasId
+                    && z.ZahtjevZaUdomljavanjeId != entity.ZahtjevZaUdomljavanjeId
+                    && z.StatusZahtjevaId == statusNaCekanju.StatusZahtjevaId)
+                .ToListAsync();
+
             entity.StatusZahtjevaId = statusOdobren.StatusZahtjevaId;
             entity.ObradioKorisnikId = adminKorisnikId;
             entity.DatumObrade = DateTime.UtcNow;
-
-            // Reserved, not yet adopted - see FinalizirajUdomljenje() below.
-            pas.StatusPsaId = statusRezervisan.StatusPsaId;
 
             _notifikacijaService.StageCreate(
                 entity.KorisnikId,
@@ -200,6 +215,67 @@ public class ZahtjevZaUdomljavanjeService : IZahtjevZaUdomljavanjeService
         await SendOdlukaEmailAsync(entity.KorisnikId, pas.Naziv, odobreno: true);
         foreach (var ostali in ostaliNaCekanju)
             await SendOdlukaEmailAsync(ostali.KorisnikId, pas.Naziv, odobreno: false, ostali.RazlogOdbijanja);
+
+        return await GetById(id);
+    }
+
+    // Undo of Odobri(): the adoption fell through before finalizing, so release the reserved dog
+    // back to Dostupan and cancel the request. Only valid while the request is still Odobren and
+    // not yet finalized (once an Udomljavanje row exists, FinalizirajUdomljenje already ran and
+    // this is a no-go). Without this there was no first-class way out of Rezervisan except
+    // finalizing, so a backed-out adoption left the dog stuck forever.
+    public async Task<Model.ZahtjevZaUdomljavanje> PonistiOdobravanje(int id, ZahtjevZaUdomljavanjeOtkaziRequest request, int adminKorisnikId)
+    {
+        var entity = await _context.ZahtjevZaUdomljavanjes.FindAsync(id)
+            ?? throw new NotFoundException($"Zahtjev za udomljavanje s ID {id} nije pronađen.");
+
+        var statusOdobren = await _context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Odobren);
+        if (entity.StatusZahtjevaId != statusOdobren.StatusZahtjevaId)
+            throw new BusinessException("Poništiti se može samo odobren zahtjev.");
+
+        if (await _context.Udomljavanjes.AnyAsync(u => u.ZahtjevZaUdomljavanjeId == entity.ZahtjevZaUdomljavanjeId))
+            throw new BusinessException("Udomljavanje za ovaj zahtjev je već finalizovano i ne može se poništiti.");
+
+        var pas = await _context.Pas.AsNoTracking().FirstOrDefaultAsync(p => p.PasId == entity.PasId)
+            ?? throw new NotFoundException("Pas povezan sa zahtjevom nije pronađen.");
+
+        var statusRezervisan = await _context.StatusPsas.FirstOrDefaultAsync(s => s.Naziv == StatusPsaNazivi.Rezervisan)
+            ?? throw new BusinessException("Status 'Rezervisan' nije podešen u sistemu.");
+        var statusDostupan = await _context.StatusPsas.FirstOrDefaultAsync(s => s.Naziv == StatusPsaNazivi.Dostupan)
+            ?? throw new BusinessException("Status 'Dostupan' nije podešen u sistemu.");
+        var statusOtkazan = await _context.StatusZahtjevas.FirstAsync(s => s.Naziv == StatusZahtjevaNazivi.Otkazan);
+
+        await using var tx = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Only release the dog if it's still Rezervisan (an admin may have already moved it
+            // manually via the Pas form) - guarded UPDATE, same shape as Odobri's transition.
+            await _context.Pas
+                .Where(p => p.PasId == entity.PasId && p.StatusPsaId == statusRezervisan.StatusPsaId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.StatusPsaId, statusDostupan.StatusPsaId));
+
+            entity.StatusZahtjevaId = statusOtkazan.StatusZahtjevaId;
+            entity.ObradioKorisnikId = adminKorisnikId;
+            entity.DatumObrade = DateTime.UtcNow;
+            entity.RazlogOdbijanja = request.RazlogOtkazivanja;
+
+            _notifikacijaService.StageCreate(
+                entity.KorisnikId,
+                NotifikacijaTipovi.ZahtjevOtkazan,
+                "Odobravanje zahtjeva poništeno",
+                $"Odobravanje Vašeg zahtjeva za udomljavanje psa \"{pas.Naziv}\" je poništeno, pas je ponovo dostupan. Razlog: {request.RazlogOtkazivanja}",
+                entity.ZahtjevZaUdomljavanjeId);
+
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+
+        await SendOdlukaEmailAsync(entity.KorisnikId, pas.Naziv, odobreno: false, request.RazlogOtkazivanja);
 
         return await GetById(id);
     }

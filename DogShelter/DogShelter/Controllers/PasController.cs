@@ -44,14 +44,20 @@ public class PasController : ControllerBase
     [Authorize]
     public async Task<Model.Pas> GetById(int ID)
     {
-        var pas = await _pasService.GetById(ID, User.IsInRole(RoleNames.Admin));
+        var isAdmin = User.IsInRole(RoleNames.Admin);
+        var pas = await _pasService.GetById(ID, isAdmin);
 
         var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(idClaim, out var korisnikId))
             throw new ForbiddenException("Nije moguće identificirati korisnika.");
 
-        try { await _pregledService.LogPregled(ID, korisnikId); }
-        catch { /* log failure must never break a dog read */ }
+        // Admin browsing (desktop Psi) is not a recommender signal - same exclusion as
+        // PretragaLogService already applies to admin searches. Only end-user views are logged.
+        if (!isAdmin)
+        {
+            try { await _pregledService.LogPregled(ID, korisnikId); }
+            catch { /* log failure must never break a dog read */ }
+        }
 
         return pas;
     }

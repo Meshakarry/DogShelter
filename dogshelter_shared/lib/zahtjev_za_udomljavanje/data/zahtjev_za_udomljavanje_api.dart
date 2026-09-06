@@ -49,6 +49,15 @@ class ZahtjevZaUdomljavanjeApi {
     return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
   }
 
+  /// Admin-only: undo of odobri() before finalizing - cancels the request and releases the
+  /// reserved dog back to Dostupan. Only valid while the request is Odobren and not yet finalized.
+  Future<ZahtjevZaUdomljavanje> ponistiOdobravanje(int id, {required String razlog}) async {
+    final json = await _client.post('/api/ZahtjevZaUdomljavanje/$id/ponisti-odobravanje', body: {
+      'razlogOtkazivanja': razlog,
+    });
+    return ZahtjevZaUdomljavanje.fromJson(json as Map<String, dynamic>);
+  }
+
   /// Admin-only, second step after odobri(): moves the reserved dog to Udomljen and creates the
   /// Udomljavanje record. Only valid while the request is Odobren and the dog is Rezervisan.
   Future<ZahtjevZaUdomljavanje> finalizirajUdomljenje(int id) async {

@@ -179,6 +179,12 @@ public class PosjetaService : IPosjetaService
         if (entity.StatusPosjeteId != statusNaCekanju.StatusPosjeteId)
             throw new BusinessException("Samo posjeta na čekanju može biti potvrđena.");
 
+        // Time is a server invariant (same principle as Insert/InsertAdmin rejecting past terms
+        // and Zavrsi requiring the term to have passed) - confirming a visit whose slot is already
+        // gone makes no sense and would leave a "Potvrđena" row that Zavrsi then immediately accepts.
+        if (entity.DatumVrijeme <= DateTime.UtcNow)
+            throw new BusinessException("Termin posjete je prošao i posjeta se više ne može potvrditi.");
+
         var statusPotvrdjena = await _context.StatusPosjetes.FirstAsync(s => s.Naziv == StatusPosjeteNazivi.Potvrdjena);
 
         entity.StatusPosjeteId = statusPotvrdjena.StatusPosjeteId;

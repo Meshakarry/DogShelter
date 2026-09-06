@@ -1,3 +1,4 @@
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -56,7 +57,7 @@ public class PosjetaReminderService : BackgroundService
             .Include(p => p.Korisnik)
             .Include(p => p.Pas)
             .Include(p => p.StatusPosjete)
-            .Where(p => p.StatusPosjete.Naziv == "Potvrđena"
+            .Where(p => p.StatusPosjete.Naziv == StatusPosjeteNazivi.Potvrdjena
                 && !p.PodsjetnikPoslan
                 && p.DatumVrijeme > now
                 && p.DatumVrijeme <= windowEnd)

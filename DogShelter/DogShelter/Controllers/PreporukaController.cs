@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using DogShelter.Model;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
 using DogShelter.Services.Services;
@@ -24,6 +25,12 @@ public class PreporukaController : ControllerBase
     [Authorize]
     public async Task<List<Model.PreporuceniPas>> Psi([FromQuery] int? take)
     {
+        // Recommendations are an end-user feature (mobile). An admin account has no meaningful
+        // interaction history and the desktop has no UI for this - block it explicitly so the
+        // endpoint isn't a stray way for admin activity to touch the recommender.
+        if (User.IsInRole(RoleNames.Admin))
+            throw new ForbiddenException("Preporuke nisu dostupne administratorskom nalogu.");
+
         var howMany = take ?? PreporukaService.DefaultBrojPreporuka;
         howMany = Math.Clamp(howMany, 1, MaxBrojPreporuka);
         return await _service.PreporuceniPsi(GetCurrentKorisnikId(), howMany);

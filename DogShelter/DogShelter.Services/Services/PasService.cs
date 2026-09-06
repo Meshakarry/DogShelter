@@ -1,6 +1,7 @@
 using AutoMapper;
 using DogShelter.Model;
 using DogShelter.Model.Requests;
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using DogShelter.Services.Interfaces;
@@ -110,10 +111,16 @@ public class PasService : IPasService
 
     public async Task<Model.Pas> UpdateWithImage(int id, PasUpdateRequest request, IFormFile? cover)
     {
-        var entity = await _context.Pas.FindAsync(id)
+        var entity = await _context.Pas.Include(p => p.StatusPsa).FirstOrDefaultAsync(p => p.PasId == id)
             ?? throw new NotFoundException($"Pas s ID {id} nije pronađen.");
 
         await ValidateForeignKeysAsync(request.RasaId, request.StatusPsaId, request.VelicinaPsaId, request.NivoAktivnostiId);
+
+        // Unchecking "Aktivan" in the edit form is the same soft-delete as Delete() below - guard
+        // it identically so the form isn't a way around the dependency check. Checked before the
+        // map so entity.StatusPsa still reflects the dog's current status.
+        if (entity.Aktivan && !request.Aktivan)
+            await EnsureCanDeactivateAsync(entity);
 
         var oldCover = entity.SlikaNaslovna;
         _mapper.Map(request, entity);
@@ -135,12 +142,35 @@ public class PasService : IPasService
 
     public async Task<bool> Delete(int id)
     {
-        var entity = await _context.Pas.FindAsync(id)
+        var entity = await _context.Pas.Include(p => p.StatusPsa).FirstOrDefaultAsync(p => p.PasId == id)
             ?? throw new NotFoundException($"Pas s ID {id} nije pronađen.");
+
+        if (!entity.Aktivan)
+            return true;
+
+        await EnsureCanDeactivateAsync(entity);
 
         entity.Aktivan = false;
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    // Soft-delete (Delete, or unchecking Aktivan in the edit form) must not orphan live workflow
+    // rows. A Rezervisan dog has an approved adoption in flight; a pending zahtjev / upcoming visit
+    // is a user waiting on this dog. Force the admin to resolve those first instead of silently
+    // leaving them pointed at a deactivated dog. `pas.StatusPsa` must be loaded by the caller.
+    private async Task EnsureCanDeactivateAsync(Database.Pas pas)
+    {
+        if (pas.StatusPsa?.Naziv == StatusPsaNazivi.Rezervisan)
+            throw new BusinessException($"Pas \"{pas.Naziv}\" je rezervisan za udomljavanje. Poništite ili finalizirajte odobreni zahtjev prije deaktivacije.");
+
+        if (await _context.ZahtjevZaUdomljavanjes.AnyAsync(z => z.PasId == pas.PasId && z.StatusZahtjeva.Naziv == StatusZahtjevaNazivi.NaCekanju))
+            throw new BusinessException($"Pas \"{pas.Naziv}\" ima zahtjev za udomljavanje na čekanju. Obradite ga prije deaktivacije.");
+
+        if (await _context.Posjeta.AnyAsync(p => p.PasId == pas.PasId
+                && p.DatumVrijeme > DateTime.UtcNow
+                && (p.StatusPosjete.Naziv == StatusPosjeteNazivi.NaCekanju || p.StatusPosjete.Naziv == StatusPosjeteNazivi.Potvrdjena)))
+            throw new BusinessException($"Pas \"{pas.Naziv}\" ima zakazane buduće posjete. Otkažite ih prije deaktivacije.");
     }
 
     public async Task<Model.SlikaPsa> AddSlika(int pasId, IFormFile file, int redniBroj)

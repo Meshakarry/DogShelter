@@ -1,3 +1,4 @@
+using DogShelter.Services.Constants;
 using DogShelter.Services.Database;
 using DogShelter.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -24,8 +25,18 @@ public class FavoritService : Interfaces.IFavoritService
 
     public async Task<Model.Favorit> AddAsync(int korisnikId, int pasId)
     {
-        if (!await _context.Pas.AnyAsync(p => p.PasId == pasId))
-            throw new NotFoundException($"Pas s ID {pasId} nije pronađen.");
+        var pas = await _context.Pas.Include(p => p.StatusPsa)
+            .FirstOrDefaultAsync(p => p.PasId == pasId)
+            ?? throw new NotFoundException($"Pas s ID {pasId} nije pronađen.");
+
+        // Same boundary as the rest of the app: a non-admin can't see (PasService.GetById) or act
+        // on an inactive/non-available dog, so it can't be favorited either - the mobile heart is
+        // only shown on Dostupan dogs, and this stops a hand-built request from adding a
+        // soft-deleted/adopted dog as a favorite (which would then feed PreporukaService).
+        if (!pas.Aktivan)
+            throw new BusinessException($"Pas \"{pas.Naziv}\" više nije aktivan i ne može se dodati u favorite.");
+        if (pas.StatusPsa.Naziv != StatusPsaNazivi.Dostupan)
+            throw new BusinessException($"Pas \"{pas.Naziv}\" trenutno nije dostupan i ne može se dodati u favorite.");
 
         // Idempotent - a double-tap or a stale toggle-button state re-adding an already-favorited
         // dog just returns the existing row instead of failing on the unique index.

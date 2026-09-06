@@ -234,7 +234,9 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                                 final terminPassed = !posjeta.datumVrijeme.isAfter(DateTime.now());
                                 final isRowProcessing = _processingIds.contains(posjeta.posjetaId);
                                 final canZavrsi = naziv == _potvrdjena && terminPassed && !isRowProcessing;
-                                final canPotvrdi = naziv == _naCekanju && !isRowProcessing;
+                                // Potvrdi is rejected server-side once the slot has passed - a
+                                // stale-term visit can only be cancelled.
+                                final canPotvrdi = naziv == _naCekanju && !terminPassed && !isRowProcessing;
                                 final canOtkazi = (naziv == _naCekanju || naziv == _potvrdjena) && !isRowProcessing;
                                 return ListTile(
                                   onTap: () => _showDetail(posjeta),
@@ -288,6 +290,8 @@ class _PosjeteScreenState extends ConsumerState<PosjeteScreen> {
                                               ),
                                         tooltip: switch (naziv) {
                                           _ when isRowProcessing => 'Obrada u toku...',
+                                          _naCekanju when terminPassed =>
+                                            'Termin je prošao - posjeta se više ne može potvrditi, samo otkazati.',
                                           _naCekanju => 'Potvrdi',
                                           _potvrdjena when !terminPassed =>
                                             'Posjeta se može označiti završenom tek nakon zakazanog termina.',

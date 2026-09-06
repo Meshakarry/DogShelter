@@ -133,7 +133,9 @@ class _PosjetaDetailScreenState extends ConsumerState<PosjetaDetailScreen> {
               // that's guaranteed to fail.
               final terminPassed = !posjeta.datumVrijeme.isAfter(DateTime.now());
               final canZavrsi = naziv == _potvrdjena && terminPassed && !_isProcessing;
-              final canPotvrdi = naziv == _naCekanju && !_isProcessing;
+              // PosjetaService.Potvrdi() rejects a past term server-side - a visit whose slot is
+              // already gone can only be cancelled, not confirmed.
+              final canPotvrdi = naziv == _naCekanju && !terminPassed && !_isProcessing;
               final canOtkazi = (naziv == _naCekanju || naziv == _potvrdjena) && !_isProcessing;
 
               return Center(
@@ -264,6 +266,17 @@ class _PosjetaDetailScreenState extends ConsumerState<PosjetaDetailScreen> {
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Text(
                                   'Posjeta se može označiti završenom tek nakon zakazanog termina (${formatDateTime(posjeta.datumVrijeme)}).',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                ),
+                              ),
+                            if (naziv == _naCekanju && terminPassed)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'Termin posjete je prošao (${formatDateTime(posjeta.datumVrijeme)}) - posjeta se više ne može potvrditi, ali se može otkazati.',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall

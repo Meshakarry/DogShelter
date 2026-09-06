@@ -41,6 +41,11 @@ class ZahtjevListNotifier extends PagedListNotifier<ZahtjevZaUdomljavanje> {
     await refresh();
   }
 
+  Future<void> ponistiOdobravanje(int id, String razlog) async {
+    await _api.ponistiOdobravanje(id, razlog: razlog);
+    await refresh();
+  }
+
   Future<void> finalizirajUdomljenje(int id) async {
     await _api.finalizirajUdomljenje(id);
     await refresh();
