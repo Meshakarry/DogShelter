@@ -30,7 +30,14 @@ Pri **prvom** pokretanju (ili nakon `docker compose down -v`) API:
 
 ## Worker
 
-`dogshelter_worker` konzumira poruke sa RabbitMQ (reset lozinke, obavijesti o zaduženju) i šalje email preko SMTP-a. Nema izloženi port — provjeri njegov rad preko `docker compose logs -f dogshelter_worker` ili `scripts/validate-worker.ps1` iz root foldera repozitorija.
+`dogshelter_worker` radi dvije stvari:
+
+1. **Konzumira poruke sa RabbitMQ** (reset lozinke, obavijesti o zaduženju, odluke o zahtjevima za udomljavanje) i šalje email preko SMTP-a.
+2. **Periodično provjerava predstojeće potvrđene posjete** (`PosjetaReminderService`) i korisniku šalje podsjetnik prije termina.
+
+Zbog #2 Worker treba i pristup bazi, pa se u `docker-compose.yml` diže tek kad su `dogshelter_sqlserver` i `dogshelter_api` healthy.
+
+Nema izloženi port — provjeri njegov rad preko `docker compose logs -f dogshelter_worker` ili `scripts/validate-worker.ps1` iz root foldera repozitorija.
 
 ## Zaustavljanje
 
